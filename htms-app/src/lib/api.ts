@@ -1,0 +1,38 @@
+import { supabase } from './supabase';
+
+/** Authenticated fetch to a Netlify function — always attaches the live JWT. */
+async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  const res = await fetch(path, {
+    ...init,
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(init.headers ?? {}),
+    },
+  });
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    // Plain `vite` doesn't run the /api functions — it returns index.html here.
+    throw new Error(
+      'API did not return JSON. Run the app with `npx netlify dev` (port 8888) so the /api functions are served, not plain `npm run dev`.',
+    );
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((body as { error?: string }).error ?? `Request failed (${res.status})`);
+  return body as T;
+}
+
+export const api = {
+  listWaybills: () => call<{ waybills: any[] }>('/api/waybills'),
+  createWaybill: (w: unknown) => call('/api/waybills', { method: 'POST', body: JSON.stringify(w) }),
+  listInvoices: () => call<{ invoices: any[] }>('/api/invoices'),
+  createInvoice: (i: unknown) => call('/api/invoices', { method: 'POST', body: JSON.stringify(i) }),
+  approveInvoice: (id: string, action: 'approve' | 'lock' | 'void') =>
+    call(`/api/invoices?id=${id}&action=${action}`, { method: 'PATCH' }),
+  generateDoc: (d: unknown) => call<{ url: string; html: string }>('/api/generate-document', {
+    method: 'POST',
+    body: JSON.stringify(d),
+  }),
+};

@@ -1,0 +1,3460 @@
+[
+{
+"region": "Ahafo",
+"district": "Asunafo North",
+"capital": "Goaso",
+"km": {
+"Tema": 438.0,
+"Takoradi": 315.0,
+"Kumasi": 137.0,
+"Ntensere": 162.7,
+"Nsawam": 369.3,
+"Asante-Akim South": 215.0
+}
+},
+{
+"region": "Ahafo",
+"district": "Asunafo South",
+"capital": "Kukuom",
+"km": {
+"Tema": 459.0,
+"Takoradi": 299.0,
+"Kumasi": 158.0,
+"Ntensere": 183.7,
+"Nsawam": 352.6,
+"Asante-Akim South": 205.0
+}
+},
+{
+"region": "Ahafo",
+"district": "Asutifi North",
+"capital": "Kenyasi",
+"km": {
+"Tema": 385.0,
+"Takoradi": 347.0,
+"Kumasi": 111.0,
+"Ntensere": 136.7,
+"Nsawam": 346.2,
+"Asante-Akim South": 201.0
+}
+},
+{
+"region": "Ahafo",
+"district": "Asutifi South",
+"capital": "Hwidiem",
+"km": {
+"Tema": 420.0,
+"Takoradi": 339.0,
+"Kumasi": 119.0,
+"Ntensere": 144.7,
+"Nsawam": 395.4,
+"Asante-Akim South": 195.0
+}
+},
+{
+"region": "Ahafo",
+"district": "Tano North",
+"capital": "Duayaw Nkwanta",
+"km": {
+"Tema": 394.0,
+"Takoradi": 378.0,
+"Kumasi": 93.0,
+"Ntensere": 118.7,
+"Nsawam": 316.8,
+"Asante-Akim South": 169.0
+}
+},
+{
+"region": "Ahafo",
+"district": "Tano South Municipal",
+"capital": "Bechem",
+"km": {
+"Tema": 397.0,
+"Takoradi": 364.0,
+"Kumasi": 80.0,
+"Ntensere": 105.7,
+"Nsawam": 287.5,
+"Asante-Akim South": 158.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Adansi Asokwa",
+"capital": "Asokwa",
+"km": {
+"Tema": 265.0,
+"Takoradi": 232.0,
+"Kumasi": 82.0,
+"Ntensere": 107.7,
+"Nsawam": 170.7,
+"Asante-Akim South": 83.9
+}
+},
+{
+"region": "Ashanti",
+"district": "Adansi North",
+"capital": "Fomena",
+"km": {
+"Tema": 388.0,
+"Takoradi": 236.0,
+"Kumasi": 87.0,
+"Ntensere": 112.7,
+"Nsawam": 239.0,
+"Asante-Akim South": 108.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Adansi South",
+"capital": "New Edubiase",
+"km": {
+"Tema": 414.0,
+"Takoradi": 199.0,
+"Kumasi": 113.0,
+"Ntensere": 138.7,
+"Nsawam": 243.8,
+"Asante-Akim South": 132.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Afigya-Kwabre",
+"capital": "Kodie",
+"km": {
+"Tema": 294.0,
+"Takoradi": 307.0,
+"Kumasi": 16.0,
+"Ntensere": 41.7,
+"Nsawam": 226.7,
+"Asante-Akim South": 94.8
+}
+},
+{
+"region": "Ashanti",
+"district": "Afigya-Kwabre North",
+"capital": "Boamang",
+"km": {
+"Tema": 298.0,
+"Takoradi": 341.0,
+"Kumasi": 34.0,
+"Ntensere": 59.7,
+"Nsawam": 245.9,
+"Asante-Akim South": 220.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Ahafo-Ano North",
+"capital": "Tepa",
+"km": {
+"Tema": 393.0,
+"Takoradi": 379.0,
+"Kumasi": 92.0,
+"Ntensere": 117.7,
+"Nsawam": 300.7,
+"Asante-Akim South": 171.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Ahafo-Ano South East",
+"capital": "Mankranso",
+"km": {
+"Tema": 336.0,
+"Takoradi": 325.0,
+"Kumasi": 35.0,
+"Ntensere": 60.7,
+"Nsawam": 263.5,
+"Asante-Akim South": 118.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Ahafo-Ano South West",
+"capital": "Mankranso",
+"km": {
+"Tema": 336.0,
+"Takoradi": 325.0,
+"Kumasi": 35.0,
+"Ntensere": 60.7,
+"Nsawam": 263.5,
+"Asante-Akim South": 118.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Akrofuom",
+"capital": "Akrofuom",
+"km": {
+"Tema": 290.0,
+"Takoradi": 257.0,
+"Kumasi": 91.0,
+"Ntensere": 116.7,
+"Nsawam": 182.5,
+"Asante-Akim South": 115.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Amansie Central",
+"capital": "Jacobu",
+"km": {
+"Tema": 333.0,
+"Takoradi": 265.0,
+"Kumasi": 32.0,
+"Ntensere": 57.7,
+"Nsawam": 309.4,
+"Asante-Akim South": 116.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Amansie South",
+"capital": "Edubia",
+"km": {
+"Tema": 132.0,
+"Takoradi": 199.0,
+"Kumasi": 94.0,
+"Ntensere": 119.7,
+"Nsawam": 68,
+"Asante-Akim South": 142.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Amansie West",
+"capital": "Manso Nkwanta",
+"km": {
+"Tema": 74.0,
+"Takoradi": 311.0,
+"Kumasi": 74.0,
+"Ntensere": 99.7,
+"Nsawam": 10,
+"Asante-Akim South": 142.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Asante-Akim Central Municipal",
+"capital": "Konongo",
+"km": {
+"Tema": 246.0,
+"Takoradi": 423.0,
+"Kumasi": 55.0,
+"Ntensere": 80.7,
+"Nsawam": 161.8,
+"Asante-Akim South": 29.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Asante-Akim North",
+"capital": "Agogo, Ghana",
+"km": {
+"Tema": 385.0,
+"Takoradi": 326.0,
+"Kumasi": 84.0,
+"Ntensere": 109.7,
+"Nsawam": 183.8,
+"Asante-Akim South": 47.8
+}
+},
+{
+"region": "Ashanti",
+"district": "Asante-Akim South",
+"capital": "Juaso",
+"km": {
+"Tema": 235.0,
+"Takoradi": 307.0,
+"Kumasi": 66.0,
+"Ntensere": 91.7,
+"Nsawam": 171,
+"Asante-Akim South": 17.2
+}
+},
+{
+"region": "Ashanti",
+"district": "Asokore-Mampong Municipal",
+"capital": "Asokore Mampong",
+"km": {
+"Tema": 268.0,
+"Takoradi": 310.0,
+"Kumasi": 11.0,
+"Ntensere": 36.7,
+"Nsawam": 152.7,
+"Asante-Akim South": 76.2
+}
+},
+{
+"region": "Ashanti",
+"district": "Asokwa Municipal",
+"capital": "Asokwa",
+"km": {
+"Tema": 369.0,
+"Takoradi": 232.0,
+"Kumasi": 68.0,
+"Ntensere": 93.7,
+"Nsawam": 170.7,
+"Asante-Akim South": 93.9
+}
+},
+{
+"region": "Ashanti",
+"district": "Atwi ma-Mponua",
+"capital": "Nyinahin",
+"km": {
+"Tema": 360.0,
+"Takoradi": 295.0,
+"Kumasi": 59.0,
+"Ntensere": 84.7,
+"Nsawam": 274.7,
+"Asante-Akim South": 142.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Atwima-Kwanwoma",
+"capital": "Foase Kokoben",
+"km": {
+"Tema": 296.0,
+"Takoradi": 268.0,
+"Kumasi": 27.0,
+"Ntensere": 52.7,
+"Nsawam": 239.0,
+"Asante-Akim South": 106.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Atwima-Nwabiagya",
+"capital": "Nkawie",
+"km": {
+"Tema": 330.0,
+"Takoradi": 318.0,
+"Kumasi": 29.0,
+"Ntensere": 54.7,
+"Nsawam": 254.8,
+"Asante-Akim South": 107.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Bekwai Municipal",
+"capital": "Bekwai",
+"km": {
+"Tema": 340.0,
+"Takoradi": 248.0,
+"Kumasi": 39.0,
+"Ntensere": 64.7,
+"Nsawam": 223.0,
+"Asante-Akim South": 97.2
+}
+},
+{
+"region": "Ashanti",
+"district": "Bosome-Freho",
+"capital": "Asiwa",
+"km": {
+"Tema": 258.0,
+"Takoradi": 264.0,
+"Kumasi": 70.0,
+"Ntensere": 95.7,
+"Nsawam": 197.4,
+"Asante-Akim South": 68.4
+}
+},
+{
+"region": "Ashanti",
+"district": "Bosomtwe",
+"capital": "Kuntenase",
+"km": {
+"Tema": 270.0,
+"Takoradi": 276.0,
+"Kumasi": 26.0,
+"Ntensere": 51.7,
+"Nsawam": 221.5,
+"Asante-Akim South": 97.1
+}
+},
+{
+"region": "Ashanti",
+"district": "Ej ura-Sekyedumase",
+"capital": "Ejura",
+"km": {
+"Tema": 398.0,
+"Takoradi": 386.0,
+"Kumasi": 97.0,
+"Ntensere": 122.7,
+"Nsawam": 286.1,
+"Asante-Akim South": 147.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Ejisu-Juaben Municipal",
+"capital": "Ejisu",
+"km": {
+"Tema": 280.0,
+"Takoradi": 304.0,
+"Kumasi": 21.0,
+"Ntensere": 46.7,
+"Nsawam": 206.1,
+"Asante-Akim South": 73.3
+}
+},
+{
+"region": "Ashanti",
+"district": "Juaben Municipal",
+"capital": "Juaben",
+"km": {
+"Tema": 330.0,
+"Takoradi": 306.0,
+"Kumasi": 29.0,
+"Ntensere": 54.7,
+"Nsawam": 214.7,
+"Asante-Akim South": 69.3
+}
+},
+{
+"region": "Ashanti",
+"district": "Kumasi Metropolitan",
+"capital": "Kumasi",
+"km": {
+"Tema": 301.0,
+"Takoradi": 306.0,
+"Kumasi": null,
+"Ntensere": 25.7,
+"Nsawam": 228.6,
+"Asante-Akim South": 82.3
+}
+},
+{
+"region": "Ashanti",
+"district": "Kumawu",
+"capital": "Kumawu",
+"km": {
+"Tema": 243.0,
+"Takoradi": 332.0,
+"Kumasi": 58.0,
+"Ntensere": 83.7,
+"Nsawam": 212.3,
+"Asante-Akim South": 76.3
+}
+},
+{
+"region": "Ashanti",
+"district": "Kwabre East",
+"capital": "Antoa",
+"km": {
+"Tema": 296.0,
+"Takoradi": 266.0,
+"Kumasi": 26.0,
+"Ntensere": 51.7,
+"Nsawam": 205.2,
+"Asante-Akim South": 72.5
+}
+},
+{
+"region": "Ashanti",
+"district": "Kwadaso Municipal",
+"capital": "Kwadaso",
+"km": {
+"Tema": 281.0,
+"Takoradi": 293.0,
+"Kumasi": 6.0,
+"Ntensere": 31.7,
+"Nsawam": 219.5,
+"Asante-Akim South": 87.2
+}
+},
+{
+"region": "Ashanti",
+"district": "Mampong Municipal",
+"capital": "Mampong",
+"km": {
+"Tema": 359.0,
+"Takoradi": 346.0,
+"Kumasi": 58.0,
+"Ntensere": 83.7,
+"Nsawam": 245.6,
+"Asante-Akim South": 105.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Obuasi East",
+"capital": "Tutuka",
+"km": {
+"Tema": 281.0,
+"Takoradi": 243.0,
+"Kumasi": 79.0,
+"Ntensere": 104.7,
+"Nsawam": 189.2,
+"Asante-Akim South": 197.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Obuasi Municipal",
+"capital": "Obuasi",
+"km": {
+"Tema": 367.0,
+"Takoradi": 204.0,
+"Kumasi": 66.0,
+"Ntensere": 91.7,
+"Nsawam": 275.1,
+"Asante-Akim South": 131.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Offinso Municipal",
+"capital": "Offinso",
+"km": {
+"Tema": 333.0,
+"Takoradi": 319.0,
+"Kumasi": 32.0,
+"Ntensere": 57.7,
+"Nsawam": 270.1,
+"Asante-Akim South": 134.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Offinso North",
+"capital": "Akomadan",
+"km": {
+"Tema": 407.0,
+"Takoradi": 412.0,
+"Kumasi": 106.0,
+"Ntensere": 131.7,
+"Nsawam": 343,
+"Asante-Akim South": 186.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Oforikrom Municipal",
+"capital": "Oforikrom",
+"km": {
+"Tema": 357.0,
+"Takoradi": 188.0,
+"Kumasi": 130.0,
+"Ntensere": 155.7,
+"Nsawam": 293,
+"Asante-Akim South": 77.3
+}
+},
+{
+"region": "Ashanti",
+"district": "Old Tafo Municipal",
+"capital": "Old Tafo",
+"km": {
+"Tema": 120.0,
+"Takoradi": 295.0,
+"Kumasi": 166.0,
+"Ntensere": 191.7,
+"Nsawam": 59.4,
+"Asante-Akim South": 84.6
+}
+},
+{
+"region": "Ashanti",
+"district": "Sekyere Central",
+"capital": "Nsuta",
+"km": {
+"Tema": 375.0,
+"Takoradi": 336.0,
+"Kumasi": 58.0,
+"Ntensere": 83.7,
+"Nsawam": 232.4,
+"Asante-Akim South": 99.5
+}
+},
+{
+"region": "Ashanti",
+"district": "Sekyere East",
+"capital": "Iffiduase",
+"km": {
+"Tema": 300.0,
+"Takoradi": 317.0,
+"Kumasi": 40.0,
+"Ntensere": 65.7,
+"Nsawam": 213.1,
+"Asante-Akim South": 80.2
+}
+},
+{
+"region": "Ashanti",
+"district": "Sekyere Kumawu",
+"capital": "Kumawu",
+"km": {
+"Tema": 243.0,
+"Takoradi": 333.0,
+"Kumasi": 58.0,
+"Ntensere": 83.7,
+"Nsawam": 209.1,
+"Asante-Akim South": 76.3
+}
+},
+{
+"region": "Ashanti",
+"district": "Sekyere South",
+"capital": "Agona",
+"km": {
+"Tema": 348.0,
+"Takoradi": 182.0,
+"Kumasi": 47.0,
+"Ntensere": 72.7,
+"Nsawam": 226.2,
+"Asante-Akim South": 93.4
+}
+},
+{
+"region": "Ashanti",
+"district": "Sekyere-Afram Plains",
+"capital": "Drobonso",
+"km": {
+"Tema": 296.0,
+"Takoradi": 364.0,
+"Kumasi": 248.0,
+"Ntensere": 273.7,
+"Nsawam": 236.1,
+"Asante-Akim South": 129.0
+}
+},
+{
+"region": "Ashanti",
+"district": "Suame Municipal",
+"capital": "Suame",
+"km": {
+"Tema": 301.0,
+"Takoradi": 298.0,
+"Kumasi": 9.0,
+"Ntensere": 34.7,
+"Nsawam": 236.7,
+"Asante-Akim South": 87.5
+}
+},
+{
+"region": "Bono",
+"district": "Banda",
+"capital": "Banda Ahenkro",
+"km": {
+"Tema": 526.0,
+"Takoradi": 540.0,
+"Kumasi": 261.0,
+"Ntensere": 286.7,
+"Nsawam": 445.2,
+"Asante-Akim South": 324.0
+}
+},
+{
+"region": "Bono",
+"district": "Berekum East Municipal",
+"capital": "Berekum",
+"km": {
+"Tema": 465.0,
+"Takoradi": 414.0,
+"Kumasi": 164.0,
+"Ntensere": 189.7,
+"Nsawam": 370.0,
+"Asante-Akim South": 238.0
+}
+},
+{
+"region": "Bono",
+"district": "Berekum West",
+"capital": "Jinijini",
+"km": {
+"Tema": 473.0,
+"Takoradi": 413.0,
+"Kumasi": 172.0,
+"Ntensere": 197.7,
+"Nsawam": 378.0,
+"Asante-Akim South": 246.0
+}
+},
+{
+"region": "Bono",
+"district": "Dormaa Central Municipal",
+"capital": "Dormaa Ahenkro",
+"km": {
+"Tema": 510.0,
+"Takoradi": 395.0,
+"Kumasi": 209.0,
+"Ntensere": 234.7,
+"Nsawam": 428.0,
+"Asante-Akim South": 284.0
+}
+},
+{
+"region": "Bono",
+"district": "Dormaa East",
+"capital": "Wamfie",
+"km": {
+"Tema": 494.0,
+"Takoradi": 390.0,
+"Kumasi": 193.0,
+"Ntensere": 218.7,
+"Nsawam": 430,
+"Asante-Akim South": 261.0
+}
+},
+{
+"region": "Bono",
+"district": "Dormaa West",
+"capital": "Ankrankwanta",
+"km": {
+"Tema": 562.0,
+"Takoradi": 391.0,
+"Kumasi": 202.0,
+"Ntensere": 227.7,
+"Nsawam": 454.4,
+"Asante-Akim South": 323.0
+}
+},
+{
+"region": "Bono",
+"district": "Jaman North",
+"capital": "Sampa",
+"km": {
+"Tema": 547.0,
+"Takoradi": 486.0,
+"Kumasi": 246.0,
+"Ntensere": 271.7,
+"Nsawam": 463.7,
+"Asante-Akim South": 319.0
+}
+},
+{
+"region": "Bono",
+"district": "Jaman South",
+"capital": "Drobo",
+"km": {
+"Tema": 542.0,
+"Takoradi": 435.0,
+"Kumasi": 188.0,
+"Ntensere": 213.7,
+"Nsawam": 400.4,
+"Asante-Akim South": 268.0
+}
+},
+{
+"region": "Bono",
+"district": "Sunyani Municipal",
+"capital": "Sunyani",
+"km": {
+"Tema": 431.0,
+"Takoradi": 417.0,
+"Kumasi": 130.0,
+"Ntensere": 155.7,
+"Nsawam": 351.0,
+"Asante-Akim South": 203.0
+}
+},
+{
+"region": "Bono",
+"district": "Sunyani West",
+"capital": "Odumase",
+"km": {
+"Tema": 402.0,
+"Takoradi": 417.0,
+"Kumasi": 128.0,
+"Ntensere": 153.7,
+"Nsawam": 26.2,
+"Asante-Akim South": 211.0
+}
+},
+{
+"region": "Bono",
+"district": "Tain",
+"capital": "Nsawkaw",
+"km": {
+"Tema": 481.0,
+"Takoradi": 360.0,
+"Kumasi": 180.0,
+"Ntensere": 205.7,
+"Nsawam": 408.4,
+"Asante-Akim South": 261.0
+}
+},
+{
+"region": "Bono",
+"district": "Wenchi",
+"capital": "Wenchi",
+"km": {
+"Tema": 455.0,
+"Takoradi": 445.0,
+"Kumasi": 154.0,
+"Ntensere": 179.7,
+"Nsawam": 132.2,
+"Asante-Akim South": 234.0
+}
+},
+{
+"region": "Bono East",
+"district": "Atebubu-Amantin Municipality",
+"capital": "Atebubu",
+"km": {
+"Tema": 462.0,
+"Takoradi": 447.0,
+"Kumasi": 161.0,
+"Ntensere": 186.7,
+"Nsawam": 9.3,
+"Asante-Akim South": 207.0
+}
+},
+{
+"region": "Bono East",
+"district": "Kintampo North Municipality",
+"capital": "Kintampo",
+"km": {
+"Tema": 510.0,
+"Takoradi": 496.0,
+"Kumasi": 209.0,
+"Ntensere": 234.7,
+"Nsawam": 405.6,
+"Asante-Akim South": 257.0
+}
+},
+{
+"region": "Bono East",
+"district": "Kintampo South",
+"capital": "Jema",
+"km": {
+"Tema": 433.0,
+"Takoradi": 455.0,
+"Kumasi": 191.8,
+"Ntensere": 217.5,
+"Nsawam": 360.0,
+"Asante-Akim South": 245.0
+}
+},
+{
+"region": "Bono East",
+"district": "Nkoranza North",
+"capital": "Busunya",
+"km": {
+"Tema": 413.0,
+"Takoradi": 456.0,
+"Kumasi": 170.2,
+"Ntensere": 195.9,
+"Nsawam": 340.2,
+"Asante-Akim South": 217.0
+}
+},
+{
+"region": "Bono East",
+"district": "Nkoranza South",
+"capital": "Nkoranza",
+"km": {
+"Tema": 463.0,
+"Takoradi": 434.0,
+"Kumasi": 154.0,
+"Ntensere": 179.7,
+"Nsawam": 319.8,
+"Asante-Akim South": 198.0
+}
+},
+{
+"region": "Bono East",
+"district": "Pru East",
+"capital": "Yeji",
+"km": {
+"Tema": 528.0,
+"Takoradi": 533.0,
+"Kumasi": 227.0,
+"Ntensere": 252.7,
+"Nsawam": 464,
+"Asante-Akim South": 277.0
+}
+},
+{
+"region": "Bono East",
+"district": "Pru West",
+"capital": "Prang",
+"km": {
+"Tema": 489.0,
+"Takoradi": 477.0,
+"Kumasi": 188.0,
+"Ntensere": 213.7,
+"Nsawam": 378.0,
+"Asante-Akim South": 238.0
+}
+},
+{
+"region": "Bono East",
+"district": "Sene East",
+"capital": "Kajaji",
+"km": {
+"Tema": 558.0,
+"Takoradi": 534.0,
+"Kumasi": 257.0,
+"Ntensere": 282.7,
+"Nsawam": 434.0,
+"Asante-Akim South": 295.0
+}
+},
+{
+"region": "Bono East",
+"district": "Sene West",
+"capital": "Kwame Danso",
+"km": {
+"Tema": 491.0,
+"Takoradi": 482.0,
+"Kumasi": 192.0,
+"Ntensere": 217.7,
+"Nsawam": 382.0,
+"Asante-Akim South": 242.0
+}
+},
+{
+"region": "Bono East",
+"district": "Techiman Municipal",
+"capital": "Techiman",
+"km": {
+"Tema": 426.0,
+"Takoradi": 431.0,
+"Kumasi": 126.0,
+"Ntensere": 151.7,
+"Nsawam": 362,
+"Asante-Akim South": 211.0
+}
+},
+{
+"region": "Bono East",
+"district": "Techiman North",
+"capital": "Tuobodom",
+"km": {
+"Tema": 405.0,
+"Takoradi": 423.0,
+"Kumasi": 132.0,
+"Ntensere": 157.7,
+"Nsawam": 354.0,
+"Asante-Akim South": 233.0
+}
+},
+{
+"region": "Central",
+"district": "Abura - Asebu - Kwamankese",
+"capital": "Dunkwa",
+"km": {
+"Tema": 468.0,
+"Takoradi": 211.0,
+"Kumasi": 97.0,
+"Ntensere": 122.7,
+"Nsawam": 227.0,
+"Asante-Akim South": 282.0
+}
+},
+{
+"region": "Central",
+"district": "Agona East",
+"capital": "Nsaba",
+"km": {
+"Tema": 133.0,
+"Takoradi": 174.0,
+"Kumasi": 195.0,
+"Ntensere": 220.7,
+"Nsawam": 59.6,
+"Asante-Akim South": 143.0
+}
+},
+{
+"region": "Central",
+"district": "Agona West Municipal",
+"capital": "Swedru",
+"km": {
+"Tema": 107.0,
+"Takoradi": 182.0,
+"Kumasi": 224.0,
+"Ntensere": 249.7,
+"Nsawam": 59.2,
+"Asante-Akim South": 160.0
+}
+},
+{
+"region": "Central",
+"district": "Ajumako-Enyan-Essiam",
+"capital": "Ajumako",
+"km": {
+"Tema": 151.0,
+"Takoradi": 146.0,
+"Kumasi": 191.0,
+"Ntensere": 216.7,
+"Nsawam": 93.7,
+"Asante-Akim South": 160.0
+}
+},
+{
+"region": "Central",
+"district": "Asikuma - Odoben - Brakwa",
+"capital": "Breman Asikuma",
+"km": {
+"Tema": 174.0,
+"Takoradi": 169.0,
+"Kumasi": 181.0,
+"Ntensere": 206.7,
+"Nsawam": 116.0,
+"Asante-Akim South": 127.0
+}
+},
+{
+"region": "Central",
+"district": "Assin Central Municipal",
+"capital": "Assin Foso",
+"km": {
+"Tema": 241.0,
+"Takoradi": 160.0,
+"Kumasi": 134.0,
+"Ntensere": 159.7,
+"Nsawam": 140.0,
+"Asante-Akim South": 156.0
+}
+},
+{
+"region": "Central",
+"district": "Assin North Municipal",
+"capital": "Assin Bereku",
+"km": {
+"Tema": 267.0,
+"Takoradi": 181.0,
+"Kumasi": 113.0,
+"Ntensere": 138.7,
+"Nsawam": 165.0,
+"Asante-Akim South": 136.0
+}
+},
+{
+"region": "Central",
+"district": "Assin South",
+"capital": "Nsuaem-Kyekyewere",
+"km": {
+"Tema": 372.0,
+"Takoradi": 171.0,
+"Kumasi": 195.0,
+"Ntensere": 220.7,
+"Nsawam": 106.0,
+"Asante-Akim South": 163.0
+}
+},
+{
+"region": "Central",
+"district": "Awutu Senya East Municipality",
+"capital": "Awutu Breku",
+"km": {
+"Tema": 64.0,
+"Takoradi": 213.0,
+"Kumasi": 253.0,
+"Ntensere": 278.7,
+"Nsawam": 42.9,
+"Asante-Akim South": 124.0
+}
+},
+{
+"region": "Central",
+"district": "Awutu-Senya",
+"capital": "Kasoa",
+"km": {
+"Tema": 64.0,
+"Takoradi": 195.0,
+"Kumasi": 256.0,
+"Ntensere": 281.7,
+"Nsawam": 52.1,
+"Asante-Akim South": 167.0
+}
+},
+{
+"region": "Central",
+"district": "Cape Coast Metropolitan",
+"capital": "Cape Coast",
+"km": {
+"Tema": 174.0,
+"Takoradi": 84.0,
+"Kumasi": 215.0,
+"Ntensere": 240.7,
+"Nsawam": 166.0,
+"Asante-Akim South": 219.0
+}
+},
+{
+"region": "Central",
+"district": "Effutu Municipality",
+"capital": "Winneba",
+"km": {
+"Tema": 95.0,
+"Takoradi": 167.0,
+"Kumasi": 319.0,
+"Ntensere": 344.7,
+"Nsawam": 81.1,
+"Asante-Akim South": 169.0
+}
+},
+{
+"region": "Central",
+"district": "Ekumfi",
+"capital": "Essarkyir",
+"km": {
+"Tema": 122.0,
+"Takoradi": 144.0,
+"Kumasi": 213.0,
+"Ntensere": 238.7,
+"Nsawam": 109.0,
+"Asante-Akim South": 175.0
+}
+},
+{
+"region": "Central",
+"district": "Gomoa Central",
+"capital": "Afransi",
+"km": {
+"Tema": 124.0,
+"Takoradi": 165.0,
+"Kumasi": 219.0,
+"Ntensere": 244.7,
+"Nsawam": 66.2,
+"Asante-Akim South": 162.0
+}
+},
+{
+"region": "Central",
+"district": "Gomoa East",
+"capital": "Gomoa Potsin",
+"km": {
+"Tema": 82.0,
+"Takoradi": 183.0,
+"Kumasi": 269.0,
+"Ntensere": 294.7,
+"Nsawam": 62.9,
+"Asante-Akim South": 177.0
+}
+},
+{
+"region": "Central",
+"district": "Gomoa West",
+"capital": "Apam",
+"km": {
+"Tema": 114.0,
+"Takoradi": 119.0,
+"Kumasi": 304.0,
+"Ntensere": 329.7,
+"Nsawam": 99.5,
+"Asante-Akim South": 199.0
+}
+},
+{
+"region": "Central",
+"district": "Komenda-Edina-Eguafo-Abrem Municipality",
+"capital": "Elmina",
+"km": {
+"Tema": 183.0,
+"Takoradi": 74.0,
+"Kumasi": 224.0,
+"Ntensere": 249.7,
+"Nsawam": 169.0,
+"Asante-Akim South": 246.0
+}
+},
+{
+"region": "Central",
+"district": "Mfantseman Municipality",
+"capital": "Saltpond",
+"km": {
+"Tema": 146.0,
+"Takoradi": 111.0,
+"Kumasi": 232.0,
+"Ntensere": 257.7,
+"Nsawam": 145.0,
+"Asante-Akim South": 201.0
+}
+},
+{
+"region": "Central",
+"district": "Twifo Atti - Mokwa",
+"capital": "Twifo Praso",
+"km": {
+"Tema": 244.0,
+"Takoradi": 118.0,
+"Kumasi": 173.0,
+"Ntensere": 198.7,
+"Nsawam": 179.0,
+"Asante-Akim South": 195.0
+}
+},
+{
+"region": "Central",
+"district": "Twifo Hemang - Lower Denkyira",
+"capital": "Heman",
+"km": {
+"Tema": 345.0,
+"Takoradi": 142.0,
+"Kumasi": 188.0,
+"Ntensere": 213.7,
+"Nsawam": 322.0,
+"Asante-Akim South": 279.0
+}
+},
+{
+"region": "Central",
+"district": "Upper Denkyira East Municipality",
+"capital": "Dunkwa-On-Offin",
+"km": {
+"Tema": 325.0,
+"Takoradi": 198.0,
+"Kumasi": 93.0,
+"Ntensere": 118.7,
+"Nsawam": 227.0,
+"Asante-Akim South": 163.0
+}
+},
+{
+"region": "Central",
+"district": "Upper Denkyira West",
+"capital": "Diaso",
+"km": {
+"Tema": 444.0,
+"Takoradi": 224.0,
+"Kumasi": 143.0,
+"Ntensere": 168.7,
+"Nsawam": 281.0,
+"Asante-Akim South": 212.0
+}
+},
+{
+"region": "Eastern",
+"district": "Abuakwa North Municipal",
+"capital": "Kukurantumi",
+"km": {
+"Tema": 135.0,
+"Takoradi": 460.0,
+"Kumasi": 403.0,
+"Ntensere": 428.7,
+"Nsawam": 273.0,
+"Asante-Akim South": 162.0
+}
+},
+{
+"region": "Eastern",
+"district": "Abuakwa South Municipal",
+"capital": "Kibi",
+"km": {
+"Tema": 106.0,
+"Takoradi": 291.0,
+"Kumasi": 172.0,
+"Ntensere": 197.7,
+"Nsawam": 55.4,
+"Asante-Akim South": 117.0
+}
+},
+{
+"region": "Eastern",
+"district": "Achiase",
+"capital": "Achiase",
+"km": {
+"Tema": 187.0,
+"Takoradi": 323.0,
+"Kumasi": 35.0,
+"Ntensere": 60.7,
+"Nsawam": 264.0,
+"Asante-Akim South": 128.0
+}
+},
+{
+"region": "Eastern",
+"district": "Akwapim North Municipal",
+"capital": "Akropong",
+"km": {
+"Tema": 84.0,
+"Takoradi": 273.0,
+"Kumasi": 230.0,
+"Ntensere": 255.7,
+"Nsawam": 43.5,
+"Asante-Akim South": 194.0
+}
+},
+{
+"region": "Eastern",
+"district": "Akuapem South",
+"capital": "Aburi",
+"km": {
+"Tema": 66.0,
+"Takoradi": 255.0,
+"Kumasi": 244.0,
+"Ntensere": 269.7,
+"Nsawam": 25.1,
+"Asante-Akim South": 186.0
+}
+},
+{
+"region": "Eastern",
+"district": "Akyemansa",
+"capital": "Ofoase",
+"km": {
+"Tema": 200.0,
+"Takoradi": 266.0,
+"Kumasi": 112.0,
+"Ntensere": 137.7,
+"Nsawam": 117.0,
+"Asante-Akim South": 59.4
+}
+},
+{
+"region": "Eastern",
+"district": "Asene Manso-Akroso",
+"capital": "Akyem Manso",
+"km": {
+"Tema": 158.0,
+"Takoradi": 290.0,
+"Kumasi": 176.0,
+"Ntensere": 201.7,
+"Nsawam": 80.4,
+"Asante-Akim South": 112.0
+}
+},
+{
+"region": "Eastern",
+"district": "Asuogyaman",
+"capital": "Atimpoku",
+"km": {
+"Tema": 64.0,
+"Takoradi": 307.0,
+"Kumasi": 250.0,
+"Ntensere": 275.7,
+"Nsawam": 83.7,
+"Asante-Akim South": 222.0
+}
+},
+{
+"region": "Eastern",
+"district": "Atiwa East",
+"capital": "Kwabeng",
+"km": {
+"Tema": 201.0,
+"Takoradi": 297.0,
+"Kumasi": 150.0,
+"Ntensere": 175.7,
+"Nsawam": 84.6,
+"Asante-Akim South": 99.2
+}
+},
+{
+"region": "Eastern",
+"district": "Atiwa West",
+"capital": "Kwabeng",
+"km": {
+"Tema": 201.0,
+"Takoradi": 297.0,
+"Kumasi": 150.0,
+"Ntensere": 175.7,
+"Nsawam": 84.6,
+"Asante-Akim South": 99.2
+}
+},
+{
+"region": "Eastern",
+"district": "Ayensuano",
+"capital": "Coaltar",
+"km": {
+"Tema": 84.0,
+"Takoradi": 243.0,
+"Kumasi": 204.0,
+"Ntensere": 229.7,
+"Nsawam": 21.6,
+"Asante-Akim South": 145.0
+}
+},
+{
+"region": "Eastern",
+"district": "Birim Central Municipality",
+"capital": "Akim Oda",
+"km": {
+"Tema": 174.0,
+"Takoradi": 216.0,
+"Kumasi": 343.0,
+"Ntensere": 368.7,
+"Nsawam": 90.0,
+"Asante-Akim South": 99.8
+}
+},
+{
+"region": "Eastern",
+"district": "Birim North",
+"capital": "New Abirem",
+"km": {
+"Tema": 206.0,
+"Takoradi": 299.0,
+"Kumasi": 100.0,
+"Ntensere": 125.7,
+"Nsawam": 118.0,
+"Asante-Akim South": 24.6
+}
+},
+{
+"region": "Eastern",
+"district": "Birim South",
+"capital": "Akim Swedru",
+"km": {
+"Tema": 156.0,
+"Takoradi": 196.0,
+"Kumasi": 171.0,
+"Ntensere": 196.7,
+"Nsawam": 96.5,
+"Asante-Akim South": 102.0
+}
+},
+{
+"region": "Eastern",
+"district": "Denkyembour",
+"capital": "Akwatia",
+"km": {
+"Tema": 132.0,
+"Takoradi": 235.0,
+"Kumasi": 201.0,
+"Ntensere": 226.7,
+"Nsawam": 70.8,
+"Asante-Akim South": 95.2
+}
+},
+{
+"region": "Eastern",
+"district": "East Akim Municipality",
+"capital": "Kibi",
+"km": {
+"Tema": 106.0,
+"Takoradi": 267.0,
+"Kumasi": 195.0,
+"Ntensere": 220.7,
+"Nsawam": 42,
+"Asante-Akim South": 117.0
+}
+},
+{
+"region": "Eastern",
+"district": "Fanteakwa North",
+"capital": "Begoro",
+"km": {
+"Tema": 147.0,
+"Takoradi": 334.0,
+"Kumasi": 176.0,
+"Ntensere": 201.7,
+"Nsawam": 92.4,
+"Asante-Akim South": 138.0
+}
+},
+{
+"region": "Eastern",
+"district": "Fanteakwa South",
+"capital": "Osino",
+"km": {
+"Tema": 128.0,
+"Takoradi": 304.0,
+"Kumasi": 148.0,
+"Ntensere": 173.7,
+"Nsawam": 68.0,
+"Asante-Akim South": 102.0
+}
+},
+{
+"region": "Eastern",
+"district": "Kwaebibirem",
+"capital": "Kade",
+"km": {
+"Tema": 142.0,
+"Takoradi": 256.0,
+"Kumasi": 173.0,
+"Ntensere": 198.7,
+"Nsawam": 77.3,
+"Asante-Akim South": 87.0
+}
+},
+{
+"region": "Eastern",
+"district": "Kwahu Afram Plains North",
+"capital": "Donkorkrom",
+"km": {
+"Tema": 317.0,
+"Takoradi": 495.0,
+"Kumasi": 190.0,
+"Ntensere": 215.7,
+"Nsawam": 350.0,
+"Asante-Akim South": 217.0
+}
+},
+{
+"region": "Eastern",
+"district": "Kwahu Afram Plains South",
+"capital": "Tease",
+"km": {
+"Tema": 385.0,
+"Takoradi": 470.0,
+"Kumasi": 224.0,
+"Ntensere": 249.7,
+"Nsawam": 325.0,
+"Asante-Akim South": 192.0
+}
+},
+{
+"region": "Eastern",
+"district": "Kwahu East",
+"capital": "Abetifi",
+"km": {
+"Tema": 212.0,
+"Takoradi": 368.0,
+"Kumasi": 89.0,
+"Ntensere": 114.7,
+"Nsawam": 127.0,
+"Asante-Akim South": 79.7
+}
+},
+{
+"region": "Eastern",
+"district": "Kwahu South",
+"capital": "Mpraeso",
+"km": {
+"Tema": 195.0,
+"Takoradi": 363.0,
+"Kumasi": 118.0,
+"Ntensere": 143.7,
+"Nsawam": 120.0,
+"Asante-Akim South": 72.7
+}
+},
+{
+"region": "Eastern",
+"district": "Kwahu West Municipality",
+"capital": "Nkawkaw",
+"km": {
+"Tema": 192.0,
+"Takoradi": 391.0,
+"Kumasi": 109.0,
+"Ntensere": 134.7,
+"Nsawam": 107.0,
+"Asante-Akim South": 61.7
+}
+},
+{
+"region": "Eastern",
+"district": "Lower Manya Krobo Municipality",
+"capital": "Odumase Krobo",
+"km": {
+"Tema": 56.0,
+"Takoradi": 278.0,
+"Kumasi": 238.0,
+"Ntensere": 263.7,
+"Nsawam": 77.1,
+"Asante-Akim South": 215.0
+}
+},
+{
+"region": "Eastern",
+"district": "Lower West Akim Municipal",
+"capital": "Asamankese",
+"km": {
+"Tema": 108.0,
+"Takoradi": 205.0,
+"Kumasi": 220.0,
+"Ntensere": 245.7,
+"Nsawam": 42.0,
+"Asante-Akim South": 183.0
+}
+},
+{
+"region": "Eastern",
+"district": "New Juaben Municipal",
+"capital": "Koforidua",
+"km": {
+"Tema": 114.0,
+"Takoradi": 299.0,
+"Kumasi": 200.0,
+"Ntensere": 225.7,
+"Nsawam": 57.3,
+"Asante-Akim South": 162.0
+}
+},
+{
+"region": "Eastern",
+"district": "New Juaben North Municipal",
+"capital": "Effiduase",
+"km": {
+"Tema": 264.0,
+"Takoradi": 317.0,
+"Kumasi": 40.0,
+"Ntensere": 65.7,
+"Nsawam": 213.0,
+"Asante-Akim South": 80.3
+}
+},
+{
+"region": "Eastern",
+"district": "Nsawam - Adoagyire Municipality",
+"capital": "Nsawam",
+"km": {
+"Tema": 64.0,
+"Takoradi": 241.0,
+"Kumasi": 237.0,
+"Ntensere": 262.7,
+"Nsawam": 0,
+"Asante-Akim South": 162.0
+}
+},
+{
+"region": "Eastern",
+"district": "Okere",
+"capital": "Adukrom",
+"km": {
+"Tema": 95.0,
+"Takoradi": 278.0,
+"Kumasi": 222.0,
+"Ntensere": 247.7,
+"Nsawam": 48.2,
+"Asante-Akim South": 188.0
+}
+},
+{
+"region": "Eastern",
+"district": "Suhum Municipal",
+"capital": "Suhum",
+"km": {
+"Tema": 103.0,
+"Takoradi": 242.0,
+"Kumasi": 198.0,
+"Ntensere": 223.7,
+"Nsawam": 29.9,
+"Asante-Akim South": 135.0
+}
+},
+{
+"region": "Eastern",
+"district": "Upper Manya Krobo",
+"capital": "Asesewa",
+"km": {
+"Tema": 151.0,
+"Takoradi": 350.0,
+"Kumasi": 213.0,
+"Ntensere": 238.7,
+"Nsawam": 102.0,
+"Asante-Akim South": 162.0
+}
+},
+{
+"region": "Eastern",
+"district": "Upper West Akim",
+"capital": "Adeiso",
+"km": {
+"Tema": 79.0,
+"Takoradi": 278.0,
+"Kumasi": 227.0,
+"Ntensere": 252.7,
+"Nsawam": 16.9,
+"Asante-Akim South": 173.0
+}
+},
+{
+"region": "Eastern",
+"district": "Yilo Krobo Municipal",
+"capital": "Somanya",
+"km": {
+"Tema": 64.0,
+"Takoradi": 300.0,
+"Kumasi": 236.0,
+"Ntensere": 261.7,
+"Nsawam": 63.7,
+"Asante-Akim South": 212.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ablekuma Central",
+"capital": "Latebiokorshie",
+"km": {
+"Tema": 40.0,
+"Takoradi": 219.0,
+"Kumasi": 252.0,
+"Ntensere": 277.7,
+"Nsawam": 39.6,
+"Asante-Akim South": 197.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ablekuma North Municipal",
+"capital": "Darkuman",
+"km": {
+"Tema": 38.0,
+"Takoradi": 217.0,
+"Kumasi": 248.0,
+"Ntensere": 273.7,
+"Nsawam": 36.6,
+"Asante-Akim South": 194.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ablekuma West Municipal",
+"capital": "Dansoman",
+"km": {
+"Tema": 44.0,
+"Takoradi": 218.0,
+"Kumasi": 256.0,
+"Ntensere": 281.7,
+"Nsawam": 41.4,
+"Asante-Akim South": 202.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Accra Metropolitan",
+"capital": "Accra",
+"km": {
+"Tema": 29.0,
+"Takoradi": 228.0,
+"Kumasi": 272.0,
+"Ntensere": 297.7,
+"Nsawam": 36.2,
+"Asante-Akim South": 198.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ada East",
+"capital": "Ada Foah",
+"km": {
+"Tema": 92.0,
+"Takoradi": 334.0,
+"Kumasi": 356.0,
+"Ntensere": 381.7,
+"Nsawam": 140.0,
+"Asante-Akim South": 316.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ada West",
+"capital": "Sege",
+"km": {
+"Tema": 80.0,
+"Takoradi": 340.0,
+"Kumasi": 317.0,
+"Ntensere": 342.7,
+"Nsawam": 102.0,
+"Asante-Akim South": 278.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Adenta Municipality",
+"capital": "Adenta",
+"km": {
+"Tema": 39.0,
+"Takoradi": 240.0,
+"Kumasi": 262.0,
+"Ntensere": 287.7,
+"Nsawam": 43.8,
+"Asante-Akim South": 202.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ashaiman Municipality",
+"capital": "Ashaiman",
+"km": {
+"Tema": 29.0,
+"Takoradi": 246.0,
+"Kumasi": 268.0,
+"Ntensere": 293.7,
+"Nsawam": 54.4,
+"Asante-Akim South": 214.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ayawaso Central",
+"capital": "Mlci Ct",
+"km": {
+"Tema": 38.0,
+"Takoradi": 225.0,
+"Kumasi": 247.0,
+"Ntensere": 272.7,
+"Nsawam": 33.8,
+"Asante-Akim South": 194.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ayawaso East Municipal",
+"capital": "Dzorwulu",
+"km": {
+"Tema": 30.0,
+"Takoradi": 225.0,
+"Kumasi": 248.0,
+"Ntensere": 273.7,
+"Nsawam": 32.5,
+"Asante-Akim South": 193.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ayawaso East Municipality",
+"capital": "Nima",
+"km": {
+"Tema": 34.0,
+"Takoradi": 224.0,
+"Kumasi": 250.0,
+"Ntensere": 275.7,
+"Nsawam": 34.7,
+"Asante-Akim South": 195.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ayawaso North Municipal",
+"capital": "Abeka",
+"km": {
+"Tema": 37.0,
+"Takoradi": 219.0,
+"Kumasi": 248.0,
+"Ntensere": 273.7,
+"Nsawam": 32.6,
+"Asante-Akim South": 193.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ayawaso West Municipal",
+"capital": "Dworwulu",
+"km": {
+"Tema": 30.0,
+"Takoradi": 225.0,
+"Kumasi": 248.0,
+"Ntensere": 273.7,
+"Nsawam": 32.5,
+"Asante-Akim South": 193.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ga Central Municipality",
+"capital": "Sowutuom",
+"km": {
+"Tema": 41.0,
+"Takoradi": 220.0,
+"Kumasi": 241.0,
+"Ntensere": 266.7,
+"Nsawam": 28.0,
+"Asante-Akim South": 188.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ga East Municipality",
+"capital": "Abokobi",
+"km": {
+"Tema": 50.0,
+"Takoradi": 227.0,
+"Kumasi": 251.0,
+"Ntensere": 276.7,
+"Nsawam": 30.8,
+"Asante-Akim South": 55.6
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ga North Municipal",
+"capital": "Amomole",
+"km": {
+"Tema": 47.0,
+"Takoradi": 226.0,
+"Kumasi": 232.0,
+"Ntensere": 257.7,
+"Nsawam": 24.3,
+"Asante-Akim South": 185.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ga South Municipal/ Weija Municipality",
+"capital": "Weija",
+"km": {
+"Tema": 48.0,
+"Takoradi": 213.0,
+"Kumasi": 256.0,
+"Ntensere": 281.7,
+"Nsawam": 42.0,
+"Asante-Akim South": 202.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ga West Municipality",
+"capital": "Amasaman",
+"km": {
+"Tema": 55.0,
+"Takoradi": 226.0,
+"Kumasi": 229.0,
+"Ntensere": 254.7,
+"Nsawam": 14.5,
+"Asante-Akim South": 175.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Korle-Klottey",
+"capital": "Osu",
+"km": {
+"Tema": 47.0,
+"Takoradi": 227.0,
+"Kumasi": 254.0,
+"Ntensere": 279.7,
+"Nsawam": 39.6,
+"Asante-Akim South": 200.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Kpone - Katamanso",
+"capital": "Kpone",
+"km": {
+"Tema": 33.0,
+"Takoradi": 245.0,
+"Kumasi": 267.0,
+"Ntensere": 292.7,
+"Nsawam": 62.9,
+"Asante-Akim South": 225.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Krowor Municipal",
+"capital": "Nungua",
+"km": {
+"Tema": 24.0,
+"Takoradi": 245.0,
+"Kumasi": 267.0,
+"Ntensere": 292.7,
+"Nsawam": 53.3,
+"Asante-Akim South": 214.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "La Dade-Kotopon Municipality",
+"capital": "La",
+"km": {
+"Tema": 36.0,
+"Takoradi": 228.0,
+"Kumasi": 256.0,
+"Ntensere": 281.7,
+"Nsawam": 39.9,
+"Asante-Akim South": 200.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "La-Nkwantanang-Madina",
+"capital": "Madina",
+"km": {
+"Tema": 34.0,
+"Takoradi": 234.0,
+"Kumasi": 256.0,
+"Ntensere": 281.7,
+"Nsawam": 47.0,
+"Asante-Akim South": 208.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ledzokuku Municipal",
+"capital": "Teshie",
+"km": {
+"Tema": 27.0,
+"Takoradi": 246.0,
+"Kumasi": 268.0,
+"Ntensere": 293.7,
+"Nsawam": 47.8,
+"Asante-Akim South": 205.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Ningo - Prampam",
+"capital": "Ningo",
+"km": {
+"Tema": 55.0,
+"Takoradi": 278.0,
+"Kumasi": 246.0,
+"Ntensere": 271.7,
+"Nsawam": 75.4,
+"Asante-Akim South": 246.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Okaikwai North Municipal",
+"capital": "Tesano",
+"km": {
+"Tema": 35.0,
+"Takoradi": 220.0,
+"Kumasi": 245.0,
+"Ntensere": 270.7,
+"Nsawam": 30.0,
+"Asante-Akim South": 190.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Okaikwai South Municipal?",
+"capital": "Abeka",
+"km": {
+"Tema": 37.0,
+"Takoradi": 219.0,
+"Kumasi": 248.0,
+"Ntensere": 273.7,
+"Nsawam": 32.6,
+"Asante-Akim South": 193.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Shai - Osudoku",
+"capital": "Dodowa",
+"km": {
+"Tema": 32.0,
+"Takoradi": 317.0,
+"Kumasi": 241.0,
+"Ntensere": 266.7,
+"Nsawam": 58.3,
+"Asante-Akim South": 205.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Tema Metropolitan",
+"capital": "Tema",
+"km": {
+"Tema": null,
+"Takoradi": 257.0,
+"Kumasi": 301.0,
+"Ntensere": 326.7,
+"Nsawam": 60.8,
+"Asante-Akim South": 221.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Tema West",
+"capital": "Sakumono",
+"km": {
+"Tema": 21.0,
+"Takoradi": 246.0,
+"Kumasi": 268.0,
+"Ntensere": 293.7,
+"Nsawam": 53.5,
+"Asante-Akim South": 214.0
+}
+},
+{
+"region": "Greater Accra",
+"district": "Weija-Gbawe",
+"capital": "Ngleshie",
+"km": {
+"Tema": 57.0,
+"Takoradi": 198.0,
+"Kumasi": 260.0,
+"Ntensere": 285.7,
+"Nsawam": 52.8,
+"Asante-Akim South": 213.0
+}
+},
+{
+"region": "North East",
+"district": "Bunkpurugu Nakpanduri",
+"capital": "Bunkpurugu",
+"km": {
+"Tema": 661.0,
+"Takoradi": 898.0,
+"Kumasi": 608.0,
+"Ntensere": 633.7,
+"Nsawam": 690.0,
+"Asante-Akim South": 684.0
+}
+},
+{
+"region": "North East",
+"district": "Chereponi",
+"capital": "Chereponi",
+"km": {
+"Tema": 861.0,
+"Takoradi": 858.0,
+"Kumasi": 560.0,
+"Ntensere": 585.7,
+"Nsawam": 797,
+"Asante-Akim South": 733.0
+}
+},
+{
+"region": "North East",
+"district": "East Mamprusi",
+"capital": "Gambaga",
+"km": {
+"Tema": 842.0,
+"Takoradi": 846.0,
+"Kumasi": 541.0,
+"Ntensere": 566.7,
+"Nsawam": 667.0,
+"Asante-Akim South": 612.0
+}
+},
+{
+"region": "North East",
+"district": "Mamprugu Moagduri",
+"capital": "Yagaba",
+"km": {
+"Tema": 751.0,
+"Takoradi": 774.0,
+"Kumasi": 484.0,
+"Ntensere": 509.7,
+"Nsawam": 679.0,
+"Asante-Akim South": 571.0
+}
+},
+{
+"region": "North East",
+"district": "West Mamprusi Municipal",
+"capital": "Walewale",
+"km": {
+"Tema": 790.0,
+"Takoradi": 793.0,
+"Kumasi": 489.0,
+"Ntensere": 514.7,
+"Nsawam": 685.0,
+"Asante-Akim South": 577.0
+}
+},
+{
+"region": "North East",
+"district": "Yunyoo-Nasuan",
+"capital": "Yunyuo",
+"km": {
+"Tema": 641.0,
+"Takoradi": 932.0,
+"Kumasi": 621.0,
+"Ntensere": 646.7,
+"Nsawam": 649.0,
+"Asante-Akim South": 660.0
+}
+},
+{
+"region": "North East",
+"district": "Nalerigu",
+"capital": "Nalerigu",
+"km": {
+"Tema": 635.2,
+"Takoradi": null,
+"Kumasi": null,
+"Ntensere": null,
+"Nsawam": null,
+"Asante-Akim South": null
+}
+},
+{
+"region": "Northern",
+"district": "Gushiegu",
+"capital": "Gushiegu",
+"km": {
+"Tema": 779.0,
+"Takoradi": 784.0,
+"Kumasi": 478.0,
+"Ntensere": 503.7,
+"Nsawam": 586.0,
+"Asante-Akim South": 573.0
+}
+},
+{
+"region": "Northern",
+"district": "Karaga",
+"capital": "Karaga",
+"km": {
+"Tema": 779.0,
+"Takoradi": 763.0,
+"Kumasi": 478.0,
+"Ntensere": 503.7,
+"Nsawam": 657.0,
+"Asante-Akim South": 549.0
+}
+},
+{
+"region": "Northern",
+"district": "Kpandai",
+"capital": "Kpandai",
+"km": {
+"Tema": 901.0,
+"Takoradi": 633.0,
+"Kumasi": 600.0,
+"Ntensere": 625.7,
+"Nsawam": 410.0,
+"Asante-Akim South": 530.0
+}
+},
+{
+"region": "Northern",
+"district": "Kumbungu",
+"capital": "Kumbungu",
+"km": {
+"Tema": 668.0,
+"Takoradi": 691.0,
+"Kumasi": 401.0,
+"Ntensere": 426.7,
+"Nsawam": 596.0,
+"Asante-Akim South": 488.0
+}
+},
+{
+"region": "Northern",
+"district": "Mion",
+"capital": "Sang",
+"km": {
+"Tema": 723.0,
+"Takoradi": 736.0,
+"Kumasi": 445.0,
+"Ntensere": 470.7,
+"Nsawam": 557.0,
+"Asante-Akim South": 533.0
+}
+},
+{
+"region": "Northern",
+"district": "Nanton",
+"capital": "Savelugu-Nanton",
+"km": {
+"Tema": 706.0,
+"Takoradi": 717.0,
+"Kumasi": 405.0,
+"Ntensere": 430.7,
+"Nsawam": 620.0,
+"Asante-Akim South": 514.0
+}
+},
+{
+"region": "Northern",
+"district": "Nanumba North Municipal",
+"capital": "Bimbilla",
+"km": {
+"Tema": 846.0,
+"Takoradi": 832.0,
+"Kumasi": 545.0,
+"Ntensere": 570.7,
+"Nsawam": 455.0,
+"Asante-Akim South": 623.0
+}
+},
+{
+"region": "Northern",
+"district": "Nanumba South",
+"capital": "Wulensi",
+"km": {
+"Tema": 827.0,
+"Takoradi": 654.0,
+"Kumasi": 526.0,
+"Ntensere": 551.7,
+"Nsawam": 431.0,
+"Asante-Akim South": 551.0
+}
+},
+{
+"region": "Northern",
+"district": "Saboba",
+"capital": "Saboba",
+"km": {
+"Tema": 853.0,
+"Takoradi": 854.0,
+"Kumasi": 288.0,
+"Ntensere": 313.7,
+"Nsawam": 587.0,
+"Asante-Akim South": 614.0
+}
+},
+{
+"region": "Northern",
+"district": "Sagnarigu Municipal",
+"capital": "Sagnarigu",
+"km": {
+"Tema": 653.0,
+"Takoradi": 696.0,
+"Kumasi": 385.0,
+"Ntensere": 410.7,
+"Nsawam": 580.0,
+"Asante-Akim South": 475.0
+}
+},
+{
+"region": "Northern",
+"district": "Savelugu Nanton",
+"capital": "Savelugu",
+"km": {
+"Tema": 706.0,
+"Takoradi": 695.0,
+"Kumasi": 405.0,
+"Ntensere": 430.7,
+"Nsawam": 620.0,
+"Asante-Akim South": 491.0
+}
+},
+{
+"region": "Northern",
+"district": "Tamale Metropolitan",
+"capital": "Tamale",
+"km": {
+"Tema": 682.0,
+"Takoradi": 668.0,
+"Kumasi": 381.0,
+"Ntensere": 406.7,
+"Nsawam": 575.0,
+"Asante-Akim South": 467.0
+}
+},
+{
+"region": "Northern",
+"district": "Tatale-Sanguli",
+"capital": "Tatale",
+"km": {
+"Tema": 846.0,
+"Takoradi": 770.0,
+"Kumasi": 534.0,
+"Ntensere": 559.7,
+"Nsawam": 548.0,
+"Asante-Akim South": 619.0
+}
+},
+{
+"region": "Northern",
+"district": "Tolon",
+"capital": "Tolon",
+"km": {
+"Tema": 709.0,
+"Takoradi": 765.0,
+"Kumasi": 478.0,
+"Ntensere": 503.7,
+"Nsawam": 582.0,
+"Asante-Akim South": 474.0
+}
+},
+{
+"region": "Northern",
+"district": "Yendi",
+"capital": "Yendi",
+"km": {
+"Tema": 779.0,
+"Takoradi": 765.0,
+"Kumasi": 478.0,
+"Ntensere": 503.7,
+"Nsawam": 715,
+"Asante-Akim South": 565.0
+}
+},
+{
+"region": "Northern",
+"district": "Zabzugu",
+"capital": "Zabzugu",
+"km": {
+"Tema": 827.0,
+"Takoradi": 752.0,
+"Kumasi": 526.0,
+"Ntensere": 551.7,
+"Nsawam": 529.0,
+"Asante-Akim South": 615.0
+}
+},
+{
+"region": "Oti",
+"district": "Biakoye",
+"capital": "Nkonya-Ahenkro",
+"km": {
+"Tema": 355.0,
+"Takoradi": 177.0,
+"Kumasi": 115.0,
+"Ntensere": 140.7,
+"Nsawam": 209.0,
+"Asante-Akim South": 353.0
+}
+},
+{
+"region": "Oti",
+"district": "Jasikan",
+"capital": "Jasikan",
+"km": {
+"Tema": 235.0,
+"Takoradi": 492.0,
+"Kumasi": 428.0,
+"Ntensere": 453.7,
+"Nsawam": 246.0,
+"Asante-Akim South": 391.0
+}
+},
+{
+"region": "Oti",
+"district": "Kadjebi",
+"capital": "Kadjebi",
+"km": {
+"Tema": 243.0,
+"Takoradi": 502.0,
+"Kumasi": 445.0,
+"Ntensere": 470.7,
+"Nsawam": 262.0,
+"Asante-Akim South": 407.0
+}
+},
+{
+"region": "Oti",
+"district": "Krachi East Municipality",
+"capital": "Dambai",
+"km": {
+"Tema": 325.0,
+"Takoradi": 561.0,
+"Kumasi": 504.0,
+"Ntensere": 529.7,
+"Nsawam": 342.0,
+"Asante-Akim South": 486.0
+}
+},
+{
+"region": "Oti",
+"district": "Krachi Nchumuru",
+"capital": "Chinderi",
+"km": {
+"Tema": 554.0,
+"Takoradi": 611.0,
+"Kumasi": 634.0,
+"Ntensere": 659.7,
+"Nsawam": 392.0,
+"Asante-Akim South": 511.0
+}
+},
+{
+"region": "Oti",
+"district": "Krachi West",
+"capital": "Kete Krachi",
+"km": {
+"Tema": 462.0,
+"Takoradi": 645.0,
+"Kumasi": 681.0,
+"Ntensere": 706.7,
+"Nsawam": 422.0,
+"Asante-Akim South": 542.0
+}
+},
+{
+"region": "Oti",
+"district": "Nkwanta North",
+"capital": "Kpasaa",
+"km": {
+"Tema": 430.0,
+"Takoradi": 607.0,
+"Kumasi": 604.0,
+"Ntensere": 629.7,
+"Nsawam": 384.0,
+"Asante-Akim South": 503.0
+}
+},
+{
+"region": "Oti",
+"district": "Nkwanta South Municipal",
+"capital": "Nkwanta",
+"km": {
+"Tema": 373.0,
+"Takoradi": 571.0,
+"Kumasi": 514.0,
+"Ntensere": 539.7,
+"Nsawam": 348.0,
+"Asante-Akim South": 467.0
+}
+},
+{
+"region": "Savannah",
+"district": "Bole",
+"capital": "Bole",
+"km": {
+"Tema": 578.0,
+"Takoradi": 624.0,
+"Kumasi": 320.0,
+"Ntensere": 345.7,
+"Nsawam": 530.0,
+"Asante-Akim South": 430.0
+}
+},
+{
+"region": "Savannah",
+"district": "Central Gonja",
+"capital": "Buipe",
+"km": {
+"Tema": 629.0,
+"Takoradi": 566.0,
+"Kumasi": 328.0,
+"Ntensere": 353.7,
+"Nsawam": 471.0,
+"Asante-Akim South": 356.0
+}
+},
+{
+"region": "Savannah",
+"district": "East Gonja Municipal",
+"capital": "Salaga",
+"km": {
+"Tema": 795.0,
+"Takoradi": 571.0,
+"Kumasi": 494.0,
+"Ntensere": 519.7,
+"Nsawam": 463.0,
+"Asante-Akim South": 581.0
+}
+},
+{
+"region": "Savannah",
+"district": "North East Gonja",
+"capital": "Kpalbe",
+"km": {
+"Tema": 530.0,
+"Takoradi": 740.0,
+"Kumasi": 429.0,
+"Ntensere": 454.7,
+"Nsawam": 555.0,
+"Asante-Akim South": 580.0
+}
+},
+{
+"region": "Savannah",
+"district": "North Gonja",
+"capital": "Daboya",
+"km": {
+"Tema": 747.0,
+"Takoradi": 688.0,
+"Kumasi": 446.0,
+"Ntensere": 471.7,
+"Nsawam": 593.0,
+"Asante-Akim South": 485.0
+}
+},
+{
+"region": "Savannah",
+"district": "Sawla-Tuna-Kalba",
+"capital": "Sawla",
+"km": {
+"Tema": 657.0,
+"Takoradi": 653.0,
+"Kumasi": 349.0,
+"Ntensere": 374.7,
+"Nsawam": 560.0,
+"Asante-Akim South": 666.0
+}
+},
+{
+"region": "Savannah",
+"district": "West Gonja",
+"capital": "Damongo",
+"km": {
+"Tema": 673.0,
+"Takoradi": 676.0,
+"Kumasi": 386.0,
+"Ntensere": 411.7,
+"Nsawam": 582.0,
+"Asante-Akim South": 474.0
+}
+},
+{
+"region": "Upper East",
+"district": "Bawku Municipal",
+"capital": "Bawku",
+"km": {
+"Tema": 927.0,
+"Takoradi": 913.0,
+"Kumasi": 626.0,
+"Ntensere": 651.7,
+"Nsawam": 815.0,
+"Asante-Akim South": 718.0
+}
+},
+{
+"region": "Upper East",
+"district": "Bawku West",
+"capital": "Zebilla",
+"km": {
+"Tema": 827.0,
+"Takoradi": 832.0,
+"Kumasi": 526.0,
+"Ntensere": 551.7,
+"Nsawam": 782.0,
+"Asante-Akim South": 674.0
+}
+},
+{
+"region": "Upper East",
+"district": "Binduri",
+"capital": "Binduri",
+"km": {
+"Tema": 705.0,
+"Takoradi": 922.0,
+"Kumasi": 611.0,
+"Ntensere": 636.7,
+"Nsawam": 737.0,
+"Asante-Akim South": 709.0
+}
+},
+{
+"region": "Upper East",
+"district": "Bolgatanga East",
+"capital": "Zuarungu",
+"km": {
+"Tema": 863.0,
+"Takoradi": 860.0,
+"Kumasi": 552.0,
+"Ntensere": 577.7,
+"Nsawam": 741.0,
+"Asante-Akim South": 650.0
+}
+},
+{
+"region": "Upper East",
+"district": "Bolgatanga Municipality",
+"capital": "Bolgatanga",
+"km": {
+"Tema": 829.0,
+"Takoradi": 833.0,
+"Kumasi": 543.0,
+"Ntensere": 568.7,
+"Nsawam": 737.0,
+"Asante-Akim South": 678.0
+}
+},
+{
+"region": "Upper East",
+"district": "Bongo",
+"capital": "Bongo",
+"km": {
+"Tema": 853.0,
+"Takoradi": 848.0,
+"Kumasi": 552.0,
+"Ntensere": 577.7,
+"Nsawam": 752.0,
+"Asante-Akim South": 699.0
+}
+},
+{
+"region": "Upper East",
+"district": "BuiIsa South",
+"capital": "Fumbisi",
+"km": {
+"Tema": 942.0,
+"Takoradi": 826.0,
+"Kumasi": 641.0,
+"Ntensere": 666.7,
+"Nsawam": 802.0,
+"Asante-Akim South": 600.0
+}
+},
+{
+"region": "Upper East",
+"district": "Builsa North",
+"capital": "Sandema",
+"km": {
+"Tema": 827.0,
+"Takoradi": 860.0,
+"Kumasi": 549.0,
+"Ntensere": 574.7,
+"Nsawam": 742.0,
+"Asante-Akim South": 620.0
+}
+},
+{
+"region": "Upper East",
+"district": "Garu",
+"capital": "Garu",
+"km": {
+"Tema": 954.0,
+"Takoradi": 949.0,
+"Kumasi": 653.0,
+"Ntensere": 678.7,
+"Nsawam": 715.0,
+"Asante-Akim South": 706.0
+}
+},
+{
+"region": "Upper East",
+"district": "Kasena Nankana East Municipal",
+"capital": "Navrongo",
+"km": {
+"Tema": 874.0,
+"Takoradi": 1073.0,
+"Kumasi": 573.0,
+"Ntensere": 598.7,
+"Nsawam": 767.0,
+"Asante-Akim South": 673.0
+}
+},
+{
+"region": "Upper East",
+"district": "Kasena Nankana West",
+"capital": "Paga",
+"km": {
+"Tema": 729.0,
+"Takoradi": 895.0,
+"Kumasi": 428.0,
+"Ntensere": 453.7,
+"Nsawam": 778.0,
+"Asante-Akim South": 664.0
+}
+},
+{
+"region": "Upper East",
+"district": "Nabdam",
+"capital": "Nangodi",
+"km": {
+"Tema": 850.0,
+"Takoradi": 854.0,
+"Kumasi": 563.0,
+"Ntensere": 588.7,
+"Nsawam": 760.0,
+"Asante-Akim South": 650.0
+}
+},
+{
+"region": "Upper East",
+"district": "Pusiga",
+"capital": "Pusiga",
+"km": {
+"Tema": 941.0,
+"Takoradi": 944.0,
+"Kumasi": 640.0,
+"Ntensere": 665.7,
+"Nsawam": 747.0,
+"Asante-Akim South": 692.0
+}
+},
+{
+"region": "Upper East",
+"district": "Talensi",
+"capital": "Tongo",
+"km": {
+"Tema": 828.0,
+"Takoradi": 831.0,
+"Kumasi": 541.0,
+"Ntensere": 566.7,
+"Nsawam": 736.0,
+"Asante-Akim South": 671.0
+}
+},
+{
+"region": "Upper East",
+"district": "Tempane",
+"capital": "Tempane",
+"km": {
+"Tema": 687.0,
+"Takoradi": 921.0,
+"Kumasi": 610.0,
+"Ntensere": 635.7,
+"Nsawam": 741.0,
+"Asante-Akim South": 704.0
+}
+},
+{
+"region": "Upper West",
+"district": "Dafiama Bussief",
+"capital": "Issa",
+"km": {
+"Tema": 772.0,
+"Takoradi": 804.0,
+"Kumasi": 499.0,
+"Ntensere": 524.7,
+"Nsawam": 710.0,
+"Asante-Akim South": 664.0
+}
+},
+{
+"region": "Upper West",
+"district": "Jirapa Municipal",
+"capital": "Jirapa",
+"km": {
+"Tema": 824.0,
+"Takoradi": 809.0,
+"Kumasi": 523.0,
+"Ntensere": 548.7,
+"Nsawam": 717.0,
+"Asante-Akim South": 687.0
+}
+},
+{
+"region": "Upper West",
+"district": "Lambussie Karni",
+"capital": "Lambussie",
+"km": {
+"Tema": 866.0,
+"Takoradi": 865.0,
+"Kumasi": 563.0,
+"Ntensere": 588.7,
+"Nsawam": 756.0,
+"Asante-Akim South": 687.0
+}
+},
+{
+"region": "Upper West",
+"district": "Lawra",
+"capital": "Lawra",
+"km": {
+"Tema": 827.0,
+"Takoradi": 833.0,
+"Kumasi": 526.0,
+"Ntensere": 551.7,
+"Nsawam": 739.0,
+"Asante-Akim South": 693.0
+}
+},
+{
+"region": "Upper West",
+"district": "Nadowli-Kaleo",
+"capital": "Nadowli",
+"km": {
+"Tema": 758.0,
+"Takoradi": 790.0,
+"Kumasi": 485.0,
+"Ntensere": 510.7,
+"Nsawam": 696.0,
+"Asante-Akim South": 644.0
+}
+},
+{
+"region": "Upper West",
+"district": "Nandom",
+"capital": "Nandom",
+"km": {
+"Tema": 858.0,
+"Takoradi": 861.0,
+"Kumasi": 713.0,
+"Ntensere": 738.7,
+"Nsawam": 768.0,
+"Asante-Akim South": 721.0
+}
+},
+{
+"region": "Upper West",
+"district": "Sissala East Municipal",
+"capital": "Tumu",
+"km": {
+"Tema": 880.0,
+"Takoradi": 866.0,
+"Kumasi": 527.0,
+"Ntensere": 552.7,
+"Nsawam": 791.0,
+"Asante-Akim South": 746.0
+}
+},
+{
+"region": "Upper West",
+"district": "Sissala West",
+"capital": "Gwollu",
+"km": {
+"Tema": 842.0,
+"Takoradi": 871.0,
+"Kumasi": 569.0,
+"Ntensere": 594.7,
+"Nsawam": 779.0,
+"Asante-Akim South": 731.0
+}
+},
+{
+"region": "Upper West",
+"district": "Wa East",
+"capital": "Funsi",
+"km": {
+"Tema": 854.0,
+"Takoradi": 834.0,
+"Kumasi": 553.0,
+"Ntensere": 578.7,
+"Nsawam": 781.0,
+"Asante-Akim South": 932.0
+}
+},
+{
+"region": "Upper West",
+"district": "Wa Municipality",
+"capital": "Wa",
+"km": {
+"Tema": 745.0,
+"Takoradi": 751.0,
+"Kumasi": 447.0,
+"Ntensere": 472.7,
+"Nsawam": 653.0,
+"Asante-Akim South": 612.0
+}
+},
+{
+"region": "Upper West",
+"district": "Wa West",
+"capital": "Wechiau",
+"km": {
+"Tema": 704.0,
+"Takoradi": 736.0,
+"Kumasi": 431.0,
+"Ntensere": 456.7,
+"Nsawam": 645.0,
+"Asante-Akim South": 599.0
+}
+},
+{
+"region": "Volta",
+"district": "Adaklu",
+"capital": "Adaklu Waya",
+"km": {
+"Tema": 153.0,
+"Takoradi": 400.0,
+"Kumasi": 352.0,
+"Ntensere": 377.7,
+"Nsawam": 186.0,
+"Asante-Akim South": 367.0
+}
+},
+{
+"region": "Volta",
+"district": "Afadzato South (Afadjato)",
+"capital": "Ve Golokuati",
+"km": {
+"Tema": 220.0,
+"Takoradi": 418.0,
+"Kumasi": 361.0,
+"Ntensere": 386.7,
+"Nsawam": 195.0,
+"Asante-Akim South": 372.0
+}
+},
+{
+"region": "Volta",
+"district": "Agotime-Ziope",
+"capital": "Kpetoe",
+"km": {
+"Tema": 164.0,
+"Takoradi": 404.0,
+"Kumasi": 351.0,
+"Ntensere": 376.7,
+"Nsawam": 142.0,
+"Asante-Akim South": 386.0
+}
+},
+{
+"region": "Volta",
+"district": "Akatsi North",
+"capital": "Ave-Dakpa",
+"km": {
+"Tema": 145.0,
+"Takoradi": 398.0,
+"Kumasi": 421.0,
+"Ntensere": 446.7,
+"Nsawam": 208.0,
+"Asante-Akim South": 363.0
+}
+},
+{
+"region": "Volta",
+"district": "Akatsi South",
+"capital": "Akatsi",
+"km": {
+"Tema": 126.0,
+"Takoradi": 363.0,
+"Kumasi": 385.0,
+"Ntensere": 410.7,
+"Nsawam": 172.0,
+"Asante-Akim South": 404.0
+}
+},
+{
+"region": "Volta",
+"district": "Anloga",
+"capital": "Anloga",
+"km": {
+"Tema": 130.0,
+"Takoradi": 383.0,
+"Kumasi": 405.0,
+"Ntensere": 430.7,
+"Nsawam": 191.0,
+"Asante-Akim South": 424.0
+}
+},
+{
+"region": "Volta",
+"district": "Central Tongu",
+"capital": "Adidome",
+"km": {
+"Tema": 140.0,
+"Takoradi": 354.0,
+"Kumasi": 376.0,
+"Ntensere": 401.7,
+"Nsawam": 151.0,
+"Asante-Akim South": 329.0
+}
+},
+{
+"region": "Volta",
+"district": "Ho Municipality",
+"capital": "Ho",
+"km": {
+"Tema": 137.0,
+"Takoradi": 401.0,
+"Kumasi": 336.0,
+"Ntensere": 361.7,
+"Nsawam": 159.0,
+"Asante-Akim South": 337.0
+}
+},
+{
+"region": "Volta",
+"district": "Ho West",
+"capital": "Dzolokpuita",
+"km": {
+"Tema": 189.0,
+"Takoradi": 442.0,
+"Kumasi": 350.0,
+"Ntensere": 375.7,
+"Nsawam": 175.0,
+"Asante-Akim South": 322.0
+}
+},
+{
+"region": "Volta",
+"district": "Hohoe Municipality",
+"capital": "Hohoe",
+"km": {
+"Tema": 201.0,
+"Takoradi": 443.0,
+"Kumasi": 393.0,
+"Ntensere": 418.7,
+"Nsawam": 217.0,
+"Asante-Akim South": 419.0
+}
+},
+{
+"region": "Volta",
+"district": "Keta Municipality",
+"capital": "Keta",
+"km": {
+"Tema": 193.0,
+"Takoradi": 491.0,
+"Kumasi": 486.0,
+"Ntensere": 511.7,
+"Nsawam": 208.0,
+"Asante-Akim South": 440.0
+}
+},
+{
+"region": "Volta",
+"district": "Ketu North",
+"capital": "Dzodze",
+"km": {
+"Tema": 368.0,
+"Takoradi": 389.0,
+"Kumasi": 411.0,
+"Ntensere": 436.7,
+"Nsawam": 196.0,
+"Asante-Akim South": 430.0
+}
+},
+{
+"region": "Volta",
+"district": "Ketu South Municipality",
+"capital": "Denu",
+"km": {
+"Tema": 167.0,
+"Takoradi": 424.0,
+"Kumasi": 427.0,
+"Ntensere": 452.7,
+"Nsawam": 212.0,
+"Asante-Akim South": 445.0
+}
+},
+{
+"region": "Volta",
+"district": "Kpando Municipal",
+"capital": "Kpandu",
+"km": {
+"Tema": 188.0,
+"Takoradi": 444.0,
+"Kumasi": 385.0,
+"Ntensere": 410.7,
+"Nsawam": 193.0,
+"Asante-Akim South": 395.0
+}
+},
+{
+"region": "Volta",
+"district": "North Dayi",
+"capital": "Anfoega",
+"km": {
+"Tema": 175.0,
+"Takoradi": 403.0,
+"Kumasi": 347.0,
+"Ntensere": 372.7,
+"Nsawam": 180.0,
+"Asante-Akim South": 357.0
+}
+},
+{
+"region": "Volta",
+"district": "North Tongu",
+"capital": "Battor Dugame",
+"km": {
+"Tema": 66.0,
+"Takoradi": 319.0,
+"Kumasi": 341.0,
+"Ntensere": 366.7,
+"Nsawam": 126.0,
+"Asante-Akim South": 291.0
+}
+},
+{
+"region": "Volta",
+"district": "South Dayi",
+"capital": "Kpeve New Town",
+"km": {
+"Tema": 128.0,
+"Takoradi": 378.0,
+"Kumasi": 319.0,
+"Ntensere": 344.7,
+"Nsawam": 150.0,
+"Asante-Akim South": 330.0
+}
+},
+{
+"region": "Volta",
+"district": "South Tongu",
+"capital": "Sogakope",
+"km": {
+"Tema": 93.0,
+"Takoradi": 333.0,
+"Kumasi": 355.0,
+"Ntensere": 380.7,
+"Nsawam": 140.0,
+"Asante-Akim South": 373.0
+}
+},
+{
+"region": "Western",
+"district": "Ahanta West",
+"capital": "Agona Nkwanta",
+"km": {
+"Tema": 251.0,
+"Takoradi": 4.0,
+"Kumasi": 292.0,
+"Ntensere": 317.7,
+"Nsawam": 259.0,
+"Asante-Akim South": 70.4
+}
+},
+{
+"region": "Western",
+"district": "Efia-Kwesimintsim",
+"capital": "Kwesimintsim",
+"km": {
+"Tema": 251.0,
+"Takoradi": 3.0,
+"Kumasi": 292.0,
+"Ntensere": 317.7,
+"Nsawam": 237.0,
+"Asante-Akim South": 337.0
+}
+},
+{
+"region": "Western",
+"district": "Ellembelle",
+"capital": "Nkroful",
+"km": {
+"Tema": 341.0,
+"Takoradi": 84.0,
+"Kumasi": 269.0,
+"Ntensere": 294.7,
+"Nsawam": 311.0,
+"Asante-Akim South": 348.0
+}
+},
+{
+"region": "Western",
+"district": "Jomoro",
+"capital": "Half Assini",
+"km": {
+"Tema": 431.0,
+"Takoradi": 174.0,
+"Kumasi": 449.0,
+"Ntensere": 474.7,
+"Nsawam": 378.0,
+"Asante-Akim South": 424.0
+}
+},
+{
+"region": "Western",
+"district": "Mpohor",
+"capital": "Mpohor",
+"km": {
+"Tema": 286.0,
+"Takoradi": 29.0,
+"Kumasi": 309.0,
+"Ntensere": 334.7,
+"Nsawam": 254.0,
+"Asante-Akim South": 351.0
+}
+},
+{
+"region": "Western",
+"district": "Nzema East Municipality",
+"capital": "Axim",
+"km": {
+"Tema": 320.0,
+"Takoradi": 63.0,
+"Kumasi": 298.0,
+"Ntensere": 323.7,
+"Nsawam": 295.0,
+"Asante-Akim South": 376.0
+}
+},
+{
+"region": "Western",
+"district": "Prestea-Huni Valley",
+"capital": "Bogoso",
+"km": {
+"Tema": 383.0,
+"Takoradi": 126.0,
+"Kumasi": 172.0,
+"Ntensere": 197.7,
+"Nsawam": 304.0,
+"Asante-Akim South": 250.0
+}
+},
+{
+"region": "Western",
+"district": "Sekondi-Takoradi Metropolitan",
+"capital": "Sekondi",
+"km": {
+"Tema": 257.0,
+"Takoradi": 10.0,
+"Kumasi": 296.0,
+"Ntensere": 321.7,
+"Nsawam": 230.0,
+"Asante-Akim South": 339.0
+}
+},
+{
+"region": "Western",
+"district": "Shama",
+"capital": "Shama",
+"km": {
+"Tema": 241.0,
+"Takoradi": 26.0,
+"Kumasi": 276.0,
+"Ntensere": 301.7,
+"Nsawam": 222.0,
+"Asante-Akim South": 321.0
+}
+},
+{
+"region": "Western",
+"district": "Tarkwa Nsuaem Municipality",
+"capital": "Tarkwa",
+"km": {
+"Tema": 346.0,
+"Takoradi": 89.0,
+"Kumasi": 225.0,
+"Ntensere": 250.7,
+"Nsawam": 263.0,
+"Asante-Akim South": 286.0
+}
+},
+{
+"region": "Western",
+"district": "Wasa-Amenfi Central",
+"capital": "Manso Amenfi",
+"km": {
+"Tema": 439.0,
+"Takoradi": 155.0,
+"Kumasi": 179.0,
+"Ntensere": 204.7,
+"Nsawam": 373.0,
+"Asante-Akim South": 257.0
+}
+},
+{
+"region": "Western",
+"district": "Wasa-Amenfi East",
+"capital": "Wassa-Akropong",
+"km": {
+"Tema": 377.0,
+"Takoradi": 154.0,
+"Kumasi": 138.0,
+"Ntensere": 163.7,
+"Nsawam": 275.0,
+"Asante-Akim South": 216.0
+}
+},
+{
+"region": "Western",
+"district": "Wasa-Amenfi West",
+"capital": "Asankragua",
+"km": {
+"Tema": 451.0,
+"Takoradi": 193.0,
+"Kumasi": 222.0,
+"Ntensere": 247.7,
+"Nsawam": 331.0,
+"Asante-Akim South": 282.0
+}
+},
+{
+"region": "Western",
+"district": "Wassa East",
+"capital": "Daboase",
+"km": {
+"Tema": 233.0,
+"Takoradi": 24.0,
+"Kumasi": 269.0,
+"Ntensere": 294.7,
+"Nsawam": 214.0,
+"Asante-Akim South": 313.0
+}
+},
+{
+"region": "Western",
+"district": "Western Capital",
+"capital": "Takoradi",
+"km": {
+"Tema": 257.0,
+"Takoradi": null,
+"Kumasi": 306.0,
+"Ntensere": 331.7,
+"Nsawam": 239.0,
+"Asante-Akim South": 335.0
+}
+},
+{
+"region": "Western North",
+"district": "Aowin",
+"capital": "Enchi",
+"km": {
+"Tema": 504.0,
+"Takoradi": 246.0,
+"Kumasi": 276.0,
+"Ntensere": 301.7,
+"Nsawam": 385.0,
+"Asante-Akim South": 334.0
+}
+},
+{
+"region": "Western North",
+"district": "Bia East",
+"capital": "Adabokrom",
+"km": {
+"Tema": 666.0,
+"Takoradi": 420.0,
+"Kumasi": 365.0,
+"Ntensere": 390.7,
+"Nsawam": 602,
+"Asante-Akim South": 356.0
+}
+},
+{
+"region": "Western North",
+"district": "Bia West",
+"capital": "Essam",
+"km": {
+"Tema": 228.0,
+"Takoradi": 374.0,
+"Kumasi": 228.0,
+"Ntensere": 253.7,
+"Nsawam": 100.6,
+"Asante-Akim South": 327.0
+}
+},
+{
+"region": "Western North",
+"district": "Bodi",
+"capital": "Bodi",
+"km": {
+"Tema": 620.0,
+"Takoradi": 362.0,
+"Kumasi": 198.0,
+"Ntensere": 223.7,
+"Nsawam": 417.2,
+"Asante-Akim South": 306.0
+}
+},
+{
+"region": "Western North",
+"district": "Juaboso",
+"capital": "Juaboso",
+"km": {
+"Tema": 471.0,
+"Takoradi": 337.0,
+"Kumasi": 197.0,
+"Ntensere": 222.7,
+"Nsawam": 409.2,
+"Asante-Akim South": 290.0
+}
+},
+{
+"region": "Western North",
+"district": "Sefwi-Akontombra",
+"capital": "Sefwi Akontombra",
+"km": {
+"Tema": 498.0,
+"Takoradi": 290.0,
+"Kumasi": 224.0,
+"Ntensere": 249.7,
+"Nsawam": 393.7,
+"Asante-Akim South": 312.0
+}
+},
+{
+"region": "Western North",
+"district": "Sefwi-Anhwiaso-Bekwai-Bibiani",
+"capital": "Bibiani",
+"km": {
+"Tema": 394.0,
+"Takoradi": 277.0,
+"Kumasi": 93.0,
+"Ntensere": 118.7,
+"Nsawam": 330,
+"Asante-Akim South": 182.0
+}
+},
+{
+"region": "Western North",
+"district": "Sefwi-Wiawso",
+"capital": "Wiawso",
+"km": {
+"Tema": 428.0,
+"Takoradi": 273.0,
+"Kumasi": 154.0,
+"Ntensere": 179.7,
+"Nsawam": 328.5,
+"Asante-Akim South": 246.0
+}
+},
+{
+"region": "Western North",
+"district": "Suaman",
+"capital": "Suaman-Dadieso",
+"km": {
+"Tema": 251.0,
+"Takoradi": 217.0,
+"Kumasi": 246.0,
+"Ntensere": 271.7,
+"Nsawam": 448.3,
+"Asante-Akim South": 329.0
+}
+},
+{
+"region": "Western North",
+"district": "Western North Capital",
+"capital": "Sefwi Wiaso",
+"km": {
+"Tema": 512.0,
+"Takoradi": 375.0,
+"Kumasi": 151.0,
+"Ntensere": 176.7,
+"Nsawam": 328.5,
+"Asante-Akim South": 246.0
+}
+}
+]

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: htms-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: htms-app/package-lock.json
+      - run: npm ci
+      # Gates run in order; a failing gate blocks the deploy.
+      - name: Dependency audit
+        run: npm run audit
+      - name: Lint
+        run: npm run lint
+      - name: Type-check
+        run: npm run typecheck
+      - name: Unit + regression tests
+        run: npm test
+      - name: Build (minified, no source maps)
+        run: npm run build

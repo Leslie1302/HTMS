@@ -1,0 +1,33 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Local `netlify dev`: run Vite (5173) and proxy it on 8888 alongside functions.
+[dev]
+  command = "npm run dev"
+  targetPort = 5173
+  port = 8888
+  framework = "#custom"
+  publish = "dist"
+
+[functions]
+  node_bundler = "esbuild"
+
+# SPA fallback — client-side routing
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# NOTE: Security headers (CSP, HSTS, etc.) live in `public/_headers` so they
+# apply to the DEPLOYED build only and don't break Vite's dev server under
+# `netlify dev`. See public/_headers.

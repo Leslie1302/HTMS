@@ -1,0 +1,29 @@
+name: Weekly GOIL fuel price
+
+on:
+  schedule:
+    # Every Monday 06:00 UTC. The scraper keys the row to the week's Monday.
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        working-directory: htms-app/scraper
+        run: pip install -r requirements.txt
+      - name: Scrape and upsert
+        working-directory: htms-app/scraper
+        env:
+          FUEL_SCRAPER_SUPABASE_URL: ${{ secrets.FUEL_SCRAPER_SUPABASE_URL }}
+          FUEL_SCRAPER_SUPABASE_KEY: ${{ secrets.FUEL_SCRAPER_SUPABASE_KEY }}
+          FUEL_MIN_PRICE: '1.0'
+          FUEL_MAX_PRICE: '50.0'
+          FUEL_MAX_WEEKLY_DEVIATION: '0.25'
+        run: python goil_fuel_spider.py
