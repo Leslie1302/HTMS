@@ -4,7 +4,8 @@
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "20"
+  # Node 22 ships a native WebSocket, which supabase-js requires at runtime.
+  NODE_VERSION = "22"
 
 # Local `netlify dev`: run Vite (5173) and proxy it on 8888 alongside functions.
 [dev]
