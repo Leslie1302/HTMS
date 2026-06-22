@@ -74,7 +74,9 @@ export async function appendScansToPdf(baseBytes: ArrayBuffer, scans: ScanInput[
 
 /** Trigger a browser download of raw PDF bytes. */
 export function downloadBytes(bytes: Uint8Array, filename: string) {
-  const blob = new Blob([bytes], { type: 'application/pdf' });
+  // Copy into a plain ArrayBuffer (TS 5.7 no longer treats Uint8Array as a BlobPart).
+  const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const blob = new Blob([ab], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
