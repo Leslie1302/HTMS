@@ -119,7 +119,9 @@ export function guard(opts: GuardOptions, handler: Handler) {
     } catch (err) {
       // Structured error log with request context (wire to Sentry in prod).
       console.error(JSON.stringify({ level: 'error', url: req.url, msg: String(err) }));
-      return json(500, { error: 'Internal error' });
+      // TEMP DIAGNOSTIC: surface the real message to pinpoint the prod failure.
+      // Revert to a generic message once resolved.
+      return json(500, { error: 'Internal: ' + (err instanceof Error ? err.message : String(err)) });
     }
   };
 }
