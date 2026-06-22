@@ -6,7 +6,13 @@
  * before identity is verified, and no client-asserted identity is trusted.
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import ws from 'ws';
 import type { ZodSchema } from 'zod';
+
+// supabase-js needs a WebSocket at construction; Netlify's Node runtime may not
+// provide one natively. Supply `ws` so the client never throws (we don't use
+// realtime in functions, but the client still requires the transport).
+const realtime = { transport: ws as unknown as typeof WebSocket };
 
 export interface AuthContext {
   userId: string;
@@ -29,7 +35,7 @@ export function json(status: number, body: unknown): Response {
 
 /** Service-role client — bypasses RLS. Use ONLY for audit writes / trusted ops. */
 export function serviceDb(): SupabaseClient {
-  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false }, realtime });
 }
 
 // ── Rate limiting ────────────────────────────────────────────────────────────
@@ -89,6 +95,7 @@ export function guard(opts: GuardOptions, handler: Handler) {
       const db = createClient(SUPABASE_URL, ANON_KEY, {
         global: { headers: { Authorization: `Bearer ${token}` } },
         auth: { persistSession: false },
+        realtime,
       });
       const { data: userData, error: userErr } = await db.auth.getUser(token);
       if (userErr || !userData.user) return json(401, { error: 'Invalid or expired token' });
