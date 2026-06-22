@@ -17,7 +17,7 @@ export default function Admin() {
   }
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto">
       <h1 className="text-xl font-bold text-ministry-dark mb-4">Admin Portal</h1>
       <div className="flex gap-2 mb-5 border-b">
         {(['transporters', 'fuel', 'rates'] as const).map((t) => (
@@ -90,7 +90,7 @@ function Transporters() {
     setF((s) => ({ ...s, [k]: e.target.value }));
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <Banner msg={msg} err={err} />
       <p className="text-sm text-gray-500 mb-3">
         Name is required. Address, email, phone and GPS appear on the invoice/letter letterhead.
@@ -153,7 +153,7 @@ function Fuel() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <Banner msg={msg} err={err} />
       <p className="text-sm text-gray-500 mb-3">
         The GOIL scraper fills this weekly. Override or backfill a week here if needed.
@@ -254,7 +254,7 @@ function Rates() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <Banner msg={msg} err={err} />
       <p className="text-sm text-gray-500 mb-3">
         FIDIC weights must sum to 1. Fuel is indexed per trip from the weekly series; these are the baselines.

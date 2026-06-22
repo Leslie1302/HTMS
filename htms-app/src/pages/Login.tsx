@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { Crest } from '../components/Crest';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,8 +21,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-ministry-light px-4">
       <form onSubmit={submit} className="bg-white rounded-xl shadow p-8 w-full max-w-sm">
         <div className="text-center mb-6">
-          <div className="mx-auto w-14 h-14 rounded-full bg-ministry text-white flex items-center justify-center font-bold">
-            MoEGT
+          <div className="mx-auto w-fit">
+            <Crest size={64} />
           </div>
           <h1 className="mt-3 text-lg font-bold text-ministry-dark">HTMS</h1>
           <p className="text-xs text-gray-500">Ministry of Energy and Green Transition</p>

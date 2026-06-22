@@ -78,8 +78,8 @@ export default function Invoices() {
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
-      if (type === 'invoice') downloadInvoicePdf(inv as InvoiceDoc);
-      else downloadLetterPdf(inv as InvoiceDoc);
+      if (type === 'invoice') await downloadInvoicePdf(inv as InvoiceDoc);
+      else await downloadLetterPdf(inv as InvoiceDoc);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -89,7 +89,7 @@ export default function Invoices() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-ministry-dark mb-4">Invoices</h1>
+      <h1 className="text-xl font-bold text-ministry-dark mb-4">Invoices and Letters</h1>
       {err && <div className="mb-4 text-sm text-red-600 bg-red-50 p-2 rounded">{err}</div>}
       {msg && <div className="mb-4 text-sm text-green-700 bg-green-50 p-2 rounded">{msg}</div>}
 

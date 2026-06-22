@@ -144,7 +144,7 @@ export default function WaybillEntry() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl mx-auto">
       <h1 className="text-xl font-bold text-ministry-dark mb-1">New Waybill</h1>
       <p className="text-sm text-gray-500 mb-4">
         For a consolidated trip (same car, same day), enter all waybill numbers comma-separated and add

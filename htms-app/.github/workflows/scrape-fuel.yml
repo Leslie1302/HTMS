@@ -23,6 +23,7 @@ jobs:
         env:
           FUEL_SCRAPER_SUPABASE_URL: ${{ secrets.FUEL_SCRAPER_SUPABASE_URL }}
           FUEL_SCRAPER_SUPABASE_KEY: ${{ secrets.FUEL_SCRAPER_SUPABASE_KEY }}
+          GOIL_FUEL_URL: 'https://goil.com.gh/new-fuel-prices/'
           FUEL_MIN_PRICE: '1.0'
           FUEL_MAX_PRICE: '50.0'
           FUEL_MAX_WEEKLY_DEVIATION: '0.25'

@@ -95,6 +95,23 @@ function summary(inv: InvoiceDoc) {
 
 const M = 48; // page margin (pt)
 
+/** Load /ministry-logo.png as a data URL for embedding (null if absent). */
+export async function loadLogo(): Promise<string | null> {
+  try {
+    const res = await fetch('/ministry-logo.png');
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 function newDoc() {
   return new jsPDF({ unit: 'pt', format: 'a4' });
 }
@@ -103,12 +120,19 @@ function pageWidth(doc: jsPDF) {
 }
 
 // ── Invoice PDF ──────────────────────────────────────────────────────────────
-export function buildInvoice(inv: InvoiceDoc): jsPDF {
+export function buildInvoice(inv: InvoiceDoc, logo?: string | null): jsPDF {
   const doc = newDoc();
   const W = pageWidth(doc);
   const t = inv.transporters ?? {};
   const s = summary(inv);
   let y = M;
+
+  // Ministry crest, centered.
+  if (logo) {
+    const sz = 56;
+    doc.addImage(logo, 'PNG', (W - sz) / 2, y, sz, sz);
+    y += sz + 8;
+  }
 
   // Centered letterhead.
   doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(17);
@@ -182,7 +206,7 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
 }
 
 // ── Letter PDF ───────────────────────────────────────────────────────────────
-export function buildLetter(inv: InvoiceDoc): jsPDF {
+export function buildLetter(inv: InvoiceDoc, logo?: string | null): jsPDF {
   const doc = newDoc();
   const W = pageWidth(doc);
   const H = doc.internal.pageSize.getHeight();
@@ -194,13 +218,17 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   const period = `${long(s.ps)} - ${long(s.pe)}`;
   let y = M;
 
-  // Letterhead: monogram + name.
-  doc.setFillColor(...GREEN).roundedRect(M, y - 6, 40, 40, 6, 6, 'F');
-  doc.setFont('helvetica', 'bold').setFontSize(18).setTextColor(255, 255, 255);
-  doc.text(monogram(name), M + 20, y + 19, { align: 'center' });
-  doc.setTextColor(17).setFontSize(15);
-  doc.text(name, M + 52, y + 18);
-  y += 44;
+  // Letterhead: Ministry crest (or monogram fallback) + transporter name.
+  if (logo) {
+    doc.addImage(logo, 'PNG', M, y - 6, 44, 44);
+  } else {
+    doc.setFillColor(...GREEN).roundedRect(M, y - 6, 40, 40, 6, 6, 'F');
+    doc.setFont('helvetica', 'bold').setFontSize(18).setTextColor(255, 255, 255);
+    doc.text(monogram(name), M + 20, y + 19, { align: 'center' });
+  }
+  doc.setTextColor(17).setFont('helvetica', 'bold').setFontSize(15);
+  doc.text(name, M + 56, y + 18);
+  y += 46;
   doc.setDrawColor(...GREEN).setLineWidth(1.4).line(M, y, W - M, y);
   y += 22;
 
@@ -267,9 +295,11 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   return doc;
 }
 
-export function downloadInvoicePdf(inv: InvoiceDoc) {
-  buildInvoice(inv).save(`Invoice_${ref(inv)}.pdf`);
+export async function downloadInvoicePdf(inv: InvoiceDoc) {
+  const logo = await loadLogo();
+  buildInvoice(inv, logo).save(`Invoice_${ref(inv)}.pdf`);
 }
-export function downloadLetterPdf(inv: InvoiceDoc) {
-  buildLetter(inv).save(`Payment_Request_${ref(inv)}.pdf`);
+export async function downloadLetterPdf(inv: InvoiceDoc) {
+  const logo = await loadLogo();
+  buildLetter(inv, logo).save(`Payment_Request_${ref(inv)}.pdf`);
 }
