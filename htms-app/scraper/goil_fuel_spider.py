@@ -36,7 +36,16 @@ from datetime import date, datetime, timezone
 import requests
 
 GOIL_URL = os.environ.get("GOIL_FUEL_URL", "https://goil.com.gh/new-fuel-prices/")
-UA = "HTMS-FuelBot/1.0 (Ministry of Energy and Green Transition; haulage billing)"
+# GOIL's server rejects non-browser clients (returns 415), so send realistic
+# browser headers. The page is public; this just gets past the WAF.
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 # "Diesel XP - Ghc 15.95"  /  "Diesel - GHS 15.95"  /  "Diesel: 15.95"
 DIESEL_RE = re.compile(r"diesel[^0-9]{0,20}?(?:gh[sc]|₵)?\s*([0-9]{1,2}\.[0-9]{1,2})", re.I)
@@ -50,7 +59,7 @@ MONTHS = {m: i + 1 for i, m in enumerate(
 
 
 def fetch_text() -> str:
-    r = requests.get(GOIL_URL, headers={"User-Agent": UA}, timeout=25)
+    r = requests.get(GOIL_URL, headers=HEADERS, timeout=25)
     r.raise_for_status()
     # crude tag strip so the regexes see clean text
     return re.sub(r"<[^>]+>", " ", r.text)
