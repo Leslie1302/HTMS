@@ -14,14 +14,7 @@
  * behaviour). A missing distance or fuel price throws CalcError so the caller
  * can surface *why*, rather than producing a blank/zero invoice.
  */
-import {
-  BaseRates,
-  Category,
-  DEFAULT_BASE_RATES,
-  DEFAULT_FIDIC,
-  DISTANCE_BASE_KM,
-  FidicParams,
-} from './rates';
+import { BaseRates, Category, DEFAULT_FIDIC, DISTANCE_BASE_KM, FidicParams } from './rates';
 
 export class CalcError extends Error {
   readonly code: string;
