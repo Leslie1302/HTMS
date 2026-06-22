@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
-import { downloadInvoicePdf, downloadLetterPdf, type InvoiceDoc } from '../lib/pdf';
+import { buildInvoice, buildLetter, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
+import { appendScansToPdf, downloadBytes, type ScanInput } from '../lib/mergeScans';
+
+const SCAN_LABELS: Record<string, string> = {
+  acknowledgement: 'Acknowledgement form',
+  waybill: 'Waybill',
+  release_letter: 'Release letter',
+};
 
 const ghs = (n: number) =>
   '₵' + Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -69,17 +76,39 @@ export default function Invoices() {
     setBusy(true);
     setErr(null);
     try {
-      // Pull the full invoice (with joins) and build a real PDF client-side.
+      // Pull the full invoice (with joins + scan paths).
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,districts(name),origins(name)))',
+          '*, transporters(display_name,address,email,phone,gps_address), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
         )
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
-      if (type === 'invoice') await downloadInvoicePdf(inv as InvoiceDoc);
-      else await downloadLetterPdf(inv as InvoiceDoc);
+
+      // Build the base document PDF (jsPDF) client-side.
+      const logo = await loadLogo();
+      const doc = type === 'invoice' ? buildInvoice(inv as InvoiceDoc, logo) : buildLetter(inv as InvoiceDoc, logo);
+      const baseBytes = doc.output('arraybuffer') as ArrayBuffer;
+
+      // Download every scan attached to the invoice's waybills, then append them.
+      const scans: ScanInput[] = [];
+      for (const line of (inv as any).invoice_lines ?? []) {
+        for (const s of line.waybills?.scans ?? []) {
+          const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
+          if (blob) {
+            scans.push({
+              bytes: await blob.arrayBuffer(),
+              mime: s.mime_type || blob.type,
+              label: SCAN_LABELS[s.scan_type] ?? 'Supporting scan',
+            });
+          }
+        }
+      }
+
+      const merged = await appendScansToPdf(baseBytes, scans);
+      const prefix = type === 'invoice' ? 'Invoice' : 'Payment_Request';
+      downloadBytes(merged, `${prefix}_${invoiceRef(inv as InvoiceDoc)}.pdf`);
     } catch (e) {
       setErr((e as Error).message);
     } finally {

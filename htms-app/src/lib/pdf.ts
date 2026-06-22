@@ -75,6 +75,11 @@ function ref(inv: InvoiceDoc) {
   return inv.reference_no ?? 'INV-' + inv.id.slice(0, 8).toUpperCase();
 }
 
+/** Exposed for filenames + the scan-merge flow. */
+export function invoiceRef(inv: InvoiceDoc): string {
+  return ref(inv);
+}
+
 function summary(inv: InvoiceDoc) {
   const lines = inv.invoice_lines ?? [];
   const origin = lines[0]?.waybills?.origins?.name ?? '—';

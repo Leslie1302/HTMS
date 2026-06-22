@@ -52,38 +52,73 @@ function Banner({ msg, err }: { msg: string | null; err: string | null }) {
 }
 
 // ── Transporters ────────────────────────────────────────────────────────────
+interface TransporterRow {
+  id: string;
+  display_name: string;
+  active: boolean;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  gps_address: string | null;
+}
+
 function Transporters() {
   const { msg, err, setMsg, setErr } = useToast();
-  const [list, setList] = useState<{ id: string; display_name: string; active: boolean }[]>([]);
+  const [list, setList] = useState<TransporterRow[]>([]);
   const blank = { display_name: '', address: '', email: '', phone: '', gps_address: '' };
   const [f, setF] = useState(blank);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   function load() {
     supabase
       .from('transporters')
-      .select('id, display_name, active')
+      .select('id, display_name, active, address, email, phone, gps_address')
       .order('display_name')
-      .then(({ data }) => setList(data ?? []));
+      .then(({ data }) => setList((data as TransporterRow[]) ?? []));
   }
   useEffect(load, []);
 
-  async function add(e: React.FormEvent) {
+  function startEdit(t: TransporterRow) {
+    setEditingId(t.id);
+    setF({
+      display_name: t.display_name,
+      address: t.address ?? '',
+      email: t.email ?? '',
+      phone: t.phone ?? '',
+      gps_address: t.gps_address ?? '',
+    });
+    setMsg(null);
+    setErr(null);
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setF(blank);
+  }
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setMsg(null);
-    const { error } = await supabase.from('transporters').insert({
+    const payload = {
       display_name: f.display_name.trim(),
       address: f.address.trim() || null,
       email: f.email.trim() || null,
       phone: f.phone.trim() || null,
       gps_address: f.gps_address.trim() || null,
-    });
+    };
+    const { error } = editingId
+      ? await supabase.from('transporters').update(payload).eq('id', editingId)
+      : await supabase.from('transporters').insert(payload);
+    if (error) return setErr(error.message);
+    setMsg(editingId ? `Updated "${payload.display_name}"` : `Added "${payload.display_name}"`);
+    cancelEdit();
+    load();
+  }
+
+  async function toggleActive(t: TransporterRow) {
+    const { error } = await supabase.from('transporters').update({ active: !t.active }).eq('id', t.id);
     if (error) setErr(error.message);
-    else {
-      setMsg(`Added "${f.display_name.trim()}"`);
-      setF(blank);
-      load();
-    }
+    else load();
   }
 
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -95,23 +130,42 @@ function Transporters() {
       <p className="text-sm text-gray-500 mb-3">
         Name is required. Address, email, phone and GPS appear on the invoice/letter letterhead.
       </p>
-      <form onSubmit={add} className="bg-white rounded-lg shadow p-4 grid grid-cols-2 gap-3 mb-5">
+      <form onSubmit={submit} className="bg-white rounded-lg shadow p-4 grid grid-cols-2 gap-3 mb-5">
+        {editingId && (
+          <div className="col-span-2 text-sm text-ministry-dark font-medium">Editing transporter</div>
+        )}
         <input required placeholder="Transporter name *" value={f.display_name} onChange={set('display_name')} className="col-span-2 border rounded px-3 py-2" />
         <input placeholder="Address (e.g. P.O. Box LG 8261 Legon, Accra)" value={f.address} onChange={set('address')} className="col-span-2 border rounded px-3 py-2" />
         <input placeholder="Email" value={f.email} onChange={set('email')} className="border rounded px-3 py-2" />
         <input placeholder="Phone" value={f.phone} onChange={set('phone')} className="border rounded px-3 py-2" />
         <input placeholder="GPS address (e.g. GW-0375-7007)" value={f.gps_address} onChange={set('gps_address')} className="col-span-2 border rounded px-3 py-2" />
-        <div className="col-span-2">
-          <button className="bg-ministry text-white rounded px-4 py-2 font-medium">Add transporter</button>
+        <div className="col-span-2 flex gap-2">
+          <button className="bg-ministry text-white rounded px-4 py-2 font-medium">
+            {editingId ? 'Save changes' : 'Add transporter'}
+          </button>
+          {editingId && (
+            <button type="button" onClick={cancelEdit} className="border rounded px-4 py-2 text-gray-600">
+              Cancel
+            </button>
+          )}
         </div>
       </form>
       <ul className="bg-white rounded-lg shadow divide-y">
         {list.map((t) => (
-          <li key={t.id} className="px-4 py-2 flex justify-between text-sm">
-            <span>{t.display_name}</span>
-            <span className={t.active ? 'text-green-600' : 'text-gray-400'}>
-              {t.active ? 'active' : 'inactive'}
-            </span>
+          <li key={t.id} className="px-4 py-2 flex items-center justify-between text-sm gap-3">
+            <div className="min-w-0">
+              <div className="font-medium truncate">{t.display_name}</div>
+              <div className="text-xs text-gray-500 truncate">
+                {[t.email, t.phone, t.gps_address].filter(Boolean).join(' · ') || 'no contact details'}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className={t.active ? 'text-green-600' : 'text-gray-400'}>{t.active ? 'active' : 'inactive'}</span>
+              <button onClick={() => startEdit(t)} className="text-ministry-dark underline">Edit</button>
+              <button onClick={() => toggleActive(t)} className="text-gray-500 underline">
+                {t.active ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
           </li>
         ))}
         {list.length === 0 && <li className="px-4 py-3 text-gray-400 text-sm">No transporters yet.</li>}
