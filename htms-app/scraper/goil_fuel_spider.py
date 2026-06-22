@@ -134,6 +134,10 @@ def main() -> int:
 
     price = parse_price(text)
     if price is None:
+        snippet = " ".join(text.split())[:900]
+        has_diesel = "diesel" in text.lower()
+        print(f"DEBUG: 'diesel' present in page text: {has_diesel}", file=sys.stderr)
+        print(f"DEBUG: page text snippet: {snippet}", file=sys.stderr)
         print("ERROR: could not find a diesel price on the GOIL page (markup may have changed).", file=sys.stderr)
         return 3
     if not (pmin <= price <= pmax):
