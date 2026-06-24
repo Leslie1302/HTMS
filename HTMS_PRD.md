@@ -392,15 +392,17 @@ The **calculation-engine regression suite is non-negotiable**: it asserts the th
 
 ---
 
-## 12. Open Questions
+## 12. Open Questions — resolution log
 
-1. **Branding:** please provide the Ministry of Energy and Green Transition logo/letterhead and a sample payment-request letter so the PDF template matches the official format (addressee, ref-number scheme, signatory).
-2. **GOIL price selector:** which exact figure on `goil.com.gh` is the one to scrape (specific product — diesel/AGO — and which price field), and how often is it updated? Is there a stable page/list, or would the NPA published price list be a more reliable source?
-3. **Wage component:** confirm `Wn` (minimum wage) is held fixed per escalation period while only diesel varies per week (the workbook holds wage fixed and indexes only fuel — please confirm this remains policy).
-4. **Truck tonnage:** the Material formula uses `TruckSize_tonnes` (the `O` term, `I*J*O`). Confirm the actual tonnes mapped to 20ft vs 40ft trucks — the sheet stores "20"/"40" footers but the formula multiplies by a tonnage value.
-5. **Distance +30 km:** confirm the fixed `30 + chart_distance` adjustment seen in the workbook is intentional and should carry into the new system.
-6. **Multi-waybill rows:** how should `12776/12777`-style combined waybills be counted — one trip or two?
-7. **Scan handling:** preferred max file size/types, and whether scans should be *appended as pages* to the PDF or *attached as separate files* in the document package.
+1. **Branding** — ✅ Resolved. Ministry of Energy and Green Transition crest supplied; used in the header, login, and PDF letterhead. Invoice/letter formats matched to the approved samples (Tahoma/Helvetica, justified body).
+2. **GOIL price selector** — ✅ Resolved. The scraper reads the **Diesel XP** price from the permanent page `https://goil.com.gh/new-fuel-prices/`, plus the effective date; updated whenever GOIL revises pump prices. Admin can override any week.
+3. **Wage component** — ✅ Confirmed by reproduction. `Wn` is held fixed per escalation period and only diesel varies per week; the engine reproduces real invoices to the cent on this basis.
+4. **Truck tonnage** — ✅ Resolved by verification. The Material formula uses the truck **footer value (20 or 40) directly** as the `O` multiplier (validated against the ₵14,763.71 material invoice).
+5. **Distance +30 km** — ✅ Confirmed. The engine applies `30 + chart_distance`, matching the workbook.
+6. **Multi-waybill rows** — ✅ Resolved. Consolidated same-trip waybills are entered with comma-separated numbers and multiple destinations; the cost uses the **furthest** destination.
+7. **Scan handling** — ✅ Resolved. Three scan types (acknowledgement, waybill, release letter), ≤10 MB, image or PDF; **appended as pages** to the generated PDF package.
+
+No open blockers remain on the calculation or document logic. Remaining work is operational hardening/UX (custom domain, optional further PDF polish).
 
 ---
 
