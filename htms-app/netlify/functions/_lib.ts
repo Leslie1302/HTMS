@@ -12,7 +12,10 @@ import type { ZodSchema } from 'zod';
 // supabase-js needs a WebSocket at construction; Netlify's Node runtime may not
 // provide one natively. Supply `ws` so the client never throws (we don't use
 // realtime in functions, but the client still requires the transport).
-const realtime = { transport: ws as unknown as typeof WebSocket };
+// Typed `any`: supabase-js expects a DOM WebSocket ctor; ws differs in TS types
+// but is compatible at runtime.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const realtime: any = { transport: ws };
 
 export interface AuthContext {
   userId: string;
