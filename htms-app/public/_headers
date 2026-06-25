@@ -1,10 +1,11 @@
-# Security headers for the DEPLOYED site (Vite copies this into dist/ at build).
-# Kept out of netlify.toml so the strict CSP doesn't block Vite's dev server
-# during `netlify dev`. Production stays fully hardened.
+# Security headers for the DEPLOYED site. NOTE: the Content-Security-Policy is
+# injected as a <meta> tag at BUILD time (see vite.config.ts) instead of here,
+# because `netlify dev` applies _headers to the Vite dev server and a strict
+# script-src breaks Vite's React preamble. X-Frame-Options below covers framing
+# (the one CSP directive — frame-ancestors — that a meta tag can't express).
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
