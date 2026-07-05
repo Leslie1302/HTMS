@@ -29,6 +29,7 @@ export default guard({ roles: ['admin', 'officer'], rateLimit: DOC_LIMIT }, asyn
     .single();
   if (error || !invoice) return json(404, { error: 'Invoice not found' });
 
+  // ponytail: memo template blocked on Ministry sample
   const html =
     body.type === 'invoice'
       ? renderInvoiceHtml(invoice, { referenceNo: body.referenceNo, addressee: body.addressee, notes: body.notes })

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Management | HTMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#40493d",
+                    "outline-variant": "#bfcaba",
+                    "error": "#ba1a1a",
+                    "background": "#f9f9ff",
+                    "on-secondary": "#ffffff",
+                    "surface-container": "#e9edff",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#acf4a4",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-container": "#307231",
+                    "surface-dim": "#d3daef",
+                    "primary": "#0d631b",
+                    "tertiary-fixed-dim": "#bdcabe",
+                    "primary-container": "#2e7d32",
+                    "tertiary": "#4d5950",
+                    "on-surface": "#141b2b",
+                    "on-secondary-fixed": "#002203",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-low": "#f1f3ff",
+                    "on-secondary-fixed-variant": "#0c5216",
+                    "secondary": "#2a6b2c",
+                    "error-container": "#ffdad6",
+                    "outline": "#707a6c",
+                    "on-tertiary-fixed-variant": "#3e4a41",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "surface-variant": "#dce2f7",
+                    "surface-container-highest": "#dce2f7",
+                    "on-primary-container": "#cbffc2",
+                    "surface": "#f9f9ff",
+                    "inverse-primary": "#88d982",
+                    "on-tertiary-fixed": "#131e17",
+                    "on-primary-fixed-variant": "#005312",
+                    "inverse-on-surface": "#edf0ff",
+                    "surface-container-high": "#e1e8fd",
+                    "surface-bright": "#f9f9ff",
+                    "inverse-surface": "#293040",
+                    "on-background": "#141b2b",
+                    "secondary-container": "#acf4a4",
+                    "primary-fixed": "#a3f69c",
+                    "on-tertiary-container": "#e8f5e9",
+                    "on-primary-fixed": "#002204",
+                    "surface-tint": "#1b6d24",
+                    "secondary-fixed-dim": "#91d78a",
+                    "tertiary-fixed": "#d9e6da",
+                    "tertiary-container": "#657167",
+                    "primary-fixed-dim": "#88d982"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "xl": "32px",
+                    "base": "4px",
+                    "sm": "8px",
+                    "gutter": "20px",
+                    "lg": "24px",
+                    "container-max": "1440px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "mono-data": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "title-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ghana-accent {
+            height: 4px;
+            background: linear-gradient(to right, #EF3340 33.3%, #FFD100 33.3%, #FFD100 66.6%, #006B3F 66.6%);
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-inverse-surface dark:bg-inverse-surface fixed top-0 w-full z-50 border-b-4 border-error">
+<div class="ghana-accent"></div>
+<div class="flex justify-between items-center w-full px-lg py-md max-w-container-max mx-auto">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden border-2 border-outline-variant">
+<img class="w-8 h-8 object-contain" data-alt="Official Ministry of Energy Ghana crest featuring the national coat of arms with lions and a central shield, set against a clean white circular background. The lighting is professional and even, reflecting a formal government institution aesthetic with high-quality digital rendering." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVobVSSSy2T2zTQdAt32d1GqMRwPbIypByandbpEKxWSghSgfPawTHjhWvgsxp8J1gZFv8tc_hVu5m2u4z3cR-Pj_q7WUN6B4kHOsN87NBMEHDN-LxDCWV0eCaYXYN-zod2zhdSpDIWwxexS6AA5LqXpZR00UH_bOgTyGPpCSlWAcdzhokVhR2DARJ46sfhTnfrQGBLXNsncG86XTc6BaqnpuAydIxdWtAlFD88mwlfsfWIol3PWaxCG6PRuX448rPcQ8CUxmNcB4"/>
+</div>
+<h1 class="text-title-md font-title-md text-inverse-on-surface">HTMS</h1>
+</div>
+<nav class="hidden md:flex items-center gap-lg">
+<a class="text-primary-fixed font-bold border-b-2 border-primary-fixed text-label-caps font-label-caps transition-colors" href="#">DASHBOARD</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container text-label-caps font-label-caps transition-colors px-2 py-1" href="#">PIPELINE</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container text-label-caps font-label-caps transition-colors px-2 py-1" href="#">FLEET</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container text-label-caps font-label-caps transition-colors px-2 py-1" href="#">REPORTS</a>
+</nav>
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-primary-fixed cursor-pointer">account_circle</span>
+</div>
+</div>
+</header>
+<div class="flex flex-1 pt-[72px]">
+<!-- NavigationDrawer / Sidebar -->
+<aside class="fixed left-0 top-[72px] h-[calc(100vh-72px)] w-64 z-40 bg-surface-container-low dark:bg-surface-container-lowest flex flex-col gap-sm p-md shadow-sm rounded-r-xl border-r border-outline-variant/30 overflow-y-auto">
+<div class="pb-md px-sm">
+<h2 class="text-headline-lg font-headline-lg text-primary">HTMS Management</h2>
+</div>
+<nav class="flex flex-col gap-xs">
+<p class="text-label-caps font-label-caps text-outline px-sm pb-1 pt-4">CORE</p>
+<a class="flex items-center gap-md px-md py-sm bg-secondary-container text-on-secondary-container font-bold rounded-full transition-all scale-95 duration-100" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-caps font-label-caps">Dashboard</span>
+</a>
+<p class="text-label-caps font-label-caps text-outline px-sm pb-1 pt-4">ADMINISTRATION</p>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-full" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span class="text-label-caps font-label-caps">User Management</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-full" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="text-label-caps font-label-caps">Fleet Registry</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-full" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="text-label-caps font-label-caps">System Logs</span>
+</a>
+</nav>
+<div class="mt-auto p-sm">
+<div class="bg-primary/5 rounded-xl p-md border border-primary/20">
+<p class="text-body-sm font-body-sm text-on-surface-variant">System Status</p>
+<div class="flex items-center gap-2 mt-2">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<span class="text-label-caps font-label-caps text-primary">OPERATIONAL</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-64 flex-1 p-xl">
+<div class="max-w-6xl mx-auto">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-lg">
+<div>
+<nav class="flex items-center gap-2 text-body-sm font-body-sm text-outline mb-2">
+<span>Admin</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-surface-variant">User Management</span>
+</nav>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">System Users</h2>
+<p class="text-body-md font-body-md text-on-surface-variant mt-1">Manage institutional access for Ministry staff, transporters, and site admins.</p>
+</div>
+<button class="flex items-center gap-md bg-primary text-on-primary px-lg py-md rounded-xl hover:opacity-90 transition-opacity font-title-md text-title-md shadow-md active:scale-95 duration-150">
+<span class="material-symbols-outlined">person_add</span>
+                        Create New User
+                    </button>
+</div>
+<!-- Stats Overview (KPI Bento Grid) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-xl">
+<div class="bg-white border border-outline-variant p-lg rounded-xl flex flex-col shadow-sm">
+<span class="text-label-caps font-label-caps text-outline">TOTAL USERS</span>
+<span class="text-display-lg font-display-lg text-primary mt-2">1,284</span>
+<div class="flex items-center gap-1 mt-auto text-primary">
+<span class="material-symbols-outlined text-[18px]">trending_up</span>
+<span class="text-label-caps font-label-caps">+12% from last month</span>
+</div>
+</div>
+<div class="bg-white border border-outline-variant p-lg rounded-xl flex flex-col shadow-sm">
+<span class="text-label-caps font-label-caps text-outline">ACTIVE NOW</span>
+<span class="text-display-lg font-display-lg text-secondary mt-2">412</span>
+<div class="flex items-center gap-1 mt-auto text-secondary">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span class="text-label-caps font-label-caps">Current sessions</span>
+</div>
+</div>
+<div class="bg-white border border-outline-variant p-lg rounded-xl flex flex-col shadow-sm">
+<span class="text-label-caps font-label-caps text-outline">PENDING ACCESS</span>
+<span class="text-display-lg font-display-lg text-error mt-2">18</span>
+<div class="flex items-center gap-1 mt-auto text-error">
+<span class="material-symbols-outlined text-[18px]">hourglass_empty</span>
+<span class="text-label-caps font-label-caps">Awaiting verification</span>
+</div>
+</div>
+<div class="bg-white border border-outline-variant p-lg rounded-xl flex flex-col shadow-sm">
+<span class="text-label-caps font-label-caps text-outline">LAST SYSTEM LOG</span>
+<span class="text-title-md font-title-md text-on-surface mt-4 uppercase">4 MINS AGO</span>
+<div class="flex items-center gap-1 mt-auto text-outline">
+<span class="material-symbols-outlined text-[18px]">history</span>
+<span class="text-label-caps font-label-caps">Sync completed</span>
+</div>
+</div>
+</div>
+<!-- Table Controls -->
+<div class="bg-surface-container-low border border-outline-variant rounded-t-xl px-lg py-md flex flex-wrap items-center justify-between gap-md">
+<div class="relative flex-1 max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-white border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:outline-none text-body-md" placeholder="Search by name, email or org..." type="text"/>
+</div>
+<div class="flex items-center gap-sm">
+<button class="flex items-center gap-2 px-md py-2 bg-white border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+<span class="text-label-caps font-label-caps">Filters</span>
+</button>
+<button class="flex items-center gap-2 px-md py-2 bg-white border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">download</span>
+<span class="text-label-caps font-label-caps">Export CSV</span>
+</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="bg-white border-x border-b border-outline-variant rounded-b-xl overflow-hidden shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-lg py-3 text-label-caps font-label-caps text-outline border-b border-outline-variant">NAME &amp; IDENTITY</th>
+<th class="px-lg py-3 text-label-caps font-label-caps text-outline border-b border-outline-variant">ROLE</th>
+<th class="px-lg py-3 text-label-caps font-label-caps text-outline border-b border-outline-variant">ORGANIZATION</th>
+<th class="px-lg py-3 text-label-caps font-label-caps text-outline border-b border-outline-variant">STATUS</th>
+<th class="px-lg py-3 text-label-caps font-label-caps text-outline border-b border-outline-variant">LAST LOGIN</th>
+<th class="px-lg py-3 text-label-caps font-label-caps text-outline border-b border-outline-variant text-right">ACTIONS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- User Row 1 -->
+<tr class="hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="px-lg py-3">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold">
+                                            AA
+                                        </div>
+<div>
+<p class="font-bold text-on-surface">Abena Asante</p>
+<p class="text-body-sm font-body-sm text-outline">abena.a@energy.gov.gh</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Ministry Staff</span>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Petroleum Division</span>
+</td>
+<td class="px-lg py-3">
+<span class="px-sm py-1 rounded-full bg-secondary-container text-on-secondary-container text-label-caps font-label-caps">ACTIVE</span>
+</td>
+<td class="px-lg py-3 font-mono-data text-mono-data text-outline">
+                                    2023-10-24 14:22
+                                </td>
+<td class="px-lg py-3 text-right">
+<button class="p-2 hover:bg-surface-container rounded-full text-outline transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- User Row 2 -->
+<tr class="hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="px-lg py-3">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">
+                                            KM
+                                        </div>
+<div>
+<p class="font-bold text-on-surface">Kwame Mensah</p>
+<p class="text-body-sm font-body-sm text-outline">k.mensah@ghana-haulage.com</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Transporter</span>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Ghana Haulage Ltd</span>
+</td>
+<td class="px-lg py-3">
+<span class="px-sm py-1 rounded-full bg-secondary-container text-on-secondary-container text-label-caps font-label-caps">ACTIVE</span>
+</td>
+<td class="px-lg py-3 font-mono-data text-mono-data text-outline">
+                                    2023-10-24 10:05
+                                </td>
+<td class="px-lg py-3 text-right">
+<button class="p-2 hover:bg-surface-container rounded-full text-outline transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- User Row 3 -->
+<tr class="hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="px-lg py-3">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-bold">
+                                            EO
+                                        </div>
+<div>
+<p class="font-bold text-on-surface">Ekow Owusu</p>
+<p class="text-body-sm font-body-sm text-outline">e.owusu@htms.admin</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">System Admin</span>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">HTMS HQ</span>
+</td>
+<td class="px-lg py-3">
+<span class="px-sm py-1 rounded-full bg-secondary-container text-on-secondary-container text-label-caps font-label-caps">ACTIVE</span>
+</td>
+<td class="px-lg py-3 font-mono-data text-mono-data text-outline">
+                                    2023-10-24 08:30
+                                </td>
+<td class="px-lg py-3 text-right">
+<button class="p-2 hover:bg-surface-container rounded-full text-outline transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- User Row 4 -->
+<tr class="hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="px-lg py-3">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-outline-variant text-on-surface flex items-center justify-center font-bold">
+                                            YB
+                                        </div>
+<div>
+<p class="font-bold text-on-surface">Yaa Boateng</p>
+<p class="text-body-sm font-body-sm text-outline">yaa.b@trans-west.net</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Transporter</span>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Trans-West Energy</span>
+</td>
+<td class="px-lg py-3">
+<span class="px-sm py-1 rounded-full bg-outline-variant text-on-surface-variant text-label-caps font-label-caps">INACTIVE</span>
+</td>
+<td class="px-lg py-3 font-mono-data text-mono-data text-outline">
+                                    2023-09-15 16:45
+                                </td>
+<td class="px-lg py-3 text-right">
+<button class="p-2 hover:bg-surface-container rounded-full text-outline transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- User Row 5 -->
+<tr class="hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="px-lg py-3">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold">
+                                            DA
+                                        </div>
+<div>
+<p class="font-bold text-on-surface">Daniel Addo</p>
+<p class="text-body-sm font-body-sm text-outline">d.addo@energy.gov.gh</p>
+</div>
+</div>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Ministry Staff</span>
+</td>
+<td class="px-lg py-3">
+<span class="text-body-md font-body-md text-on-surface">Logistics Dept</span>
+</td>
+<td class="px-lg py-3">
+<span class="px-sm py-1 rounded-full bg-secondary-container text-on-secondary-container text-label-caps font-label-caps">ACTIVE</span>
+</td>
+<td class="px-lg py-3 font-mono-data text-mono-data text-outline">
+                                    2023-10-23 11:15
+                                </td>
+<td class="px-lg py-3 text-right">
+<button class="p-2 hover:bg-surface-container rounded-full text-outline transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination -->
+<div class="px-lg py-md bg-surface-container-low/30 flex items-center justify-between border-t border-outline-variant">
+<p class="text-body-sm font-body-sm text-outline">Showing 1-10 of 1,284 users</p>
+<div class="flex items-center gap-2">
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container transition-colors disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<div class="flex items-center">
+<span class="px-3 py-1 bg-primary text-on-primary rounded-md text-label-caps font-label-caps">1</span>
+<span class="px-3 py-1 text-on-surface-variant hover:bg-surface-container cursor-pointer rounded-md text-label-caps font-label-caps">2</span>
+<span class="px-3 py-1 text-on-surface-variant hover:bg-surface-container cursor-pointer rounded-md text-label-caps font-label-caps">3</span>
+<span class="px-2 text-outline">...</span>
+<span class="px-3 py-1 text-on-surface-variant hover:bg-surface-container cursor-pointer rounded-md text-label-caps font-label-caps">129</span>
+</div>
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Activity Feed / Secondary Section -->
+<div class="mt-xl grid grid-cols-1 md:grid-cols-3 gap-xl">
+<div class="md:col-span-2">
+<h3 class="text-title-md font-title-md text-on-surface mb-md flex items-center gap-2">
+<span class="material-symbols-outlined">history</span>
+                            Recent Administrative Actions
+                        </h3>
+<div class="space-y-md">
+<div class="bg-white border border-outline-variant p-md rounded-xl flex gap-md items-start shadow-sm">
+<div class="p-2 bg-secondary-container rounded-lg">
+<span class="material-symbols-outlined text-on-secondary-container">person_add</span>
+</div>
+<div class="flex-1">
+<p class="text-body-md font-body-md text-on-surface"><span class="font-bold">Ekow Owusu</span> created new user <span class="font-bold">Ama Serwaa</span></p>
+<p class="text-body-sm font-body-sm text-outline">Role: Ministry Staff • Petroleum Division</p>
+</div>
+<span class="text-body-sm font-body-sm text-outline">2h ago</span>
+</div>
+<div class="bg-white border border-outline-variant p-md rounded-xl flex gap-md items-start shadow-sm">
+<div class="p-2 bg-error-container rounded-lg">
+<span class="material-symbols-outlined text-on-error-container">lock_reset</span>
+</div>
+<div class="flex-1">
+<p class="text-body-md font-body-md text-on-surface"><span class="font-bold">System</span> initiated password reset for <span class="font-bold">Kwame Mensah</span></p>
+<p class="text-body-sm font-body-sm text-outline">Reason: Security policy requirement</p>
+</div>
+<span class="text-body-sm font-body-sm text-outline">5h ago</span>
+</div>
+</div>
+</div>
+<div class="bg-inverse-surface text-inverse-on-surface p-lg rounded-xl flex flex-col relative overflow-hidden">
+<!-- Background Pattern Mockup -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, #fff 1px, transparent 0); background-size: 20px 20px;"></div>
+<h3 class="text-title-md font-title-md mb-md relative z-10">Quick Support</h3>
+<p class="text-body-md font-body-md mb-lg text-inverse-on-surface/80 relative z-10">Need help managing bulk users or updating Ministry permissions?</p>
+<a class="mt-auto bg-primary-fixed text-on-primary-fixed px-lg py-md rounded-xl text-center font-bold hover:opacity-90 transition-opacity relative z-10" href="#">
+                            Contact IT Desk
+                        </a>
+<div class="mt-md text-center text-body-sm font-body-sm text-inverse-on-surface/60 relative z-10">
+                            Available 24/7 for system admins.
+                        </div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Mobile Bottom Navigation (Hidden on Desktop) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-surface-container border-t border-outline-variant flex justify-around items-center px-gutter py-xs shadow-lg">
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-label-caps font-label-caps">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1" href="#">
+<span class="material-symbols-outlined">manage_accounts</span>
+<span class="text-label-caps font-label-caps">Users</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-label-caps font-label-caps">Logs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-caps font-label-caps">Settings</span>
+</a>
+</nav>
+<script>
+        // Simple Interaction: Row highlight and search focus effect
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableRows = document.querySelectorAll('tbody tr');
+            tableRows.forEach(row => {
+                row.addEventListener('click', () => {
+                    // Modal or Side Panel Logic could go here
+                    console.log('User row clicked');
+                });
+            });
+
+            const searchInput = document.querySelector('input[type="text"]');
+            searchInput.addEventListener('focus', () => {
+                searchInput.parentElement.classList.add('scale-[1.01]', 'transition-transform');
+            });
+            searchInput.addEventListener('blur', () => {
+                searchInput.parentElement.classList.remove('scale-[1.01]');
+            });
+        });
+    </script>
+</body></html>

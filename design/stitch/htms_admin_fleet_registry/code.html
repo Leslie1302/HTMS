@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fleet Registry | HTMS Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .ghana-accent {
+            height: 4px;
+            background: linear-gradient(to right, #EF3340 33.3%, #FFD100 33.3%, #FFD100 66.6%, #006B3F 66.6%);
+        }
+        .bento-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .bento-card:hover {
+            transform: translateY(-2px);
+        }
+        /* Custom Scrollbar for dense tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #bfcaba;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#40493d",
+                        "outline-variant": "#bfcaba",
+                        "error": "#ba1a1a",
+                        "background": "#f9f9ff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#e9edff",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#acf4a4",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#307231",
+                        "surface-dim": "#d3daef",
+                        "primary": "#0d631b",
+                        "tertiary-fixed-dim": "#bdcabe",
+                        "primary-container": "#2e7d32",
+                        "tertiary": "#4d5950",
+                        "on-surface": "#141b2b",
+                        "on-secondary-fixed": "#002203",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f1f3ff",
+                        "on-secondary-fixed-variant": "#0c5216",
+                        "secondary": "#2a6b2c",
+                        "error-container": "#ffdad6",
+                        "outline": "#707a6c",
+                        "on-tertiary-fixed-variant": "#3e4a41",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#dce2f7",
+                        "surface-container-highest": "#dce2f7",
+                        "on-primary-container": "#cbffc2",
+                        "surface": "#f9f9ff",
+                        "inverse-primary": "#88d982",
+                        "on-tertiary-fixed": "#131e17",
+                        "on-primary-fixed-variant": "#005312",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-bright": "#f9f9ff",
+                        "inverse-surface": "#293040",
+                        "on-background": "#141b2b",
+                        "secondary-container": "#acf4a4",
+                        "primary-fixed": "#a3f69c",
+                        "on-tertiary-container": "#e8f5e9",
+                        "on-primary-fixed": "#002204",
+                        "surface-tint": "#1b6d24",
+                        "secondary-fixed-dim": "#91d78a",
+                        "tertiary-fixed": "#d9e6da",
+                        "tertiary-container": "#657167",
+                        "primary-fixed-dim": "#88d982"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "xl": "32px",
+                        "base": "4px",
+                        "sm": "8px",
+                        "gutter": "20px",
+                        "lg": "24px",
+                        "container-max": "1440px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "mono-data": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "title-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="bg-inverse-surface dark:bg-inverse-surface sticky top-0 z-50 w-full">
+<div class="ghana-accent"></div>
+<div class="flex justify-between items-center w-full px-lg py-md max-w-container-max mx-auto">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">
+<img class="w-8 h-8 object-contain" data-alt="A clean, professional circular emblem of the Ministry of Energy Ghana, featuring the state crest with eagles and a black star. The aesthetic is formal and institutional, set against a pristine white background with soft studio lighting to emphasize official authority and national pride." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU3eiA3bhMVa6mDq3h1DBbA-wtzrnyGVeQHmRwLsKupfcV0yL9kDy8A51rBQVS7PQRPR3noVFnnZXlPB_T67-_J-Ma7UHWcT5lq1mgC49034nyZETIBN4Ig8nq8RkPJf8hSV4JqwvG4wTwYvJ5IhzsgSN-vQGJbVYUhKi4LFPdO9s1gLOlE-2TBlHY13r39xmy_GBEa_QmQmWOMVV0ZnxZ066ZB-QkVDi1jZoeTxkXEoYdZCCBZ-zPadBgREmNzhGOW-OdxaIS0Rc"/>
+</div>
+<h1 class="text-title-md font-title-md text-inverse-on-surface">HTMS Fleet Registry</h1>
+</div>
+<nav class="hidden md:flex gap-lg">
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-3 py-1 rounded" href="#">Dashboard</a>
+<a class="text-primary-fixed font-bold border-b-2 border-primary-fixed px-3 py-1" href="#">Fleet</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-3 py-1 rounded" href="#">Pipeline</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-3 py-1 rounded" href="#">Reports</a>
+</nav>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-on-primary cursor-pointer hover:opacity-80 transition-opacity">account_circle</span>
+</div>
+</div>
+</header>
+<div class="flex min-h-screen">
+<!-- Sidebar Navigation (Desktop) -->
+<aside class="hidden md:flex fixed left-0 h-full w-64 z-40 flex-col gap-sm p-md bg-surface border-r border-outline-variant">
+<div class="mb-lg">
+<h2 class="text-label-caps font-label-caps text-outline">Management</h2>
+</div>
+<nav class="flex flex-col gap-xs">
+<a class="flex items-center gap-md p-md text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-caps font-label-caps">Dashboard</span>
+</a>
+<a class="flex items-center gap-md p-md bg-secondary-container text-on-secondary-container font-bold rounded-full scale-95 duration-100" href="#">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="text-label-caps font-label-caps">Fleet Registry</span>
+</a>
+<a class="flex items-center gap-md p-md text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="text-label-caps font-label-caps">Pipeline</span>
+</a>
+<a class="flex items-center gap-md p-md text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-xl" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="text-label-caps font-label-caps">Analytics</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 p-xl max-w-7xl mx-auto w-full">
+<!-- Page Header & Global Search -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-lg mb-xl">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Transporter Network</h2>
+<p class="text-body-md text-on-surface-variant mt-1">Institutional oversight of haulage entities and registered assets.</p>
+</div>
+<div class="flex gap-md w-full md:w-auto">
+<div class="relative flex-1 md:w-80">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 border border-outline-variant bg-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Search by Plate or Company..." type="text"/>
+</div>
+<button class="bg-primary text-on-primary px-lg py-2 rounded-lg font-bold flex items-center gap-sm hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined">add</span>
+                        Register Company
+                    </button>
+</div>
+</div>
+<!-- Global Fleet KPIs -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-xl">
+<div class="bg-white border border-outline-variant p-lg rounded-xl bento-card">
+<p class="text-label-caps font-label-caps text-outline mb-xs">TOTAL TRANSPORTERS</p>
+<p class="text-display-lg font-display-lg text-primary">124</p>
+<div class="flex items-center gap-xs text-secondary mt-2">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span class="text-body-sm">+4 this month</span>
+</div>
+</div>
+<div class="bg-white border border-outline-variant p-lg rounded-xl bento-card">
+<p class="text-label-caps font-label-caps text-outline mb-xs">ACTIVE VEHICLES</p>
+<p class="text-display-lg font-display-lg text-primary">2,841</p>
+<div class="flex items-center gap-xs text-secondary mt-2">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+<span class="text-body-sm">94% Fleet Utilization</span>
+</div>
+</div>
+<div class="bg-white border border-outline-variant p-lg rounded-xl bento-card">
+<p class="text-label-caps font-label-caps text-outline mb-xs">VOLUME TRACKED (M3)</p>
+<p class="text-display-lg font-display-lg text-primary">48.2k</p>
+<div class="flex items-center gap-xs text-secondary mt-2">
+<span class="material-symbols-outlined text-sm">bar_chart</span>
+<span class="text-body-sm">Current Quarter</span>
+</div>
+</div>
+<div class="bg-white border border-outline-variant p-lg rounded-xl bento-card">
+<p class="text-label-caps font-label-caps text-outline mb-xs">COMPLIANCE RATE</p>
+<p class="text-display-lg font-display-lg text-primary">98.5%</p>
+<div class="flex items-center gap-xs text-on-secondary-container mt-2 bg-secondary-container px-2 py-0.5 rounded-full inline-flex">
+<span class="text-body-sm font-bold">EXCELLENT</span>
+</div>
+</div>
+</div>
+<!-- Fleet Registry Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+<!-- Primary List: Transporter Companies -->
+<div class="lg:col-span-2 space-y-md">
+<div class="flex items-center justify-between px-sm">
+<h3 class="text-title-md font-title-md text-on-surface">Registered Transporters</h3>
+<button class="text-primary font-bold text-label-caps flex items-center gap-xs">VIEW ALL <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+<!-- Company Card 1 -->
+<div class="bg-white border border-outline-variant rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row">
+<div class="w-full md:w-32 h-32 md:h-auto relative bg-surface-container-low">
+<img class="w-full h-full object-cover p-lg" data-alt="A professional corporate logistics company logo featuring abstract geometric shapes representing movement and efficiency. The style is minimalist with corporate green and gray tones, presented as a high-quality vector graphic on a clean white surface within a modern office setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOM2W9r_UjSAX1fIFv0M_gv3Q0Qd1OvazXMdTU2YwhetDqdXx0DFsuOW0V6Tzfy5XHQ1fK9rC7V7pGZ9rhJpU8KQC33fVUui72a64QFhwuDEeiGB3GJdUiu7SgvzBDIu7jrFxDyUDAVYt1WuJ0IiuFljZj39Ve6JFniYAyxrhvANCjxdmiftHe8wF6tZVcGIeQwUNZJpqmum380zTdqd2snXPeWfIz5LrBNx7-lsfbbnuS0xNUZUpK1edSxJLdhSObGgS495JHdCM"/>
+</div>
+<div class="flex-1 p-lg">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h4 class="text-title-md font-bold text-on-surface">Goldstar Logistics Ltd.</h4>
+<p class="text-body-sm text-on-surface-variant uppercase tracking-wider">Reg ID: GH-LOG-2023-890</p>
+</div>
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-label-caps">ACTIVE</span>
+</div>
+<div class="grid grid-cols-3 gap-md border-t border-outline-variant pt-md">
+<div>
+<p class="text-label-caps text-outline">FLEET SIZE</p>
+<p class="text-title-md font-bold text-primary">42 Trucks</p>
+</div>
+<div>
+<p class="text-label-caps text-outline">TOTAL VOLUME</p>
+<p class="text-title-md font-bold text-primary">8,450 ₵</p>
+</div>
+<div class="flex items-end justify-end">
+<button class="text-primary font-bold hover:underline">Manage Assets</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Company Card 2 -->
+<div class="bg-white border border-outline-variant rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row">
+<div class="w-full md:w-32 h-32 md:h-auto relative bg-surface-container-low">
+<img class="w-full h-full object-cover p-lg" data-alt="A sleek industrial logo for a heavy haulage transport firm, using bold typography and a stylized truck silhouette. The color scheme features deep forest green and vibrant yellow-gold, capturing a sense of professional reliability and power. High-resolution corporate branding photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_oVD-pDAi6MYT82796QFUbSx1YvV2FSe0VihMuSKd-jiPMeSLkPOrB1503wiB4zQy1pux5MyScPkQk7qfaR9OkAjygcsuPNcsdFBNmTaQiKKRIeknVFdCYrzcjYJnmy3Qoy39qHX-jYUxtuaJfYX__O4Bt7cAdVL1N2B0uonTgFCFZYVKnPt0GwjDO_vE074TuXt67TGQ8oBZf6n7FjaYxXuf4y52q1tfgfjOB9yAEQJWKdNcQbNlXL0yNFegEP4-wF_x85vAxXg"/>
+</div>
+<div class="flex-1 p-lg">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h4 class="text-title-md font-bold text-on-surface">Volta Haulage Solutions</h4>
+<p class="text-body-sm text-on-surface-variant uppercase tracking-wider">Reg ID: GH-LOG-2023-412</p>
+</div>
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-label-caps">ACTIVE</span>
+</div>
+<div class="grid grid-cols-3 gap-md border-t border-outline-variant pt-md">
+<div>
+<p class="text-label-caps text-outline">FLEET SIZE</p>
+<p class="text-title-md font-bold text-primary">18 Trucks</p>
+</div>
+<div>
+<p class="text-label-caps text-outline">TOTAL VOLUME</p>
+<p class="text-title-md font-bold text-primary">3,120 ₵</p>
+</div>
+<div class="flex items-end justify-end">
+<button class="text-primary font-bold hover:underline">Manage Assets</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Company Card 3 -->
+<div class="bg-white border border-outline-variant rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+<div class="flex flex-col md:flex-row">
+<div class="w-full md:w-32 h-32 md:h-auto relative bg-surface-container-low">
+<img class="w-full h-full object-cover p-lg" data-alt="Modern logistics company emblem for a Ghanaian transport business, incorporating the national star in a subtle, contemporary way. The lighting is crisp and even, highlighting the clean lines of the design. Professional and corporate aesthetic with a focus on trust and national progress." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3l16dl9b89cBhwihuRqKusfqUoUflciAPCGzXQysVHTDlOaGCrGZA16AKNxWli75uyQvvNurD05k_z3e72M6u5OAFyIf1jkmCbVnkP1cGIO4eWwJ0Ef8EIWIdEzAotV7elw_UYq-6kG3EFMqn728EsRHELncw4-2DOidqxsb516G_bzBLTpvbRGRfkNX6SQGwHCbgFHL73GrPAInEe1S6Urp1rQP5UpPMiWAhNOW6zdUm1iOCmEI-mDX2iZI2OhQ1B9ix-6dL2LM"/>
+</div>
+<div class="flex-1 p-lg">
+<div class="flex justify-between items-start mb-md">
+<div>
+<h4 class="text-title-md font-bold text-on-surface">Coastline Freight Services</h4>
+<p class="text-body-sm text-on-surface-variant uppercase tracking-wider">Reg ID: GH-LOG-2024-105</p>
+</div>
+<span class="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-full text-label-caps">PENDING</span>
+</div>
+<div class="grid grid-cols-3 gap-md border-t border-outline-variant pt-md">
+<div>
+<p class="text-label-caps text-outline">FLEET SIZE</p>
+<p class="text-title-md font-bold text-primary">12 Trucks</p>
+</div>
+<div>
+<p class="text-label-caps text-outline">TOTAL VOLUME</p>
+<p class="text-title-md font-bold text-primary">0 ₵</p>
+</div>
+<div class="flex items-end justify-end">
+<button class="text-primary font-bold hover:underline">Complete Setup</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Column: Quick Vehicle Registry Table -->
+<div class="bg-white border border-outline-variant rounded-xl p-lg h-fit">
+<div class="flex items-center justify-between mb-lg">
+<h3 class="text-title-md font-bold">Recent Registered Assets</h3>
+<span class="material-symbols-outlined text-outline cursor-pointer">filter_list</span>
+</div>
+<div class="space-y-md overflow-y-auto max-h-[600px] custom-scrollbar pr-2">
+<!-- Vehicle Entry 1 -->
+<div class="flex items-center gap-md p-md bg-surface-container-low rounded-lg border border-transparent hover:border-primary transition-all group">
+<div class="w-12 h-12 bg-white rounded flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 duration-200">local_shipping</span>
+</div>
+<div class="flex-1">
+<p class="text-mono-data font-bold">GT 4821-23</p>
+<p class="text-label-caps text-outline">TATA PRIMA • 40T</p>
+</div>
+<div class="text-right">
+<p class="text-label-caps text-secondary font-bold">ONLINE</p>
+<span class="material-symbols-outlined text-outline-variant text-sm">sensors</span>
+</div>
+</div>
+<!-- Vehicle Entry 2 -->
+<div class="flex items-center gap-md p-md bg-surface-container-low rounded-lg border border-transparent hover:border-primary transition-all group">
+<div class="w-12 h-12 bg-white rounded flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 duration-200">local_shipping</span>
+</div>
+<div class="flex-1">
+<p class="text-mono-data font-bold">GW 9022-21</p>
+<p class="text-label-caps text-outline">VOLVO FH16 • 44T</p>
+</div>
+<div class="text-right">
+<p class="text-label-caps text-secondary font-bold">ONLINE</p>
+<span class="material-symbols-outlined text-outline-variant text-sm">sensors</span>
+</div>
+</div>
+<!-- Vehicle Entry 3 -->
+<div class="flex items-center gap-md p-md bg-surface-container-low rounded-lg border border-transparent hover:border-primary transition-all group">
+<div class="w-12 h-12 bg-white rounded flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 duration-200">local_shipping</span>
+</div>
+<div class="flex-1">
+<p class="text-mono-data font-bold">AS 5541-20</p>
+<p class="text-label-caps text-outline">SCANIA R450 • 38T</p>
+</div>
+<div class="text-right">
+<p class="text-label-caps text-error font-bold">OFFLINE</p>
+<span class="material-symbols-outlined text-outline-variant text-sm">sensors_off</span>
+</div>
+</div>
+<!-- Vehicle Entry 4 -->
+<div class="flex items-center gap-md p-md bg-surface-container-low rounded-lg border border-transparent hover:border-primary transition-all group">
+<div class="w-12 h-12 bg-white rounded flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 duration-200">local_shipping</span>
+</div>
+<div class="flex-1">
+<p class="text-mono-data font-bold">NR 1289-22</p>
+<p class="text-label-caps text-outline">MAN TGX • 42T</p>
+</div>
+<div class="text-right">
+<p class="text-label-caps text-secondary font-bold">ONLINE</p>
+<span class="material-symbols-outlined text-outline-variant text-sm">sensors</span>
+</div>
+</div>
+<!-- Vehicle Entry 5 -->
+<div class="flex items-center gap-md p-md bg-surface-container-low rounded-lg border border-transparent hover:border-primary transition-all group">
+<div class="w-12 h-12 bg-white rounded flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 duration-200">local_shipping</span>
+</div>
+<div class="flex-1">
+<p class="text-mono-data font-bold">ER 7731-24</p>
+<p class="text-label-caps text-outline">ISUZU GIGA • 35T</p>
+</div>
+<div class="text-right">
+<p class="text-label-caps text-primary font-bold">NEW</p>
+<span class="material-symbols-outlined text-outline-variant text-sm">fiber_new</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-lg py-3 border-2 border-dashed border-outline-variant rounded-lg text-outline hover:border-primary hover:text-primary font-bold transition-colors">
+                        Register New Asset
+                    </button>
+</div>
+</div>
+<!-- Compliance Warning Section (Institutional Clarity) -->
+<div class="mt-xl bg-error-container p-lg rounded-xl border-l-4 border-error flex flex-col md:flex-row items-center justify-between gap-lg">
+<div class="flex items-center gap-lg text-on-error-container">
+<span class="material-symbols-outlined text-display-lg" style="font-variation-settings: 'FILL' 1;">warning</span>
+<div>
+<h4 class="text-title-md font-bold">Compliance Alert</h4>
+<p class="text-body-md opacity-90">14 registered vehicles have expired safety certifications. These assets will be suspended from the pipeline in 48 hours if documentation is not updated.</p>
+</div>
+</div>
+<button class="bg-error text-on-error px-lg py-2 rounded-lg font-bold whitespace-nowrap">Review Violations</button>
+</div>
+</main>
+</div>
+<!-- Mobile Navigation Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-xs bg-surface-container dark:bg-surface-container-lowest border-t border-outline-variant shadow-lg">
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-bright p-2 rounded-lg">
+<span class="material-symbols-outlined">home</span>
+<span class="text-label-caps font-label-caps mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 duration-150">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="text-label-caps font-label-caps mt-1">Fleet</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-bright p-2 rounded-lg">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-label-caps font-label-caps mt-1">Bills</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-bright p-2 rounded-lg">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-caps font-label-caps mt-1">Settings</span>
+</div>
+</nav>
+<script>
+        // Simple Interaction logic for Search
+        const searchInput = document.querySelector('input[type="text"]');
+        searchInput.addEventListener('focus', () => {
+            searchInput.parentElement.classList.add('scale-105');
+        });
+        searchInput.addEventListener('blur', () => {
+            searchInput.parentElement.classList.remove('scale-105');
+        });
+
+        // Hover animation for cards
+        document.querySelectorAll('.bento-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.classList.add('shadow-md');
+            });
+            card.addEventListener('mouseleave', () => {
+                card.classList.remove('shadow-md');
+            });
+        });
+    </script>
+</body></html>

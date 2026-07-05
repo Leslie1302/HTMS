@@ -72,3 +72,20 @@ export const scanMetaSchema = z.object({
   mimeType: z.enum(SCAN_ALLOWED_MIME),
   byteSize: z.number().int().positive().max(SCAN_MAX_BYTES),
 });
+
+export const CHECKLIST_ITEMS = [
+  'original_waybills',
+  'original_acknowledgement_forms',
+  'release_letters',
+  'contract_agreement_copy',
+] as const;
+export type ChecklistItem = (typeof CHECKLIST_ITEMS)[number];
+
+export const checklistSchema = z.object(
+  Object.fromEntries(CHECKLIST_ITEMS.map((k) => [k, z.boolean()])) as Record<ChecklistItem, z.ZodBoolean>,
+);
+
+export const stageTransitionSchema = z.object({
+  invoiceId: uuid,
+  stage: z.string(),
+});

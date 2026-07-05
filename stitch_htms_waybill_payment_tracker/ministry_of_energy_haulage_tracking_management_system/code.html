@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HTMS - Login | Ministry of Energy and Green Transition</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#131e17",
+                    "surface-tint": "#1b6d24",
+                    "on-surface": "#141b2b",
+                    "background": "#f9f9ff",
+                    "tertiary-container": "#657167",
+                    "on-tertiary-container": "#e8f5e9",
+                    "error": "#ba1a1a",
+                    "surface-container-low": "#f1f3ff",
+                    "primary-fixed-dim": "#88d982",
+                    "surface-container-highest": "#dce2f7",
+                    "primary-fixed": "#a3f69c",
+                    "on-secondary-fixed-variant": "#0c5216",
+                    "tertiary": "#4d5950",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-high": "#e1e8fd",
+                    "inverse-primary": "#88d982",
+                    "on-surface-variant": "#40493d",
+                    "on-secondary-container": "#307231",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#3e4a41",
+                    "on-primary-container": "#cbffc2",
+                    "secondary-fixed-dim": "#91d78a",
+                    "outline-variant": "#bfcaba",
+                    "surface-container": "#e9edff",
+                    "surface-bright": "#f9f9ff",
+                    "on-background": "#141b2b",
+                    "secondary-fixed": "#acf4a4",
+                    "surface-dim": "#d3daef",
+                    "surface-variant": "#dce2f7",
+                    "inverse-on-surface": "#edf0ff",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#2a6b2c",
+                    "error-container": "#ffdad6",
+                    "primary": "#0d631b",
+                    "on-primary-fixed-variant": "#005312",
+                    "on-primary-fixed": "#002204",
+                    "surface": "#f9f9ff",
+                    "on-error": "#ffffff",
+                    "primary-container": "#2e7d32",
+                    "tertiary-fixed-dim": "#bdcabe",
+                    "on-secondary-fixed": "#002203",
+                    "outline": "#707a6c",
+                    "secondary-container": "#acf4a4",
+                    "tertiary-fixed": "#d9e6da",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#293040"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-max": "1440px",
+                    "gutter": "20px",
+                    "lg": "24px",
+                    "md": "16px",
+                    "base": "4px",
+                    "xl": "32px",
+                    "sm": "8px",
+                    "xs": "4px"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "body-md": ["Inter"],
+                    "mono-data": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "title-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #F9FAFB;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .ghana-accent {
+            height: 4px;
+            width: 100%;
+            display: flex;
+        }
+        .ghana-red { background-color: #EF3340; flex: 1; }
+        .ghana-gold { background-color: #FFD100; flex: 1; }
+        .ghana-green { background-color: #006B3F; flex: 1; }
+        
+        .login-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 440px;
+            border-radius: 0.25rem;
+            overflow: hidden;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Login Container -->
+<main class="w-full flex items-center justify-center p-md">
+<div class="login-card">
+<!-- Ghana National Accent Strip -->
+<div class="ghana-accent">
+<div class="ghana-red"></div>
+<div class="ghana-gold"></div>
+<div class="ghana-green"></div>
+</div>
+<div class="p-xl flex flex-col items-center">
+<!-- Ministry Crest -->
+<div class="mb-lg">
+<img alt="Ministry Crest" class="w-24 h-24 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzXx-Et3XN_gbTQtb0rpjk5fxIc1LoYNuPJLl5OAkoLrnqbJp7yg4r1ZHmkmYL7TuUprC5bMDSzYXpjP6i3uSp-9_YfyCUq-PwaIfR9dZOVKTIRltfcLkWhaVryfjS4Yxx0uWOljMNTkI6oLf5k7TLaAbk5dF-WoMK9pVvevuytcEKsQVW2jWzO9GuJ5zUs2L1IMkXM4gz8jVsIcpmu9q_px479FAOK1fStH-pHvdCx729i-ZsCfVk8z4fi1jnKRgQcHUEulbHGWI"/>
+</div>
+<!-- App Identity -->
+<div class="text-center mb-xl">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">HTMS</h1>
+<p class="font-label-caps text-label-caps text-outline uppercase tracking-widest mt-base">
+                        Ministry of Energy and Green Transition
+                    </p>
+</div>
+<!-- Form -->
+<form class="w-full space-y-md" onsubmit="return false;">
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant" for="email">
+                            EMAIL ADDRESS
+                        </label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant">mail</span>
+<input class="w-full h-10 pl-10 pr-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all font-body-md text-body-md" id="email" name="email" placeholder="name@energy.gov.gh" required="" type="email"/>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<div class="flex justify-between items-center">
+<label class="font-label-caps text-label-caps text-on-surface-variant" for="password">
+                                PASSWORD
+                            </label>
+<a class="font-label-caps text-label-caps text-primary hover:underline" href="#">Forgot?</a>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant">lock</span>
+<input class="w-full h-10 pl-10 pr-md border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all font-body-md text-body-md" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+</div>
+<div class="flex items-center gap-sm pt-base">
+<input class="w-4 h-4 text-primary border-outline-variant rounded focus:ring-primary" id="remember" type="checkbox"/>
+<label class="font-body-sm text-body-sm text-on-surface-variant cursor-pointer" for="remember">
+                            Keep me signed in for 30 days
+                        </label>
+</div>
+<button class="w-full h-12 bg-primary-container text-on-primary font-title-md text-title-md rounded-lg flex items-center justify-center gap-sm hover:opacity-90 active:scale-[0.98] transition-all mt-lg" type="submit">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">login</span>
+                        Sign In
+                    </button>
+</form>
+<!-- Secure Footer -->
+<div class="mt-xl pt-lg border-t border-surface-container-highest w-full flex items-center justify-center gap-xs text-outline">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+<span class="font-label-caps text-label-caps uppercase">Secure Ministry Access</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Support Link -->
+<div class="fixed bottom-lg w-full text-center">
+<p class="font-body-sm text-body-sm text-outline-variant">
+            Technical issues? <a class="text-on-surface-variant font-medium hover:text-primary underline" href="#">Contact System Administrator</a>
+</p>
+</div>
+<script>
+        // Micro-interaction for password toggle if needed, or simple logging
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const btn = e.target.querySelector('button');
+            const originalContent = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin">refresh</span> Validating...`;
+            
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                // Add your redirection logic here
+                console.log("Authentication initiated for Ministry Personnel");
+            }, 1200);
+        });
+    </script>
+</body></html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>HTMS - Waybill Entry</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed-dim": "#91d78a",
+                    "on-surface": "#141b2b",
+                    "on-primary-fixed": "#002204",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-high": "#e1e8fd",
+                    "surface-container": "#e9edff",
+                    "secondary-fixed": "#acf4a4",
+                    "on-surface-variant": "#40493d",
+                    "on-secondary-fixed": "#002203",
+                    "primary-fixed": "#a3f69c",
+                    "on-secondary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "tertiary-container": "#657167",
+                    "on-error-container": "#93000a",
+                    "tertiary-fixed-dim": "#bdcabe",
+                    "on-primary-container": "#cbffc2",
+                    "primary-container": "#2e7d32",
+                    "tertiary-fixed": "#d9e6da",
+                    "inverse-primary": "#88d982",
+                    "on-secondary-fixed-variant": "#0c5216",
+                    "inverse-on-surface": "#edf0ff",
+                    "on-background": "#141b2b",
+                    "surface-container-highest": "#dce2f7",
+                    "secondary": "#2a6b2c",
+                    "primary-fixed-dim": "#88d982",
+                    "outline": "#707a6c",
+                    "on-tertiary-container": "#e8f5e9",
+                    "surface-variant": "#dce2f7",
+                    "surface": "#f9f9ff",
+                    "primary": "#0d631b",
+                    "on-error": "#ffffff",
+                    "on-tertiary-fixed-variant": "#3e4a41",
+                    "error": "#ba1a1a",
+                    "surface-bright": "#f9f9ff",
+                    "surface-dim": "#d3daef",
+                    "surface-container-low": "#f1f3ff",
+                    "on-secondary-container": "#307231",
+                    "outline-variant": "#bfcaba",
+                    "secondary-container": "#acf4a4",
+                    "surface-tint": "#1b6d24",
+                    "on-tertiary-fixed": "#131e17",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed-variant": "#005312",
+                    "inverse-surface": "#293040",
+                    "tertiary": "#4d5950",
+                    "error-container": "#ffdad6",
+                    "background": "#f9f9ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "lg": "24px",
+                    "container-max": "1440px",
+                    "xs": "4px",
+                    "gutter": "20px",
+                    "xl": "32px",
+                    "md": "16px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "title-md": ["Inter"],
+                    "label-caps": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "mono-data": ["Inter"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ghana-accent {
+            height: 4px;
+            background: linear-gradient(to right, #EF3340 33.3%, #FFD100 33.3%, #FFD100 66.6%, #009739 66.6%);
+        }
+        .pipeline-step {
+            position: relative;
+        }
+        .pipeline-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            width: 100%;
+            height: 2px;
+            background: #E5E7EB;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-surface min-h-screen pb-xl">
+<!-- Top Navigation Bar -->
+<header class="bg-inverse-surface w-full top-0 sticky z-50">
+<div class="flex justify-between items-center w-full px-lg py-md max-w-container-max mx-auto">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-white flex items-center justify-center p-1">
+<img class="w-full h-full object-contain" data-alt="A detailed, professional circular crest for the Ministry of Energy of Ghana. The design features heraldic symbols including a traditional stool, a star, and stylized energy lightning bolts, rendered in sharp gold, green, and red against a white background. The style is official, clean, and institutional for high-level government software." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBORhppC-FbkHeS2A5UFxvfAj1RkuQ39EW4uNd1jQVlT2_sGUeR6RxmamtKRmiywy8SpJSjp7zUTzdUtI3vGHp9L1JHWMxa-FY37SvgToC_m-NJ-vArY4mJ4hcyn4uy8WTxrA4BmZaL1T3BV5jUxj4zZ33EVB0HepwY9pj-eyeF5owB01V79Peh1uRQzKRy3AsBBZmThEBsdmwYZT63I8dYPbx2KLvy1SZs4jhLpxZOeeirQA8iPKb0Rd0i9cCA6qXtyVHx-qEhOTo">
+</div>
+<div class="flex flex-col">
+<h1 class="text-title-md font-title-md text-inverse-on-surface">HTMS</h1>
+<span class="text-label-caps font-label-caps text-outline-variant uppercase tracking-wider">Waybill Management System</span>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-lg">
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-md py-sm rounded-lg" href="#">Dashboard</a>
+<a class="text-primary-fixed font-bold border-b-2 border-primary-fixed px-md py-sm" href="#">Pipeline</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-md py-sm rounded-lg" href="#">Fleet</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-md py-sm rounded-lg" href="#">Reports</a>
+</nav>
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-on-primary" data-icon="account_circle">account_circle</span>
+<span class="text-on-primary font-medium text-body-sm">Admin Unit</span>
+</div>
+</div>
+<div class="ghana-accent w-full"></div>
+</header>
+<main class="max-w-4xl mx-auto mt-xl px-gutter">
+<!-- Page Title & Breadcrumbs -->
+<div class="mb-lg">
+<div class="flex items-center text-label-caps font-label-caps text-outline gap-sm mb-xs">
+<span class="">Pipeline</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-secondary font-bold">New Waybill Entry</span>
+</div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Vehicle Waybill Documentation</h2>
+<p class="text-body-sm text-on-surface-variant">Complete the following fields to register a new haulage trip into the tracking pipeline.</p>
+</div>
+<!-- Main Form Container -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+<form class="p-xl space-y-xl">
+<!-- Section 1: Core Shipment Info -->
+<div class="space-y-lg">
+<div class="flex items-center gap-sm pb-sm border-b border-surface-container-high">
+<span class="material-symbols-outlined text-primary" data-icon="local_shipping">local_shipping</span>
+<h3 class="text-title-md font-title-md">Primary Information</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Transporter -->
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Transporter</label>
+<select class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary">
+<option>Select Transporter</option>
+<option>Ghana Haulage Corp</option>
+<option>Accra Logistics Ltd</option>
+<option>Energy Transporters Inc.</option>
+</select>
+</div>
+<!-- Waybill No -->
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Waybill No.</label>
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary" placeholder="e.g. WB-2026-0045" type="text">
+</div>
+<!-- Vehicle No -->
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Vehicle No.</label>
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary" placeholder="e.g. GN 4567 - 24" type="text">
+</div>
+<!-- Category Segmented Control -->
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Shipment Category</label>
+<div class="flex p-1 bg-surface-container-low rounded-xl border border-outline-variant h-[40px]">
+<button class="flex-1 text-label-caps font-label-caps bg-white shadow-sm rounded-lg text-primary" type="button">Material</button>
+<button class="flex-1 text-label-caps font-label-caps text-on-surface-variant hover:text-on-surface" type="button">Poles</button>
+<button class="flex-1 text-label-caps font-label-caps text-on-surface-variant hover:text-on-surface" type="button">Concrete</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Routing -->
+<div class="space-y-lg">
+<div class="flex items-center gap-sm pb-sm border-b border-surface-container-high">
+<span class="material-symbols-outlined text-primary" data-icon="map">map</span>
+<h3 class="text-title-md font-title-md">Route &amp; Logistics</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Origin</label>
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary" placeholder="Loading Point / Depot" type="text">
+</div>
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Destination District</label>
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary" placeholder="District Name" type="text">
+</div>
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Truck Size</label>
+<select class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary">
+<option>20ft Articulated</option>
+<option>40ft Articulated</option>
+<option>Rigid 15T</option>
+</select>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Trips</label>
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary" min="1" type="number" value="1">
+</div>
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Date</label>
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-surface text-body-md focus:ring-2 focus:ring-primary focus:border-primary" type="text" value="05-Jul-2026">
+</div>
+</div>
+</div>
+</div>
+<!-- Section 3: Quantities -->
+<div class="bg-surface-container-low p-lg rounded-xl border border-outline-variant">
+<div class="flex items-center gap-sm mb-md">
+<span class="material-symbols-outlined text-primary" data-icon="inventory_2">inventory_2</span>
+<h3 class="text-title-md font-title-md">Itemized Quantities</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Wooden Poles</label>
+<div class="relative">
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-white pl-md pr-xl text-body-md focus:ring-2 focus:ring-primary focus:border-primary" placeholder="0" type="number">
+<span class="absolute right-md top-1/2 -translate-y-1/2 text-outline-variant text-label-caps">QTY</span>
+</div>
+</div>
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Stay Blocks</label>
+<div class="relative">
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-white pl-md pr-xl text-body-md focus:ring-2 focus:ring-primary focus:border-primary" placeholder="0" type="number">
+<span class="absolute right-md top-1/2 -translate-y-1/2 text-outline-variant text-label-caps">QTY</span>
+</div>
+</div>
+<div class="space-y-xs">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Concrete Poles</label>
+<div class="relative">
+<input class="w-full h-[40px] border-outline-variant rounded-lg bg-white pl-md pr-xl text-body-md focus:ring-2 focus:ring-primary focus:border-primary" placeholder="0" type="number">
+<span class="absolute right-md top-1/2 -translate-y-1/2 text-outline-variant text-label-caps">QTY</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 4: Scan Upload Zone -->
+<div class="space-y-md">
+<label class="text-label-caps font-label-caps text-on-surface-variant block uppercase">Waybill &amp; Document Scans (Required)</label>
+<div class="border-2 border-dashed border-outline-variant bg-surface rounded-xl p-xl flex flex-col items-center justify-center gap-sm cursor-pointer hover:bg-surface-container-low transition-colors group">
+<span class="material-symbols-outlined text-display-lg text-outline-variant group-hover:text-primary transition-colors" data-icon="cloud_upload">cloud_upload</span>
+<p class="text-body-md font-medium text-on-surface-variant">Upload Waybills, Acknowledgement Forms, and Release Letters</p>
+<p class="text-body-sm text-outline">Required: Waybills, Acknowledgement Forms, and Release Letters. Supported formats: PDF, JPEG, PNG (Max 10MB)</p>
+</div>
+<!-- Uploaded Files List -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-md mt-md">
+<div class="bg-white border border-outline-variant rounded-lg p-xs flex flex-col gap-xs group relative overflow-hidden">
+<div class="w-full aspect-video rounded bg-surface-container flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A clean, high-contrast digital scan of a logistics waybill document. The image shows a professional paper with government stamps, table rows, and official headers, blurred slightly to indicate a preview thumbnail. The lighting is bright and industrial, matching a modern corporate administrative portal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCT9q1hZs1jhRWCnM9qWtERwn8w59dgZKmMJB_56AY-kv7us_ADNSJdXEzfCuq4UnH-3uvlQw2sj6GgvEFpnQ7BOLMG6tnWRk5H2BwPjPHfjQArRr14h11QpKJ-AXHUsm5rfQXpVloXbFtd6Ib3fB38Zwuc6Uu8NqfeM3_ZGAml3cp92UwG-FdvJSnxd4gCPatfuo-002boD8o1x4AvVmNL20NPSSaEwWMEx1dvjXr_x5IJIRErtBqTxXh9yt7ammwlzn1oLge_llE">
+</div>
+<div class="px-xs flex flex-col">
+<span class="text-[10px] font-bold text-on-surface truncate">WB_SCAN_01.jpg</span>
+<span class="text-[9px] text-outline">1.2 MB</span>
+</div>
+<button class="absolute top-1 right-1 bg-error text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Actions -->
+<div class="pt-lg border-t border-surface-container-high flex items-center justify-between">
+<button class="px-xl py-md rounded-xl text-label-caps font-label-caps text-error border border-error hover:bg-error-container transition-colors uppercase" type="button">Cancel Entry</button>
+<div class="flex gap-md">
+<button class="px-xl py-md rounded-xl text-label-caps font-label-caps text-on-surface-variant bg-surface-container-high hover:bg-surface-container-highest transition-colors uppercase" type="button">Save Draft</button>
+<button class="px-xl py-md rounded-xl text-label-caps font-label-caps text-white bg-primary-container hover:opacity-90 transition-opacity flex items-center gap-sm uppercase" type="submit">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                            Save Waybill
+                        </button>
+</div>
+</div>
+</form>
+</div>
+</main>
+<!-- Contextual Information (Bento Style) -->
+<section class="max-w-4xl mx-auto mt-lg px-gutter grid grid-cols-1 md:grid-cols-3 gap-md">
+<div class="bg-surface-container-low border border-outline-variant p-md rounded-xl">
+<h4 class="text-label-caps font-label-caps text-primary mb-xs uppercase">Compliance Check</h4>
+<p class="text-body-sm text-on-surface-variant">All waybill numbers are verified against the National Logistics Registry for duplicate prevention.</p>
+</div>
+<div class="bg-surface-container-low border border-outline-variant p-md rounded-xl">
+<h4 class="text-label-caps font-label-caps text-primary mb-xs uppercase">Automatic Indexing</h4>
+<p class="text-body-sm text-on-surface-variant">OCR will process uploaded scans to auto-populate quantities if not already entered manually.</p>
+</div>
+<div class="bg-surface-container-low border border-outline-variant p-md rounded-xl">
+<h4 class="text-label-caps font-label-caps text-primary mb-xs uppercase">Audit Trail</h4>
+<p class="text-body-sm text-on-surface-variant">Entry will be timestamped and logged under the current administrative session for accountability.</p>
+</div>
+</section>
+<!-- Footer / Bottom Navigation Suppression Check -->
+<!-- (Suppressed as per task: Task-Focused Page) -->
+<script>
+        // Micro-interactions for form feedback
+        document.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('focus', () => {
+                element.parentElement.querySelector('label')?.classList.add('text-primary');
+            });
+            element.addEventListener('blur', () => {
+                element.parentElement.querySelector('label')?.classList.remove('text-primary');
+            });
+        });
+
+        // Simple mock for "Upload" state
+        const dropZone = document.querySelector('.border-dashed');
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-primary', 'bg-primary-container/10');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-primary', 'bg-primary-container/10');
+        });
+    </script>
+
+
+</body></html>

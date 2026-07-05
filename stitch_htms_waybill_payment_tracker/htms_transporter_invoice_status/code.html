@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HTMS - Invoice Tracking</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-pulse {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(13, 99, 27, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(13, 99, 27, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(13, 99, 27, 0); }
+        }
+        .ghana-strip {
+            background: linear-gradient(to right, #EF3340 33.3%, #FFD100 33.3%, #FFD100 66.6%, #006B3F 66.6%);
+            height: 4px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#f9f9ff",
+                        "primary": "#0d631b",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#3e4a41",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f1f3ff",
+                        "on-secondary-container": "#307231",
+                        "surface-bright": "#f9f9ff",
+                        "surface-dim": "#d3daef",
+                        "on-tertiary-fixed": "#131e17",
+                        "on-tertiary": "#ffffff",
+                        "surface-tint": "#1b6d24",
+                        "outline-variant": "#bfcaba",
+                        "secondary-container": "#acf4a4",
+                        "error-container": "#ffdad6",
+                        "background": "#f9f9ff",
+                        "on-primary-fixed-variant": "#005312",
+                        "tertiary": "#4d5950",
+                        "inverse-surface": "#293040",
+                        "surface-container-high": "#e1e8fd",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#91d78a",
+                        "on-surface": "#141b2b",
+                        "on-primary-fixed": "#002204",
+                        "tertiary-container": "#657167",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#2e7d32",
+                        "tertiary-fixed-dim": "#bdcabe",
+                        "on-primary-container": "#cbffc2",
+                        "surface-container": "#e9edff",
+                        "secondary-fixed": "#acf4a4",
+                        "on-surface-variant": "#40493d",
+                        "on-secondary-fixed": "#002203",
+                        "primary-fixed": "#a3f69c",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#0c5216",
+                        "inverse-on-surface": "#edf0ff",
+                        "surface-container-highest": "#dce2f7",
+                        "secondary": "#2a6b2c",
+                        "primary-fixed-dim": "#88d982",
+                        "on-background": "#141b2b",
+                        "tertiary-fixed": "#d9e6da",
+                        "inverse-primary": "#88d982",
+                        "outline": "#707a6c",
+                        "on-tertiary-container": "#e8f5e9",
+                        "surface-variant": "#dce2f7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "md": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "gutter": "20px",
+                        "lg": "24px",
+                        "container-max": "1440px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "title-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "mono-data": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-md": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top AppBar (JSON Mapping) -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline flex items-center justify-between px-md h-16 w-full">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 overflow-hidden bg-white rounded-full border border-outline-variant">
+<img class="w-full h-full object-contain p-1" data-alt="Official crest of the Ministry of Energy of Ghana, featuring intricate heraldic symbols including a black star, lions, and industrial motifs. The illustration is rendered in a high-fidelity vector style, suitable for a formal government portal, with clean lines and dignified gold, green, and red coloring against a crisp white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAj_kVPP-nc3Qxri1UT0fakmdpiD_8Q8spIXz11uVNTqrWM-VaRkRvi8q8Uon86IJsCjOAKFP638-IAJwxNcnVBYqdRZs3M0ihHYGjgyBY7noVX2WhQ7PBdlf07F0qmrJEGGaTWJLZoAioMPD19MTI4icn-Hb3ThQBVdCs7oiDRH8uI_guwT26z1UmnIKf5pJe_VpNmbxNOSMl76DJoV2NrCrygQlKhwtO7Cz7iQF5V97QsmJFtWihJ0f06wtqRVVY3KfYp7zCXXtE"/>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-primary dark:text-primary-fixed leading-tight">HTMS</span>
+<span class="text-[10px] leading-tight font-medium opacity-70">Ministry of Energy &amp; Green Transition</span>
+</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-[20px]">person</span>
+</div>
+</header>
+<main class="pt-20 pb-24 px-md max-w-md mx-auto">
+<!-- Ghana Flag Accent Strip -->
+<div class="ghana-strip w-full mb-md rounded-full overflow-hidden"></div>
+<!-- Current Status Banner -->
+<div class="bg-white border border-outline-variant p-md rounded-xl mb-md shadow-sm">
+<div class="flex items-center gap-sm mb-base">
+<span class="material-symbols-outlined text-primary" data-weight="fill">verified_user</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">CURRENT STATUS</span>
+</div>
+<h2 class="font-title-md text-title-md text-primary">Your invoice is at: Audit Validation</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Pending internal verification of accounts and supporting documentation.</p>
+</div>
+<!-- Summary Card -->
+<div class="bg-surface-container-low border border-outline-variant rounded-xl p-md mb-md">
+<div class="flex justify-between items-start mb-md">
+<div>
+<span class="font-label-caps text-label-caps text-on-surface-variant block mb-1 uppercase">Invoice Total</span>
+<span class="font-display-lg text-[28px] leading-tight text-primary font-mono-data">₵ 1,420,500.00</span>
+</div>
+<div class="text-right">
+<span class="font-label-caps text-label-caps text-on-surface-variant block mb-1 uppercase">Invoice No.</span>
+<span class="font-mono-data text-body-md font-bold">INV-2023-08-442</span>
+</div>
+</div>
+<div class="pt-md border-t border-outline-variant/30">
+<span class="font-label-caps text-label-caps text-on-surface-variant block mb-md uppercase">Checklist Status</span>
+<div class="grid grid-cols-2 gap-sm">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[12px] font-medium">Waybills</span>
+</div>
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[12px] font-medium">Acknowledge</span>
+</div>
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[12px] font-medium">Release Ltr</span>
+</div>
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[12px] font-medium">Contract</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Action (Hidden if submitted - simulation shows visible for UI showcase if it were a sub-page, but per prompt context we keep logic clean) -->
+<!-- Note: Based on status "Audit Validation", it's already submitted, so button would normally be hidden. I will omit it as per prompt logic "only visible if not yet submitted". -->
+<!-- 11-Step Pipeline -->
+<div class="bg-white border border-outline-variant rounded-xl p-md">
+<h3 class="font-title-md text-title-md mb-lg flex items-center gap-sm">
+<span class="material-symbols-outlined">account_tree</span>
+                Processing Pipeline
+            </h3>
+<div class="relative space-y-0">
+<!-- Timeline Line -->
+<div class="absolute left-4 top-2 bottom-2 w-0.5 bg-outline-variant"></div>
+<!-- Step 1 -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-on-surface font-bold">Generated</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant">5-Jul-2026 10:20 AM</p>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-on-surface font-bold">Submitted at Ministry</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant">6-Jul-2026 09:15 AM</p>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-on-surface font-bold">With Chief Director</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant">7-Jul-2026 11:30 AM</p>
+</div>
+</div>
+<!-- Step 4 -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-on-surface font-bold">Minuted to Power Directorate</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant">8-Jul-2026 02:45 PM</p>
+</div>
+</div>
+<!-- Step 5 -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-on-surface font-bold">Processing</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant">10-Jul-2026 10:00 AM</p>
+</div>
+</div>
+<!-- Step 6 -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-on-surface font-bold">Processed</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant">11-Jul-2026 04:20 PM</p>
+</div>
+</div>
+<!-- Step 7 -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-on-surface font-bold">CD Directive to Audit</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant">12-Jul-2026 09:00 AM</p>
+</div>
+</div>
+<!-- Step 8: ACTIVE STEP -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-white border-4 border-primary step-pulse flex items-center justify-center shrink-0">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+</div>
+<div>
+<h4 class="font-title-md text-[16px] text-primary font-bold">Audit Validation</h4>
+<p class="font-body-sm text-[12px] text-on-surface-variant font-medium italic">Active - Since 13-Jul-2026</p>
+</div>
+</div>
+<!-- Step 9 (Future) -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center shrink-0">
+<span class="text-[12px] font-bold text-outline">9</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-outline font-medium">Returned to CD</h4>
+<p class="font-body-sm text-[12px] text-outline italic">Pending</p>
+</div>
+</div>
+<!-- Step 10 (Future) -->
+<div class="relative flex gap-md pb-8">
+<div class="z-10 w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center shrink-0">
+<span class="text-[12px] font-bold text-outline">10</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-outline font-medium">At Accounts</h4>
+<p class="font-body-sm text-[12px] text-outline italic">Pending</p>
+</div>
+</div>
+<!-- Step 11 (Future) -->
+<div class="relative flex gap-md">
+<div class="z-10 w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px] text-outline">payments</span>
+</div>
+<div>
+<h4 class="font-title-md text-[14px] text-outline font-medium">Paid</h4>
+<p class="font-body-sm text-[12px] text-outline italic">Final Outcome</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (JSON Mapping) -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface-container dark:bg-surface-container-lowest border-t border-outline-variant dark:border-outline shadow-md rounded-t-xl flex justify-around items-center h-20 w-full px-sm">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-full px-4 py-1 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+<span class="font-label-caps text-label-caps">Invoices</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">local_shipping</span>
+<span class="font-label-caps text-label-caps">Fleet</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-caps text-label-caps">Profile</span>
+</button>
+</nav>
+<script>
+        // Micro-interaction for steps
+        document.querySelectorAll('.pipeline-step').forEach(step => {
+            step.addEventListener('click', () => {
+                step.classList.toggle('bg-primary-container/5');
+            });
+        });
+    </script>
+</body></html>

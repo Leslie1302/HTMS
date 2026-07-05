@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HTMS - Invoice Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .ghana-strip {
+            height: 4px;
+            background: linear-gradient(to right, #EF4444 33.3%, #FBBF24 33.3%, #FBBF24 66.6%, #10B981 66.6%);
+        }
+        .pipeline-scroll::-webkit-scrollbar {
+            height: 4px;
+        }
+        .pipeline-scroll::-webkit-scrollbar-thumb {
+            background: #bfcaba;
+            border-radius: 10px;
+        }
+        .step-connector {
+            flex-grow: 1;
+            height: 2px;
+            background-color: #E5E7EB;
+            margin-top: 12px;
+        }
+        .step-connector.completed {
+            background-color: #0d631b;
+        }
+        .animate-pulse-subtle {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .7; }
+        }
+    </style>
+<!-- CSS for Typography mapping from Theme Config -->
+<style>
+        .font-display-lg { font-family: 'Inter', sans-serif; }
+        .text-display-lg { font-size: 48px; line-height: 56px; letter-spacing: -0.02em; font-weight: 700; }
+        .font-headline-lg { font-family: 'Inter', sans-serif; }
+        .text-headline-lg { font-size: 32px; line-height: 40px; letter-spacing: -0.01em; font-weight: 600; }
+        .font-title-md { font-family: 'Inter', sans-serif; }
+        .text-title-md { font-size: 18px; line-height: 24px; font-weight: 600; }
+        .font-body-md { font-family: 'Inter', sans-serif; }
+        .text-body-md { font-size: 16px; line-height: 24px; font-weight: 400; }
+        .font-label-caps { font-family: 'Inter', sans-serif; }
+        .text-label-caps { font-size: 12px; line-height: 16px; letter-spacing: 0.05em; font-weight: 700; text-transform: uppercase; }
+        .font-mono-data { font-family: 'Inter', sans-serif; }
+        .text-mono-data { font-size: 14px; line-height: 20px; font-weight: 500; }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed-dim": "#91d78a",
+                    "secondary": "#2a6b2c",
+                    "surface-dim": "#d3daef",
+                    "on-surface": "#141b2b",
+                    "secondary-container": "#acf4a4",
+                    "primary-container": "#2e7d32",
+                    "surface": "#f9f9ff",
+                    "on-tertiary-fixed": "#131e17",
+                    "on-primary-fixed-variant": "#005312",
+                    "inverse-primary": "#88d982",
+                    "on-error-container": "#93000a",
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#40493d",
+                    "on-primary-container": "#cbffc2",
+                    "inverse-on-surface": "#edf0ff",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#293040",
+                    "surface-bright": "#f9f9ff",
+                    "primary": "#0d631b",
+                    "on-primary": "#ffffff",
+                    "primary-fixed": "#a3f69c",
+                    "on-tertiary-fixed-variant": "#3e4a41",
+                    "tertiary-fixed": "#d9e6da",
+                    "error-container": "#ffdad6",
+                    "background": "#f9f9ff",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#002203",
+                    "error": "#ba1a1a",
+                    "outline-variant": "#bfcaba",
+                    "secondary-fixed": "#acf4a4",
+                    "surface-container-highest": "#dce2f7",
+                    "surface-container-high": "#e1e8fd",
+                    "surface-container-low": "#f1f3ff",
+                    "surface-variant": "#dce2f7",
+                    "tertiary-container": "#657167",
+                    "outline": "#707a6c",
+                    "on-background": "#141b2b",
+                    "tertiary-fixed-dim": "#bdcabe",
+                    "on-secondary-container": "#307231",
+                    "tertiary": "#4d5950",
+                    "surface-container": "#e9edff",
+                    "on-primary-fixed": "#002204",
+                    "primary-fixed-dim": "#88d982",
+                    "on-secondary-fixed-variant": "#0c5216",
+                    "surface-tint": "#1b6d24",
+                    "on-tertiary-container": "#e8f5e9"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "md": "16px",
+                    "base": "4px",
+                    "xs": "4px",
+                    "xl": "32px",
+                    "gutter": "20px",
+                    "sm": "8px",
+                    "lg": "24px",
+                    "container-max": "1440px"
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- Top Navigation Anchor (Shared Component) -->
+<header class="bg-inverse-surface text-on-primary sticky top-0 z-50 w-full shadow-sm">
+<div class="ghana-strip"></div>
+<div class="flex justify-between items-center w-full px-lg py-md max-w-container-max mx-auto">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 bg-surface-container-lowest rounded-full flex items-center justify-center p-1 overflow-hidden">
+<img class="w-full h-full object-contain" data-alt="A professional circular crest of the Ministry of Energy Ghana, featuring a star and symbolic energy motifs, rendered in a crisp, vector digital style against a clean white background. The logo is sharp and institutional, evoking governmental authority and national identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnohFYTXhHtbLvxmPl8Epec6qn4N9J_pcx1ZvYqpS3RtQlLTU9LExPAR7bfMBL943TU9viLMG3UiiwqfPrryiK9kT_mqsKMV6Su0ug1l9s2GlenVfwjXK5bURYbIkiln_8ySqpE3zFKeoABSya_kMSFw_XEHKjVbcFe2rfeKGtubCymYd07_vEInlP4z6CoE8_FgVdRZ2wyQKK8lJiX3SeFCnQg3wKwlc0ztTPpRAn2-k4DXH1gi7yO8uGIjZCrj9aVoEp_3fUR6o"/>
+</div>
+<h1 class="text-title-md font-title-md text-inverse-on-surface tracking-tight">HTMS Management</h1>
+</div>
+<nav class="hidden md:flex items-center gap-lg">
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-3 py-1 rounded" href="#">Dashboard</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-3 py-1 rounded" href="#">Pipeline</a>
+<a class="text-primary-fixed font-bold border-b-2 border-primary-fixed px-3 py-1" href="#">Invoices</a>
+<a class="text-outline-variant font-medium hover:bg-primary-container hover:text-on-primary-container transition-colors px-3 py-1 rounded" href="#">Fleet</a>
+</nav>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-inverse-on-surface">account_circle</span>
+<span class="hidden sm:inline font-label-caps text-inverse-on-surface">Staff Portal</span>
+</div>
+</div>
+</header>
+<div class="flex h-[calc(100vh-68px)] overflow-hidden">
+<!-- Sidebar Shell (NavigationDrawer) -->
+<aside class="hidden lg:flex fixed left-0 top-[68px] h-full w-64 z-40 flex-col gap-sm p-md bg-surface border-r border-outline-variant shadow-sm">
+<div class="px-2 py-4">
+<h2 class="text-headline-lg font-headline-lg text-primary">HTMS</h2>
+<p class="text-label-caps text-on-surface-variant">Central Billing Unit</p>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-md p-md hover:bg-surface-container-highest transition-all rounded-xl text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-caps">Dashboard</span>
+</a>
+<a class="flex items-center gap-md p-md hover:bg-surface-container-highest transition-all rounded-xl text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">account_tree</span>
+<span class="text-label-caps">Pipeline</span>
+</a>
+<a class="flex items-center gap-md p-md bg-secondary-container text-on-secondary-container font-bold rounded-xl" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-label-caps">Invoices</span>
+</a>
+<a class="flex items-center gap-md p-md hover:bg-surface-container-highest transition-all rounded-xl text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="text-label-caps">Reports</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-md px-2">
+<div class="bg-surface-container-low p-md rounded-xl">
+<p class="text-[10px] font-label-caps text-outline">CURRENT USER</p>
+<p class="text-body-sm font-bold text-on-surface">K. Mensah</p>
+<p class="text-[10px] text-on-surface-variant">Chief Accounts Officer</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 lg:ml-64 overflow-y-auto p-md lg:p-xl">
+<!-- Page Header Area -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-xl gap-md">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Invoice Details</h2>
+<p class="text-body-md text-on-surface-variant">INV-2023-08-442 | Strategic Oil Transporters Ltd.</p>
+</div>
+<div class="flex gap-sm">
+<button class="flex items-center gap-2 bg-surface-container-high px-md py-sm rounded-xl text-on-surface-variant hover:bg-surface-container-highest transition-all border border-outline-variant">
+<span class="material-symbols-outlined">print</span>
+<span class="text-label-caps">Print Preview</span>
+</button>
+<button class="flex items-center gap-2 bg-error text-on-error px-md py-sm rounded-xl hover:opacity-90 transition-all">
+<span class="material-symbols-outlined">cancel</span>
+<span class="text-label-caps">Flag Issue</span>
+</button>
+</div>
+</div>
+<!-- Detail View Centerpiece Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-lg">
+<!-- Left Section: Details & Pipeline -->
+<div class="xl:col-span-8 space-y-lg">
+<!-- 11-Step Pipeline Indicator -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
+<h3 class="text-label-caps text-on-surface-variant mb-lg">11-Step Approval Pipeline</h3>
+<div class="relative overflow-x-auto pb-4 pipeline-scroll">
+<div class="flex items-start min-w-[1200px]">
+<!-- Step 1 -->
+<div class="flex flex-col items-center w-32 text-center group">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center mb-2 z-10">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface">Generated</span>
+<span class="text-[9px] text-outline">Oct 12, 10:20</span>
+</div>
+<div class="step-connector completed"></div>
+<!-- Step 2 -->
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center mb-2 z-10">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface">Submitted Min.</span>
+<span class="text-[9px] text-outline">Oct 12, 14:15</span>
+</div>
+<div class="step-connector completed"></div>
+<!-- Step 3 -->
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center mb-2 z-10">
+<span class="material-symbols-outlined text-[18px]">check</span>
+</div>
+<span class="text-[10px] font-label-caps text-on-surface">With Chief Dir.</span>
+<span class="text-[9px] text-outline">Oct 13, 09:05</span>
+</div>
+<div class="step-connector completed"></div>
+<!-- Step 4 (ACTIVE) -->
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-lowest border-4 border-primary ring-4 ring-primary-container/20 flex items-center justify-center mb-2 z-10 animate-pulse-subtle">
+<span class="w-2 h-2 bg-primary rounded-full"></span>
+</div>
+<span class="text-[10px] font-label-caps text-primary font-bold">Power Directorate</span>
+<span class="text-[9px] text-primary">Pending Action</span>
+</div>
+<div class="step-connector"></div>
+<!-- Future Steps -->
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center mb-2 z-10">
+<span class="text-xs">5</span>
+</div>
+<span class="text-[10px] font-label-caps text-outline">Processing</span>
+</div>
+<div class="step-connector"></div>
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center mb-2 z-10">
+<span class="text-xs">6</span>
+</div>
+<span class="text-[10px] font-label-caps text-outline">Processed</span>
+</div>
+<div class="step-connector"></div>
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center mb-2 z-10">
+<span class="text-xs">7</span>
+</div>
+<span class="text-[10px] font-label-caps text-outline">To Audit</span>
+</div>
+<div class="step-connector"></div>
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center mb-2 z-10">
+<span class="text-xs">8</span>
+</div>
+<span class="text-[10px] font-label-caps text-outline">Audit Valid</span>
+</div>
+<div class="step-connector"></div>
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center mb-2 z-10">
+<span class="text-xs">9</span>
+</div>
+<span class="text-[10px] font-label-caps text-outline">Returned CD</span>
+</div>
+<div class="step-connector"></div>
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center mb-2 z-10">
+<span class="text-xs">10</span>
+</div>
+<span class="text-[10px] font-label-caps text-outline">Accounts</span>
+</div>
+<div class="step-connector"></div>
+<div class="flex flex-col items-center w-32 text-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center mb-2 z-10">
+<span class="text-xs">11</span>
+</div>
+<span class="text-[10px] font-label-caps text-outline">Paid</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Line Items Table -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<div class="p-md bg-surface-container-low border-b border-outline-variant flex justify-between items-center">
+<h3 class="text-label-caps text-on-surface">Invoice Line Items</h3>
+<span class="text-mono-data text-primary font-bold">Total: GHS 1,420,500.00</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-lowest text-label-caps text-on-surface-variant border-b border-outline-variant">
+<tr>
+<th class="px-md py-sm">Waybill ID</th>
+<th class="px-md py-sm">Distance (km)</th>
+<th class="px-md py-sm">Rate (GHS)</th>
+<th class="px-md py-sm">Subtotal (GHS)</th>
+<th class="px-md py-sm text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant text-body-sm">
+<tr class="hover:bg-on-tertiary-container transition-colors">
+<td class="px-md py-3 font-mono-data">WB-GH-00129</td>
+<td class="px-md py-3">420.5</td>
+<td class="px-md py-3">12.50</td>
+<td class="px-md py-3 font-bold">5,256.25</td>
+<td class="px-md py-3 text-right">
+<span class="bg-primary-container text-on-primary-container px-2 py-1 rounded text-[10px] font-bold uppercase">Verified</span>
+</td>
+</tr>
+<tr class="hover:bg-on-tertiary-container transition-colors">
+<td class="px-md py-3 font-mono-data">WB-GH-00130</td>
+<td class="px-md py-3">1,200.0</td>
+<td class="px-md py-3">12.50</td>
+<td class="px-md py-3 font-bold">15,000.00</td>
+<td class="px-md py-3 text-right">
+<span class="bg-primary-container text-on-primary-container px-2 py-1 rounded text-[10px] font-bold uppercase">Verified</span>
+</td>
+</tr>
+<tr class="hover:bg-on-tertiary-container transition-colors">
+<td class="px-md py-3 font-mono-data">WB-GH-00131</td>
+<td class="px-md py-3">850.2</td>
+<td class="px-md py-3">12.50</td>
+<td class="px-md py-3 font-bold">10,627.50</td>
+<td class="px-md py-3 text-right">
+<span class="bg-primary-container text-on-primary-container px-2 py-1 rounded text-[10px] font-bold uppercase">Verified</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- List View Summary Table (Contextual) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+<div class="p-md bg-surface-container-low border-b border-outline-variant">
+<h3 class="text-label-caps text-on-surface">Queue: Pending Technical Review</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="text-label-caps text-on-surface-variant bg-surface border-b border-outline-variant">
+<tr>
+<th class="px-md py-sm">Ref No.</th>
+<th class="px-md py-sm">Transporter</th>
+<th class="px-md py-sm">Period</th>
+<th class="px-md py-sm">Total (GHS)</th>
+<th class="px-md py-sm">Status</th>
+<th class="px-md py-sm">Stage</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant text-body-sm">
+<tr class="opacity-60 cursor-pointer">
+<td class="px-md py-3 font-mono-data">REF-992</td>
+<td class="px-md py-3">Quantum Logistics</td>
+<td class="px-md py-3">Sept 23</td>
+<td class="px-md py-3">840,200</td>
+<td class="px-md py-3"><span class="bg-surface-variant text-on-surface-variant px-2 py-1 rounded text-[10px] font-bold">LOCKED</span></td>
+<td class="px-md py-3"><span class="border border-outline px-2 py-1 rounded text-[10px]">Processing</span></td>
+</tr>
+<tr class="bg-secondary-container/10 border-l-4 border-primary">
+<td class="px-md py-3 font-mono-data">REF-442</td>
+<td class="px-md py-3 font-bold">Strategic Oil</td>
+<td class="px-md py-3">Aug 23</td>
+<td class="px-md py-3 font-bold">1,420,500</td>
+<td class="px-md py-3"><span class="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-[10px] font-bold">APPROVED</span></td>
+<td class="px-md py-3"><span class="bg-primary text-on-primary px-2 py-1 rounded text-[10px]">Minuted to Power</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Right Section: Actions & Checklist -->
+<div class="xl:col-span-4 space-y-lg">
+<!-- Advance Action Card -->
+<div class="bg-surface-container-lowest border-2 border-primary-container rounded-xl p-lg shadow-md">
+<h3 class="text-title-md font-title-md text-on-surface mb-md">Approval Action</h3>
+<!-- Checklist (Blocker) -->
+<div class="space-y-md mb-xl">
+<p class="text-label-caps text-outline">Rejection-Prevention Checklist</p>
+<div class="space-y-sm">
+<label class="flex items-center gap-md p-sm bg-surface rounded-lg cursor-pointer border border-transparent hover:border-outline-variant transition-all">
+<input class="w-5 h-5 text-primary border-outline-variant rounded focus:ring-primary checklist-item" id="check1" type="checkbox"/>
+<span class="text-body-sm text-on-surface">Original Waybills Verified</span>
+</label>
+<label class="flex items-center gap-md p-sm bg-surface rounded-lg cursor-pointer border border-transparent hover:border-outline-variant transition-all">
+<input class="w-5 h-5 text-primary border-outline-variant rounded focus:ring-primary checklist-item" id="check2" type="checkbox"/>
+<span class="text-body-sm text-on-surface">Acknowledgment Forms Attached</span>
+</label>
+<label class="flex items-center gap-md p-sm bg-surface rounded-lg cursor-pointer border border-transparent hover:border-outline-variant transition-all">
+<input class="w-5 h-5 text-primary border-outline-variant rounded focus:ring-primary checklist-item" id="check3" type="checkbox"/>
+<span class="text-body-sm text-on-surface">Release Letters Validated</span>
+</label>
+<label class="flex items-center gap-md p-sm bg-surface rounded-lg cursor-pointer border border-transparent hover:border-outline-variant transition-all">
+<input class="w-5 h-5 text-primary border-outline-variant rounded focus:ring-primary checklist-item" id="check4" type="checkbox"/>
+<span class="text-body-sm text-on-surface">Contract Agreement Copy Present</span>
+</label>
+</div>
+</div>
+<!-- Advance Button -->
+<button class="w-full flex items-center justify-center gap-md bg-primary-container text-on-primary-container py-md rounded-xl font-bold opacity-50 cursor-not-allowed transition-all duration-300" disabled="" id="advanceBtn">
+<span class="text-title-md">Advance to Processing</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-center text-[11px] text-error mt-sm" id="checklistMsg">Complete checklist to enable advancement</p>
+</div>
+<!-- Document Actions -->
+<div class="bg-surface-container-low border border-outline-variant rounded-xl p-lg space-y-md">
+<h3 class="text-label-caps text-on-surface-variant">Document Generation</h3>
+<div class="grid grid-cols-1 gap-sm">
+<button class="flex items-center justify-between w-full p-md bg-surface-container-lowest border border-outline-variant rounded-xl hover:bg-surface-bright transition-all group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-primary">description</span>
+<span class="text-body-sm font-bold">Generate Invoice</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary">download</span>
+</button>
+<button class="flex items-center justify-between w-full p-md bg-surface-container-lowest border border-outline-variant rounded-xl hover:bg-surface-bright transition-all group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-primary">mail</span>
+<span class="text-body-sm font-bold">Generate Letter</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary">download</span>
+</button>
+<button class="flex items-center justify-between w-full p-md bg-surface-container-lowest border border-outline-variant rounded-xl hover:bg-surface-bright transition-all group">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-primary">note</span>
+<span class="text-body-sm font-bold">Generate Memo</span>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary">download</span>
+</button>
+</div>
+</div>
+<!-- Auditor Notes -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg">
+<h3 class="text-label-caps text-on-surface-variant mb-md">Review Notes</h3>
+<div class="bg-surface p-md rounded-lg text-body-sm text-on-surface-variant italic mb-md">
+                            "Initial audit shows volume discrepancy in Waybill WB-GH-00129. Corrected after verification with terminal manager."
+                        </div>
+<div class="flex items-center gap-sm">
+<input class="flex-1 bg-surface-container-lowest border-outline-variant rounded-lg text-body-sm focus:ring-primary focus:border-primary" placeholder="Add note..." type="text"/>
+<button class="p-sm bg-primary text-on-primary rounded-lg">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Bottom Nav for Mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-xs bg-surface-container border-t border-outline-variant shadow-lg">
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-label-caps">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">location_on</span>
+<span class="text-label-caps">Track</span>
+</a>
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-label-caps">Invoices</span>
+</div>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-caps">Settings</span>
+</a>
+</nav>
+<script>
+        // Checkbox logic for enabling the Advance button
+        const checkboxes = document.querySelectorAll('.checklist-item');
+        const advanceBtn = document.getElementById('advanceBtn');
+        const checklistMsg = document.getElementById('checklistMsg');
+
+        function updateBtnState() {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            if (allChecked) {
+                advanceBtn.disabled = false;
+                advanceBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                advanceBtn.classList.add('hover:bg-primary', 'shadow-lg');
+                checklistMsg.classList.add('hidden');
+            } else {
+                advanceBtn.disabled = true;
+                advanceBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                advanceBtn.classList.remove('hover:bg-primary', 'shadow-lg');
+                checklistMsg.classList.remove('hidden');
+            }
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateBtnState);
+        });
+
+        // Micro-interaction for Advance Button
+        advanceBtn.addEventListener('mousedown', () => {
+            if (!advanceBtn.disabled) {
+                advanceBtn.style.transform = 'scale(0.95)';
+            }
+        });
+        advanceBtn.addEventListener('mouseup', () => {
+            if (!advanceBtn.disabled) {
+                advanceBtn.style.transform = 'scale(1)';
+            }
+        });
+        advanceBtn.addEventListener('click', () => {
+            if (!advanceBtn.disabled) {
+                alert('Invoice successfully advanced to Step 5: Processing');
+            }
+        });
+    </script>
+</body></html>
