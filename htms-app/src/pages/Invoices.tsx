@@ -246,7 +246,7 @@ export default function Invoices() {
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
         )
         .eq('id', id)
         .single();
@@ -274,9 +274,13 @@ export default function Invoices() {
         buildSignatory(inv as InvoiceDoc, logo).save(`Signatory_${invoiceRef(inv as InvoiceDoc)}.pdf`);
         return;
       }
+      // Letter is a standalone one-pager — no appended scans.
+      if (type === 'letter') {
+        buildLetter(inv as InvoiceDoc).save(`Payment_Request_${invoiceRef(inv as InvoiceDoc)}.pdf`);
+        return;
+      }
 
-      const doc = type === 'invoice' ? buildInvoice(inv as InvoiceDoc) : buildLetter(inv as InvoiceDoc);
-      const baseBytes = doc.output('arraybuffer') as ArrayBuffer;
+      const baseBytes = buildInvoice(inv as InvoiceDoc).output('arraybuffer') as ArrayBuffer;
 
       const scans: ScanInput[] = [];
       for (const line of (inv as any).invoice_lines ?? []) {
@@ -305,8 +309,7 @@ export default function Invoices() {
       }
 
       const merged = await appendScansToPdf(baseBytes, scans);
-      const prefix = type === 'invoice' ? 'Invoice' : 'Payment_Request';
-      downloadBytes(merged, `${prefix}_${invoiceRef(inv as InvoiceDoc)}.pdf`);
+      downloadBytes(merged, `Invoice_${invoiceRef(inv as InvoiceDoc)}.pdf`);
     } catch (e) {
       setErr((e as Error).message);
     } finally {

@@ -10,8 +10,9 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const GREEN: [number, number, number] = [27, 94, 32];
-const GREEN_LIGHT: [number, number, number] = [232, 245, 233];
+const NAVY: [number, number, number] = [26, 35, 108];
+const BLUE: [number, number, number] = [43, 92, 197];
+const BLUE_LIGHT: [number, number, number] = [225, 231, 247];
 const MINISTRY = 'Ministry of Energy and Green Transition';
 const RECIPIENT = ['The Chief Director', MINISTRY, 'P.O. Box SD 40', 'Accra'];
 
@@ -64,6 +65,7 @@ export interface InvoiceDoc {
     email?: string | null;
     phone?: string | null;
     gps_address?: string | null;
+    manager_name?: string | null;
   };
   invoice_lines?: Line[];
 }
@@ -121,29 +123,75 @@ function pageWidth(doc: jsPDF) {
   return doc.internal.pageSize.getWidth();
 }
 
+/** Initials badge used as a makeshift logo (no external image). */
+function monogram(name: string): string {
+  const stop = new Set(['ENTERPRISES', 'ENTERPRISE', 'LIMITED', 'LTD', 'COMPANY', 'CO', 'GHANA', 'AND', '&', 'THE']);
+  const words = name.toUpperCase().split(/[\s-]+/).filter((w) => w && !stop.has(w));
+  if (words.length >= 2) return (words[0][0] + words[1][0]).slice(0, 2);
+  if (words.length === 1) return words[0].slice(0, 2);
+  return name.slice(0, 2).toUpperCase();
+}
+
 /**
  * Makeshift letterhead built from the transporter's registration details
- * (name, address, email, phone, GPS) — no external logo. Returns the y below it.
+ * (name, address, email, phone, GPS). Monogram badge left, company block right,
+ * accent rule beneath — no external logo. Returns the y below it.
  */
 function letterhead(doc: jsPDF, inv: InvoiceDoc, y: number): number {
   const W = pageWidth(doc);
   const t = inv.transporters ?? {};
-  doc.setFont('helvetica', 'bold').setFontSize(17).setTextColor(17);
-  doc.text(t.display_name ?? 'Transporter', W / 2, y, { align: 'center' });
-  y += 18;
-  doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(60);
-  if (t.address) {
-    doc.text(t.address, W / 2, y, { align: 'center' });
-    y += 12;
+  const name = t.display_name ?? 'Transporter';
+
+  // Left: monogram badge as makeshift logo.
+  doc.setFillColor(...NAVY).roundedRect(M, y, 46, 46, 7, 7, 'F');
+  doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(255, 255, 255);
+  doc.text(monogram(name), M + 23, y + 30, { align: 'center' });
+
+  // Right: company name + contact stack, right-aligned.
+  doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(...NAVY);
+  doc.text(name.toUpperCase(), W - M, y + 14, { align: 'right' });
+  doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(110);
+  let ry = y + 27;
+  for (const l of [t.address, t.email, t.phone, t.gps_address ? `GPS ${t.gps_address}` : ''].filter(Boolean)) {
+    doc.text(l as string, W - M, ry, { align: 'right' });
+    ry += 11;
   }
-  const contact = [t.email, t.phone, t.gps_address ? `GPS ${t.gps_address}` : ''].filter(Boolean).join('   |   ');
-  if (contact) {
-    doc.text(contact, W / 2, y, { align: 'center' });
-    y += 12;
+
+  const bottom = Math.max(y + 52, ry + 2);
+  doc.setDrawColor(...BLUE).setLineWidth(1.8).line(M, bottom, W - M, bottom);
+  return bottom + 24;
+}
+
+/** Decorative two-tone wave along the page bottom, matching the letterhead template. */
+function waveFooter(doc: jsPDF): void {
+  const W = pageWidth(doc);
+  const H = doc.internal.pageSize.getHeight();
+  const seg = 48;
+  const wave = (baseY: number, amp: number, phase: number, color: [number, number, number]) => {
+    const pts: [number, number][] = [];
+    for (let i = 0; i <= seg; i++) {
+      pts.push([(W * i) / seg, baseY + Math.sin((i / seg) * Math.PI * 3 + phase) * amp]);
+    }
+    const rel: number[][] = [];
+    for (let i = 1; i < pts.length; i++) rel.push([pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]]);
+    rel.push([0, H - pts[pts.length - 1][1]]); // down to bottom-right
+    rel.push([-W, 0]); // along the bottom edge
+    doc.setFillColor(...color).lines(rel, pts[0][0], pts[0][1], [1, 1], 'F', true);
+  };
+  wave(H - 34, 9, 0, BLUE);
+  wave(H - 22, 7, Math.PI, NAVY);
+}
+
+/** Signature line + manager's name (falls back to the company name) + company. */
+function signatureBlock(doc: jsPDF, inv: InvoiceDoc, x: number, y: number): void {
+  const t = inv.transporters ?? {};
+  const name = t.display_name ?? 'Transporter';
+  const manager = t.manager_name?.trim() || name;
+  doc.setDrawColor(120).setLineWidth(0.6).line(x, y, x + 190, y);
+  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(17).text(manager, x, y + 15);
+  if (manager !== name) {
+    doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(90).text(name, x, y + 28);
   }
-  y += 6;
-  doc.setDrawColor(...GREEN).setLineWidth(1.4).line(M, y, W - M, y);
-  return y + 22;
 }
 
 // ── Invoice PDF ──────────────────────────────────────────────────────────────
@@ -192,17 +240,22 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
       ];
     }),
     styles: { font: 'helvetica', fontSize: 10, cellPadding: 5, lineColor: [150, 150, 150], lineWidth: 0.5 },
-    headStyles: { fillColor: GREEN_LIGHT, textColor: 17, fontStyle: 'bold' },
+    headStyles: { fillColor: BLUE_LIGHT, textColor: 17, fontStyle: 'bold' },
     columnStyles: { 5: { halign: 'right' } },
   });
 
   // Total + footer.
   const afterTable = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 22;
-  doc.setFont('helvetica', 'bold').setFontSize(13);
+  doc.setFont('helvetica', 'bold').setFontSize(13).setTextColor(...NAVY);
   doc.text(`Total Amount Due: GHS ${num(inv.total_cost)}`, W - M, afterTable, { align: 'right' });
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
   doc.text('Thank you for your business. Payment is due within 30 days.', W / 2, afterTable + 28, { align: 'center' });
 
+  // Signature block (left).
+  doc.setFontSize(10).setTextColor(17).setFont('helvetica', 'bold').text('For and on behalf of the company:', M, afterTable + 60);
+  signatureBlock(doc, inv, M, afterTable + 92);
+
+  waveFooter(doc);
   return doc;
 }
 
@@ -212,8 +265,6 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   const W = pageWidth(doc);
   const H = doc.internal.pageSize.getHeight();
   const contentW = W - M * 2;
-  const t = inv.transporters ?? {};
-  const name = t.display_name ?? 'Transporter';
   const s = summary(inv);
   const route = `${s.origin} to ${s.dest}`;
   const period = `${long(s.ps)} - ${long(s.pe)}`;
@@ -276,11 +327,10 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   para(`Attached please find Invoice ${ref(inv)} with detailed trip information for your review and processing. I kindly request that payment be processed at your earliest convenience.`, { align: 'justify' });
   para('Should you require any additional information, supporting documentation, or clarification regarding this invoice, please do not hesitate to contact me.', { align: 'justify' });
   para('Thank you for your attention to this matter. I look forward to your prompt response.', { align: 'justify' });
-  para('Yours faithfully,', { gap: 30 });
-  doc.text('______________________________', M, y);
-  y += 16;
-  doc.text(name, M, y);
+  para('Yours faithfully,', { gap: 36 });
+  signatureBlock(doc, inv, M, y);
 
+  waveFooter(doc);
   return doc;
 }
 
@@ -502,7 +552,7 @@ export function buildSignatory(inv: InvoiceDoc, logo?: string | null): jsPDF {
       ];
     }),
     styles: { font: 'helvetica', fontSize: 7, cellPadding: 3, lineColor: [150, 150, 150], lineWidth: 0.5, overflow: 'linebreak' },
-    headStyles: { fillColor: GREEN_LIGHT, textColor: 17, fontStyle: 'bold', fontSize: 7 },
+    headStyles: { fillColor: BLUE_LIGHT, textColor: 17, fontStyle: 'bold', fontSize: 7 },
     columnStyles: { 13: { halign: 'right' } },
   });
 

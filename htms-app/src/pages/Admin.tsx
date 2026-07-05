@@ -142,13 +142,14 @@ function Banner({ msg, err }: { msg: string | null; err: string | null }) {
 interface TransporterRow {
   id: string; display_name: string; active: boolean;
   address: string | null; email: string | null; phone: string | null; gps_address: string | null;
+  manager_name: string | null;
   contract_path: string | null; contract_validated: boolean;
 }
 
 function Transporters() {
   const { msg, err, setMsg, setErr } = useToast();
   const [list, setList] = useState<TransporterRow[]>([]);
-  const blank = { display_name: '', address: '', email: '', phone: '', gps_address: '' };
+  const blank = { display_name: '', address: '', email: '', phone: '', gps_address: '', manager_name: '' };
   const [f, setF] = useState(blank);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contractFile, setContractFile] = useState<File | null>(null);
@@ -161,7 +162,7 @@ function Transporters() {
 
   function startEdit(t: TransporterRow) {
     setEditingId(t.id);
-    setF({ display_name: t.display_name, address: t.address ?? '', email: t.email ?? '', phone: t.phone ?? '', gps_address: t.gps_address ?? '' });
+    setF({ display_name: t.display_name, address: t.address ?? '', email: t.email ?? '', phone: t.phone ?? '', gps_address: t.gps_address ?? '', manager_name: t.manager_name ?? '' });
     setContractValidated(t.contract_validated ?? false);
     setContractFile(null);
   }
@@ -192,6 +193,7 @@ function Transporters() {
     const payload: Record<string, unknown> = {
       display_name: f.display_name.trim(), address: f.address.trim() || null,
       email: f.email.trim() || null, phone: f.phone.trim() || null, gps_address: f.gps_address.trim() || null,
+      manager_name: f.manager_name.trim() || null,
       contract_path: contractPath,
       contract_validated: contractValidated,
     };
@@ -229,6 +231,7 @@ function Transporters() {
           <input placeholder="Email" value={f.email} onChange={set('email')} className="border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
           <input placeholder="Phone" value={f.phone} onChange={set('phone')} className="border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
           <input placeholder="GPS address" value={f.gps_address} onChange={set('gps_address')} className="col-span-2 border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
+          <input placeholder="Manager / signatory name (printed under the signature)" value={f.manager_name} onChange={set('manager_name')} className="col-span-2 border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
 
           <div className="col-span-2 border-t border-outline-variant pt-3">
             <h4 className="text-xs font-bold uppercase text-on-surface-variant mb-2">Contract Agreement</h4>
