@@ -35,14 +35,6 @@ const short = (s?: string | null) => {
   return d ? `${d.getUTCDate()}-${MONTHS[d.getUTCMonth()]}-${d.getUTCFullYear()}` : (s ?? '');
 };
 
-function monogram(name: string): string {
-  const stop = new Set(['ENTERPRISES', 'ENTERPRISE', 'LIMITED', 'LTD', 'COMPANY', 'CO', 'GHANA', 'AND', '&', 'THE']);
-  const words = name.toUpperCase().split(/[\s-]+/).filter((w) => w && !stop.has(w));
-  if (words.length >= 2) return (words[0][0] + words[1][0]).slice(0, 2);
-  if (words.length === 1) return words[0].slice(0, 2);
-  return name.slice(0, 2).toUpperCase();
-}
-
 interface Line {
   computed_cost: number;
   category?: string;
@@ -129,25 +121,16 @@ function pageWidth(doc: jsPDF) {
   return doc.internal.pageSize.getWidth();
 }
 
-// ── Invoice PDF ──────────────────────────────────────────────────────────────
-export function buildInvoice(inv: InvoiceDoc, logo?: string | null): jsPDF {
-  const doc = newDoc();
+/**
+ * Makeshift letterhead built from the transporter's registration details
+ * (name, address, email, phone, GPS) — no external logo. Returns the y below it.
+ */
+function letterhead(doc: jsPDF, inv: InvoiceDoc, y: number): number {
   const W = pageWidth(doc);
   const t = inv.transporters ?? {};
-  const s = summary(inv);
-  let y = M;
-
-  // Ministry crest, centered.
-  if (logo) {
-    const sz = 56;
-    doc.addImage(logo, 'PNG', (W - sz) / 2, y, sz, sz);
-    y += sz + 8;
-  }
-
-  // Centered letterhead.
-  doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(17);
+  doc.setFont('helvetica', 'bold').setFontSize(17).setTextColor(17);
   doc.text(t.display_name ?? 'Transporter', W / 2, y, { align: 'center' });
-  y += 16;
+  y += 18;
   doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(60);
   if (t.address) {
     doc.text(t.address, W / 2, y, { align: 'center' });
@@ -158,9 +141,17 @@ export function buildInvoice(inv: InvoiceDoc, logo?: string | null): jsPDF {
     doc.text(contact, W / 2, y, { align: 'center' });
     y += 12;
   }
-  y += 4;
+  y += 6;
   doc.setDrawColor(...GREEN).setLineWidth(1.4).line(M, y, W - M, y);
-  y += 22;
+  return y + 22;
+}
+
+// ── Invoice PDF ──────────────────────────────────────────────────────────────
+export function buildInvoice(inv: InvoiceDoc): jsPDF {
+  const doc = newDoc();
+  const W = pageWidth(doc);
+  const s = summary(inv);
+  let y = letterhead(doc, inv, M);
 
   // Invoice no (right) + date.
   doc.setTextColor(17);
@@ -216,7 +207,7 @@ export function buildInvoice(inv: InvoiceDoc, logo?: string | null): jsPDF {
 }
 
 // ── Letter PDF ───────────────────────────────────────────────────────────────
-export function buildLetter(inv: InvoiceDoc, logo?: string | null): jsPDF {
+export function buildLetter(inv: InvoiceDoc): jsPDF {
   const doc = newDoc();
   const W = pageWidth(doc);
   const H = doc.internal.pageSize.getHeight();
@@ -226,21 +217,9 @@ export function buildLetter(inv: InvoiceDoc, logo?: string | null): jsPDF {
   const s = summary(inv);
   const route = `${s.origin} to ${s.dest}`;
   const period = `${long(s.ps)} - ${long(s.pe)}`;
-  let y = M;
 
-  // Letterhead: Ministry crest (or monogram fallback) + transporter name.
-  if (logo) {
-    doc.addImage(logo, 'PNG', M, y - 6, 44, 44);
-  } else {
-    doc.setFillColor(...GREEN).roundedRect(M, y - 6, 40, 40, 6, 6, 'F');
-    doc.setFont('helvetica', 'bold').setFontSize(18).setTextColor(255, 255, 255);
-    doc.text(monogram(name), M + 20, y + 19, { align: 'center' });
-  }
-  doc.setTextColor(17).setFont('helvetica', 'bold').setFontSize(15);
-  doc.text(name, M + 56, y + 18);
-  y += 46;
-  doc.setDrawColor(...GREEN).setLineWidth(1.4).line(M, y, W - M, y);
-  y += 22;
+  // Makeshift letterhead from the transporter's registration details.
+  let y = letterhead(doc, inv, M);
 
   const para = (text: string, opts: { bold?: boolean; gap?: number; align?: 'left' | 'justify' } = {}) => {
     doc.setFont('helvetica', opts.bold ? 'bold' : 'normal').setFontSize(12).setTextColor(17);
@@ -341,6 +320,14 @@ export function amountInWords(n: number): string {
   return pesewas > 0 ? `${cedisW} and ${under1000(pesewas)} Pesewas` : cedisW;
 }
 
+/** Goods descriptor from the invoice's line categories (fixed order, comma-joined for a mix). */
+function categoryLabel(inv: InvoiceDoc): string {
+  const map: Record<string, string> = { 'Concrete Poles': 'Concrete Poles', Material: 'Electrical Materials', Poles: 'Wooden Poles' };
+  const present = new Set((inv.invoice_lines ?? []).map((l) => l.category));
+  const labels = (['Concrete Poles', 'Material', 'Poles'] as const).filter((c) => present.has(c)).map((c) => map[c]);
+  return labels.length ? labels.join(', ') : 'Electrical Materials';
+}
+
 // ── Memorandum PDF ───────────────────────────────────────────────────────────
 export interface MemoOpts {
   fromTitle: string;
@@ -354,6 +341,7 @@ export function buildMemo(inv: InvoiceDoc, opts: MemoOpts, logo?: string | null)
   const H = doc.internal.pageSize.getHeight();
   const name = (inv.transporters?.display_name ?? 'Transporter').toUpperCase();
   const s = summary(inv);
+  const goods = categoryLabel(inv);
   const total = num(inv.total_cost);
   const dateStr = `${MONTHS[(pd(inv.created_at) ?? new Date()).getUTCMonth()].toUpperCase()} ${String((pd(inv.created_at) ?? new Date()).getUTCDate()).padStart(2, '0')}, ${(pd(inv.created_at) ?? new Date()).getUTCFullYear()}`;
   let y = M;
@@ -374,7 +362,7 @@ export function buildMemo(inv: InvoiceDoc, opts: MemoOpts, logo?: string | null)
   const labelX = M;
   const valueX = M + 74;
   const row = (label: string, value: string, bold = false) => {
-    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(17).text(label, labelX, y);
+    doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(17).text(label, labelX, y);
     doc.setFont('helvetica', bold ? 'bold' : 'normal');
     const lines = doc.splitTextToSize(value, W - M - valueX) as string[];
     doc.text(lines, valueX, y);
@@ -382,7 +370,7 @@ export function buildMemo(inv: InvoiceDoc, opts: MemoOpts, logo?: string | null)
   };
   row('TO:', 'CHIEF DIRECTOR');
   row('FROM:', opts.fromTitle);
-  row('SUBJECT:', `REQUEST FOR PAYMENT IN FAVOUR OF M/S ${name} FOR THE HAULAGE OF ELECTRICAL MATERIALS`, true);
+  row('SUBJECT:', `REQUEST FOR PAYMENT IN FAVOUR OF M/S ${name} FOR THE HAULAGE OF ${goods.toUpperCase()}`, true);
   row('DATE:', dateStr);
   y += 4;
   doc.setDrawColor(120).setLineWidth(0.8).line(M, y, W - M, y);
@@ -393,42 +381,62 @@ export function buildMemo(inv: InvoiceDoc, opts: MemoOpts, logo?: string | null)
   const numX = M;
   const bodyX = M + 22;
   const bodyW = W - M - bodyX;
-  // Word-flow renderer: wraps to bodyW while honouring per-word bold (jsPDF has no rich text).
+  // Justified word-flow renderer: wraps to bodyW, honours per-word bold (jsPDF has no rich text),
+  // and distributes slack across gaps on every line except each paragraph's last.
   const para = (segments: { text: string; bold?: boolean }[]) => {
     n++;
-    const words = segments.flatMap((sg) =>
-      sg.text.trim().split(/\s+/).filter(Boolean).map((w) => ({ w, b: !!sg.bold })),
+    doc.setFontSize(12).setTextColor(17);
+    const measured = segments.flatMap((sg) =>
+      sg.text.trim().split(/\s+/).filter(Boolean).map((w) => {
+        doc.setFont('helvetica', sg.bold ? 'bold' : 'normal');
+        return { w, b: !!sg.bold, width: doc.getTextWidth(w) };
+      }),
     );
-    doc.setFontSize(11).setTextColor(17);
     doc.setFont('helvetica', 'normal');
     const sw = doc.getTextWidth(' ');
-    doc.setFont('helvetica', 'bold').text(`${n}.`, numX, y);
-    let x = bodyX;
-    for (const { w, b } of words) {
-      doc.setFont('helvetica', b ? 'bold' : 'normal');
-      const ww = doc.getTextWidth(w);
-      if (x > bodyX && x + ww > bodyX + bodyW) {
-        x = bodyX;
-        y += 15;
-        if (y > H - M - 40) {
-          doc.addPage();
-          y = M;
-        }
+    // Greedy line break.
+    const lines: { w: string; b: boolean; width: number }[][] = [];
+    let cur: typeof measured = [];
+    let curW = 0;
+    for (const m of measured) {
+      const add = (cur.length ? sw : 0) + m.width;
+      if (cur.length && curW + add > bodyW) {
+        lines.push(cur);
+        cur = [];
+        curW = 0;
       }
-      doc.text(w, x, y);
-      x += ww + sw;
+      curW += (cur.length ? sw : 0) + m.width;
+      cur.push(m);
     }
-    y += 15 + 8;
+    if (cur.length) lines.push(cur);
+
+    if (y + lines.length * 15 > H - M - 40) {
+      doc.addPage();
+      y = M;
+    }
+    doc.setFont('helvetica', 'bold').setFontSize(12).text(`${n}.`, numX, y);
+    lines.forEach((ln, li) => {
+      const wordsW = ln.reduce((s, m) => s + m.width, 0);
+      const gaps = ln.length - 1;
+      const gap = li < lines.length - 1 && gaps > 0 ? (bodyW - wordsW) / gaps : sw;
+      let x = bodyX;
+      for (const m of ln) {
+        doc.setFont('helvetica', m.b ? 'bold' : 'normal').text(m.w, x, y);
+        x += m.width + gap;
+      }
+      y += 15;
+    });
+    y += 8;
   };
 
-  para([{ text: `Reference is made to the letter dated ${long(opts.letterDate)}, from M/S ${name} requesting for payment for haulage of electrical materials (copy attached).` }]);
+  para([{ text: `Reference is made to the letter dated ${long(opts.letterDate)}, from M/S ${name} requesting for payment for haulage of ${goods.toLowerCase()} (copy attached).` }]);
   para([{ text: 'We confirm that the transporter has satisfactorily executed the work as evidenced by the attached waybills.' }]);
-  para([{ text: `Messrs. ${name} submitted ${s.waybills} waybills with an invoice amount of GHS ${total} for processing and payment.` }]);
+  para([{ text: `Messrs. ${name} submitted ${s.waybills} waybill${s.waybills === 1 ? '' : 's'} with an invoice amount of GHS ${total} for processing and payment.` }]);
   para([{ text: `Furthermore, review of the submitted waybills indicated that the amount due the transporter under the invoice is GHS ${total}.` }]);
   para([
     { text: `The Power Directorate hereby submits the request for payment of an amount of GHS${total} ` },
     { text: `(${amountInWords(inv.total_cost)})`, bold: true },
-    { text: ' for haulage of the electrical materials to your attention.' },
+    { text: ` for haulage of the ${goods.toLowerCase()} to your attention.` },
   ]);
   para([{ text: 'We have attached copies of the relevant documents for your perusal.' }]);
 
@@ -438,7 +446,7 @@ export function buildMemo(inv: InvoiceDoc, opts: MemoOpts, logo?: string | null)
     doc.addPage();
     y = M + 45;
   }
-  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(17);
+  doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(17);
   doc.text(opts.signatoryName.toUpperCase(), M, y);
 
   return doc;
@@ -518,11 +526,9 @@ export function buildSignatory(inv: InvoiceDoc, logo?: string | null): jsPDF {
   return doc;
 }
 
-export async function downloadInvoicePdf(inv: InvoiceDoc) {
-  const logo = await loadLogo();
-  buildInvoice(inv, logo).save(`Invoice_${ref(inv)}.pdf`);
+export function downloadInvoicePdf(inv: InvoiceDoc) {
+  buildInvoice(inv).save(`Invoice_${ref(inv)}.pdf`);
 }
-export async function downloadLetterPdf(inv: InvoiceDoc) {
-  const logo = await loadLogo();
-  buildLetter(inv, logo).save(`Payment_Request_${ref(inv)}.pdf`);
+export function downloadLetterPdf(inv: InvoiceDoc) {
+  buildLetter(inv).save(`Payment_Request_${ref(inv)}.pdf`);
 }

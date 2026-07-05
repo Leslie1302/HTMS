@@ -275,7 +275,7 @@ export default function Invoices() {
         return;
       }
 
-      const doc = type === 'invoice' ? buildInvoice(inv as InvoiceDoc, logo) : buildLetter(inv as InvoiceDoc, logo);
+      const doc = type === 'invoice' ? buildInvoice(inv as InvoiceDoc) : buildLetter(inv as InvoiceDoc);
       const baseBytes = doc.output('arraybuffer') as ArrayBuffer;
 
       const scans: ScanInput[] = [];
