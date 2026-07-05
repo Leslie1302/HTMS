@@ -8,6 +8,7 @@ import InvoiceStatus from './pages/InvoiceStatus';
 import Admin from './pages/Admin';
 import Calculator from './pages/Calculator';
 import { Crest } from './components/Crest';
+import { NotificationsButton } from './components/NotificationsButton';
 
 function Nav() {
   const { profile, signOut } = useAuth();
@@ -54,6 +55,7 @@ function Nav() {
           </NavLink>
         )}
         <div className="ml-auto flex items-center gap-3 text-sm">
+          <NotificationsButton />
           <span className="material-symbols-outlined text-base text-white/60">account_circle</span>
           <span className="text-white/80 text-xs capitalize">{profile?.role}</span>
           <button onClick={() => signOut()} className="text-white/60 hover:text-white text-xs underline-offset-2 underline">

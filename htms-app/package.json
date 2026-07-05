@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
+    "firebase": "^12.15.0",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "pdf-lib": "^1.17.1",
@@ -30,8 +31,8 @@
     "@netlify/functions": "^2.8.1",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.5",
-    "@types/ws": "^8.5.10",
     "@types/react-dom": "^18.3.0",
+    "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^8.5.0",
     "@typescript-eslint/parser": "^8.5.0",
     "@vitejs/plugin-react": "^5.0.0",

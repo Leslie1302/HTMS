@@ -17,7 +17,7 @@ export default function Admin() {
         {([
           { key: 'transporters' as const, label: 'Transporters' },
           { key: 'users' as const, label: 'User Management' },
-          { key: 'audit' as const, label: 'Audit Logs' },
+          { key: 'audit' as const, label: 'Reports' },
           { key: 'fuel' as const, label: 'Fuel Prices' },
           { key: 'rates' as const, label: 'Rates & FIDIC' },
           { key: 'distances' as const, label: 'Distance Chart' },
@@ -37,7 +37,7 @@ export default function Admin() {
       </div>
       {tab === 'transporters' && <Transporters />}
       {tab === 'users' && <UserManagement />}
-      {tab === 'audit' && <AuditLogs />}
+      {tab === 'audit' && <Reports />}
       {tab === 'fuel' && <Fuel />}
       {tab === 'rates' && <Rates />}
       {tab === 'distances' && <DistanceChart />}
@@ -304,11 +304,14 @@ interface AppUserRow {
   transporter_id: string | null; phone: string | null; created_at: string;
 }
 
+const ROLE_LABEL: Record<string, string> = { admin: 'System Admin', officer: 'Ministry Staff', transporter: 'Transporter' };
+
 function UserManagement() {
   const { msg, err, setMsg, setErr } = useToast();
   const [users, setUsers] = useState<AppUserRow[]>([]);
   const [transporters, setTransporters] = useState<{ id: string; display_name: string }[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [q, setQ] = useState('');
 
   function load() {
     supabase.from('app_users').select('id, role, full_name, transporter_id, phone, created_at').order('created_at', { ascending: false }).then(({ data }) => setUsers((data as AppUserRow[]) ?? []));
@@ -318,13 +321,14 @@ function UserManagement() {
     supabase.from('transporters').select('id, display_name').order('display_name').then(({ data }) => setTransporters(data ?? []));
   }, []);
 
+  const orgOf = (id: string | null) => transporters.find((t) => t.id === id)?.display_name ?? '';
+
   function edit(id: string, patch: Partial<AppUserRow>) {
     setUsers((list) => list.map((u) => (u.id === id ? { ...u, ...patch } : u)));
   }
 
   async function save(u: AppUserRow) {
     setErr(null); setMsg(null);
-    // Enforce the app_users check constraint before hitting the DB.
     if (u.role === 'transporter' && !u.transporter_id) return setErr('A transporter user must be assigned a company.');
     setSavingId(u.id);
     const { error } = await supabase.from('app_users').update({
@@ -337,97 +341,334 @@ function UserManagement() {
     setMsg('User updated'); load();
   }
 
+  const staff = users.filter((u) => u.role !== 'transporter').length;
+  const transporterUsers = users.filter((u) => u.role === 'transporter').length;
+  const unassigned = users.filter((u) => u.role === 'transporter' && !u.transporter_id).length;
+
+  const filtered = users.filter((u) => {
+    if (!q) return true;
+    const hay = `${u.full_name ?? ''} ${u.role} ${orgOf(u.transporter_id)} ${u.phone ?? ''}`.toLowerCase();
+    return hay.includes(q.toLowerCase());
+  });
+
+  function exportCsv() {
+    const rows = [['name', 'role', 'organization', 'phone', 'created'],
+      ...users.map((u) => [u.full_name ?? '', ROLE_LABEL[u.role] ?? u.role, orgOf(u.transporter_id), u.phone ?? '', new Date(u.created_at).toISOString()])];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `htms_users_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <div className="max-w-5xl mx-auto">
-      {msg && <div className="mb-3 text-sm text-[#0d631b] bg-[#e8f5e9] p-3 rounded-lg">{msg}</div>}
-      {err && <div className="mb-3 text-sm text-error bg-error-container p-3 rounded-lg">{err}</div>}
-      <p className="text-xs text-on-surface-variant mb-3">Assign each user a role and — for transporters — their company. Staff phone numbers receive invoice SMS alerts.</p>
-      <div className="bg-white rounded-lg border border-outline-variant overflow-auto">
+    <div>
+      <div className="mb-5">
+        <h2 className="text-xl font-semibold text-on-surface">System Users</h2>
+        <p className="text-sm text-on-surface-variant">Manage institutional access for Ministry staff, transporters and site admins. Assign each user a role and — for transporters — their company.</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <StatCard label="Total Users" value={users.length.toLocaleString()} sub="all accounts" />
+        <StatCard label="Transporters" value={transporterUsers.toLocaleString()} sub="external accounts" />
+        <StatCard label="Ministry / Admin" value={staff.toLocaleString()} sub="internal staff" />
+        <StatCard label="Unassigned" value={unassigned.toLocaleString()} sub="need a company" tone={unassigned ? 'alert' : 'default'} />
+      </div>
+
+      <Banner msg={msg} err={err} />
+
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative flex-1 min-w-[220px]">
+          <span className="material-symbols-outlined text-[18px] absolute left-2 top-2.5 text-outline">search</span>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, role or company…" className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
+        </div>
+        <button onClick={exportCsv} className="flex items-center gap-1.5 border border-outline-variant rounded-lg px-3 py-2 text-sm hover:bg-surface-container-low">
+          <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-outline-variant overflow-auto">
         <table className="w-full text-sm">
           <thead className="bg-surface-container-low text-left">
             <tr>
-              {['Name', 'Role', 'Company (transporters only)', 'Phone (SMS alerts)', ''].map((h) => (
-                <th key={h} className="px-4 py-3 text-[11px] font-bold tracking-wide text-on-surface-variant uppercase">{h}</th>
+              {['Name & Identity', 'Role', 'Organization', 'Phone', ''].map((h) => (
+                <th key={h} className="px-4 py-3 text-[11px] font-bold tracking-wide text-on-surface-variant uppercase whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant">
-            {users.map((u) => (
-              <tr key={u.id} className="hover:bg-surface-container-low">
-                <td className="px-4 py-3 whitespace-nowrap">{u.full_name ?? '-'}</td>
+            {filtered.map((u) => (
+              <tr key={u.id} className="hover:bg-surface-container-low align-top">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-9 h-9 rounded-full grid place-items-center text-xs font-bold text-white ${avatarColor(u.full_name ?? u.id)}`}>{initials(u.full_name)}</span>
+                    <div className="leading-tight">
+                      <div className="font-medium text-on-surface">{u.full_name ?? 'Unnamed user'}</div>
+                      <div className="text-[11px] text-outline font-mono">{u.id.slice(0, 8)}</div>
+                    </div>
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <select value={u.role} onChange={(e) => edit(u.id, { role: e.target.value as AppUserRow['role'] })} className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b]">
-                    <option value="admin">admin</option>
-                    <option value="officer">officer</option>
-                    <option value="transporter">transporter</option>
+                    <option value="admin">System Admin</option>
+                    <option value="officer">Ministry Staff</option>
+                    <option value="transporter">Transporter</option>
                   </select>
                 </td>
                 <td className="px-4 py-3">
-                  <select value={u.transporter_id ?? ''} disabled={u.role !== 'transporter'} onChange={(e) => edit(u.id, { transporter_id: e.target.value || null })} className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b] disabled:opacity-40">
-                    <option value="">— none —</option>
+                  <select value={u.transporter_id ?? ''} disabled={u.role !== 'transporter'} onChange={(e) => edit(u.id, { transporter_id: e.target.value || null })} className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b] disabled:opacity-40 max-w-[180px]">
+                    <option value="">{u.role === 'transporter' ? '— select company —' : 'n/a'}</option>
                     {transporters.map((t) => (<option key={t.id} value={t.id}>{t.display_name}</option>))}
                   </select>
                 </td>
                 <td className="px-4 py-3">
                   <input value={u.phone ?? ''} onChange={(e) => edit(u.id, { phone: e.target.value })} placeholder="024… / +233…" className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b] w-32" />
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-right">
                   <button onClick={() => save(u)} disabled={savingId === u.id} className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50">
                     {savingId === u.id ? 'Saving…' : 'Save'}
                   </button>
                 </td>
               </tr>
             ))}
-            {users.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-outline-variant">No users found.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-outline-variant">No users match.</td></tr>}
           </tbody>
         </table>
+        <div className="px-4 py-3 border-t border-outline-variant text-xs text-on-surface-variant">Showing {filtered.length.toLocaleString()} of {users.length.toLocaleString()} users</div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-outline-variant p-4 mt-5">
+        <h3 className="font-semibold text-on-surface mb-3 flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px]">history</span> Recently Added Users</h3>
+        <div className="space-y-2">
+          {users.slice(0, 4).map((u) => (
+            <div key={u.id} className="flex items-center gap-3 text-sm border border-outline-variant rounded-lg px-3 py-2">
+              <span className={`w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold text-white ${avatarColor(u.full_name ?? u.id)}`}>{initials(u.full_name)}</span>
+              <div className="flex-1 leading-tight">
+                <div className="font-medium">{u.full_name ?? 'Unnamed user'}</div>
+                <div className="text-[11px] text-outline">{ROLE_LABEL[u.role] ?? u.role}{orgOf(u.transporter_id) ? ` · ${orgOf(u.transporter_id)}` : ''}</div>
+              </div>
+              <span className="text-[11px] text-outline">{new Date(u.created_at).toLocaleDateString()}</span>
+            </div>
+          ))}
+          {users.length === 0 && <div className="text-sm text-outline-variant">No users yet.</div>}
+        </div>
       </div>
     </div>
   );
 }
 
-function AuditLogs() {
-  const [logs, setLogs] = useState<any[]>([]);
+// ── Small shared UI bits ─────────────────────────────────────────────────────
+function initials(name?: string | null): string {
+  const w = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (w.length >= 2) return (w[0][0] + w[1][0]).toUpperCase();
+  if (w.length === 1) return w[0].slice(0, 2).toUpperCase();
+  return '—';
+}
+const AVATAR_BG = ['bg-[#1b5e20]', 'bg-[#0d631b]', 'bg-[#2e7d32]', 'bg-[#4a6572]', 'bg-[#5d4037]'];
+function avatarColor(seed: string): string {
+  let n = 0;
+  for (const c of seed) n = (n + c.charCodeAt(0)) % AVATAR_BG.length;
+  return AVATAR_BG[n];
+}
+function StatCard({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: 'default' | 'alert' }) {
+  return (
+    <div className="bg-white rounded-xl border border-outline-variant p-4">
+      <div className="text-[11px] font-bold tracking-wide text-on-surface-variant uppercase">{label}</div>
+      <div className={`text-3xl font-bold mt-1 ${tone === 'alert' ? 'text-error' : 'text-[#0d631b]'}`}>{value}</div>
+      {sub && <div className={`text-xs mt-1 ${tone === 'alert' ? 'text-error' : 'text-on-surface-variant'}`}>{sub}</div>}
+    </div>
+  );
+}
+
+interface AuditRow { id: number; actor_id: string | null; action: string; entity: string; entity_id: string | null; before: unknown; after: unknown; created_at: string; }
+
+/** Map an audit action to a status chip like the Reports design. */
+function auditStatus(action: string): { label: string; cls: string } {
+  if (action === 'void' || action.includes('disapprov') || action.includes('fail')) return { label: 'Failed', cls: 'bg-error-container text-error' };
+  if (action.includes('review') || action === 'modified' || action === 'update') return { label: 'Modified', cls: 'bg-surface-container-high text-on-surface-variant' };
+  if (action === 'lock') return { label: 'Locked', cls: 'bg-surface-container-high text-on-surface-variant' };
+  return { label: 'Success', cls: 'bg-[#acf4a4] text-[#0c5216]' };
+}
+
+function Reports() {
+  const [logs, setLogs] = useState<AuditRow[]>([]);
+  const [names, setNames] = useState<Record<string, { name: string; role: string }>>({});
+  const [total, setTotal] = useState(0);
+  const [q, setQ] = useState('');
+  const [action, setAction] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [page, setPage] = useState(0);
+  const [detail, setDetail] = useState<AuditRow | null>(null);
+  const PAGE = 25;
 
   useEffect(() => {
-    supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(100).then(({ data }) => setLogs(data ?? []));
+    supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(500).then(({ data }) => setLogs((data as AuditRow[]) ?? []));
+    supabase.from('audit_log').select('*', { count: 'exact', head: true }).then(({ count }) => setTotal(count ?? 0));
+    supabase.from('app_users').select('id, full_name, role').then(({ data }) => {
+      const m: Record<string, { name: string; role: string }> = {};
+      for (const u of (data ?? []) as { id: string; full_name: string | null; role: string }[]) m[u.id] = { name: u.full_name ?? 'Unnamed', role: u.role };
+      setNames(m);
+    });
   }, []);
 
+  const dayAgo = Date.now() - 864e5;
+  const events24 = logs.filter((l) => new Date(l.created_at).getTime() > dayAgo);
+  const activeUsers = new Set(events24.map((l) => l.actor_id).filter(Boolean)).size;
+  const advances24 = events24.filter((l) => ALL_STAGES_SOME(l.action)).length;
+
+  const actions = [...new Set(logs.map((l) => l.action))].sort();
+  const actor = (id: string | null) => (id ? names[id]?.name ?? id.slice(0, 8) : 'System');
+
+  const filtered = logs.filter((l) => {
+    if (action && l.action !== action) return false;
+    const t = new Date(l.created_at).getTime();
+    if (from && t < new Date(from).getTime()) return false;
+    if (to && t > new Date(to).getTime() + 864e5) return false;
+    if (q) {
+      const hay = `${actor(l.actor_id)} ${l.action} ${l.entity} ${l.entity_id ?? ''}`.toLowerCase();
+      if (!hay.includes(q.toLowerCase())) return false;
+    }
+    return true;
+  });
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE));
+  const shown = filtered.slice(page * PAGE, page * PAGE + PAGE);
+
+  // Hourly action frequency over the last 24h (bucketed by hour of day).
+  const hourly = Array.from({ length: 24 }, () => 0);
+  for (const l of events24) hourly[new Date(l.created_at).getHours()]++;
+  const peak = Math.max(1, ...hourly);
+
+  function exportCsv() {
+    const rows = [['timestamp', 'actor', 'action', 'entity', 'entity_id', 'after'],
+      ...filtered.map((l) => [new Date(l.created_at).toISOString(), actor(l.actor_id), l.action, l.entity, l.entity_id ?? '', l.after ? JSON.stringify(l.after) : ''])];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `htms_audit_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="bg-white rounded-lg border border-outline-variant overflow-auto">
+    <div>
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 className="text-xl font-semibold text-on-surface">Audit Trail &amp; Logs</h2>
+          <p className="text-sm text-on-surface-variant max-w-xl">Oversight for Ministry of Energy haulage logistics — every modification, approval and system event across the 11-step pipeline.</p>
+        </div>
+        <button onClick={exportCsv} className="shrink-0 flex items-center gap-1.5 bg-[#0d631b] hover:opacity-90 text-white rounded-lg px-4 py-2.5 text-sm font-medium">
+          <span className="material-symbols-outlined text-[18px]">download</span> Export Audit Log
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <StatCard label="Total Events (24h)" value={events24.length.toLocaleString()} sub={`${total.toLocaleString()} all-time`} />
+        <StatCard label="Stage Advances (24h)" value={advances24.toLocaleString()} sub="pipeline transitions" />
+        <StatCard label="Active Users (24h)" value={activeUsers.toLocaleString()} sub="distinct actors" />
+        <StatCard label="Loaded Window" value={logs.length.toLocaleString()} sub="most recent events" />
+      </div>
+
+      <div className="bg-surface-container-low/60 rounded-xl border border-outline-variant p-3 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="relative">
+          <span className="material-symbols-outlined text-[18px] absolute left-2 top-2.5 text-outline">search</span>
+          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Search actor, action, entity, ID…" className="w-full border border-outline-variant rounded-lg pl-8 pr-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
+        </div>
+        <select value={action} onChange={(e) => { setAction(e.target.value); setPage(0); }} className="border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]">
+          <option value="">All actions</option>
+          {actions.map((a) => (<option key={a} value={a}>{a}</option>))}
+        </select>
+        <div className="flex items-center gap-2">
+          <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(0); }} className="border border-outline-variant rounded-lg px-2 py-2 text-sm outline-none focus:border-[#0d631b] w-full" />
+          <span className="text-outline text-xs">–</span>
+          <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(0); }} className="border border-outline-variant rounded-lg px-2 py-2 text-sm outline-none focus:border-[#0d631b] w-full" />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-outline-variant overflow-auto">
         <table className="w-full text-sm">
           <thead className="bg-surface-container-low text-left">
             <tr>
-              {['Timestamp', 'Actor', 'Action', 'Entity', 'Entity ID', 'Details'].map((h) => (
+              {['Timestamp', 'Actor', 'Action', 'Entity ID', 'Status', 'Details'].map((h) => (
                 <th key={h} className="px-4 py-3 text-[11px] font-bold tracking-wide text-on-surface-variant uppercase whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant">
-            {logs.map((l) => (
-              <tr key={l.id} className="hover:bg-surface-container-low">
-                <td className="px-4 py-3 text-xs text-outline whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
-                <td className="px-4 py-3 font-mono text-xs">{l.actor_id?.slice(0, 8) ?? 'system'}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    l.action === 'create' || l.action === 'approve' || ALL_STAGES_SOME(l.action) ? 'bg-[#acf4a4] text-[#0c5216]' :
-                    l.action === 'lock' ? 'bg-surface-container-high text-on-surface-variant' :
-                    l.action === 'void' ? 'bg-error-container text-error' :
-                    'bg-surface-variant text-on-surface-variant'
-                  }`}>{l.action}</span>
-                </td>
-                <td className="px-4 py-3 text-xs">{l.entity}</td>
-                <td className="px-4 py-3 text-xs font-mono text-outline">{l.entity_id?.slice(0, 12) ?? '-'}</td>
-                <td className="px-4 py-3 text-xs text-outline max-w-[200px] truncate">
-                  {l.after ? JSON.stringify(l.after).slice(0, 60) : '-'}
-                </td>
-              </tr>
-            ))}
-            {logs.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-outline-variant">No audit logs.</td></tr>}
+            {shown.map((l) => {
+              const st = auditStatus(l.action);
+              const nm = actor(l.actor_id);
+              return (
+                <tr key={l.id} className="hover:bg-surface-container-low">
+                  <td className="px-4 py-3 text-xs text-outline whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold text-white ${avatarColor(nm)}`}>{initials(nm)}</span>
+                      <div className="leading-tight">
+                        <div className="font-medium text-on-surface">{nm}</div>
+                        <div className="text-[11px] text-outline capitalize">{l.actor_id ? names[l.actor_id]?.role ?? '—' : 'automated'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs">{l.action}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-[#0d631b]">{l.entity}/{l.entity_id?.slice(0, 8) ?? '-'}</td>
+                  <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${st.cls}`}>{st.label}</span></td>
+                  <td className="px-4 py-3 text-xs">
+                    <button onClick={() => setDetail(l)} className="text-[#0d631b] hover:underline font-medium">View JSON</button>
+                  </td>
+                </tr>
+              );
+            })}
+            {shown.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-outline-variant">No events match your filters.</td></tr>}
           </tbody>
         </table>
+        <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant text-xs text-on-surface-variant">
+          <span>Showing {filtered.length === 0 ? 0 : page * PAGE + 1}–{Math.min((page + 1) * PAGE, filtered.length)} of {filtered.length.toLocaleString()} entries</span>
+          <div className="flex items-center gap-1">
+            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="px-2 py-1 rounded border border-outline-variant disabled:opacity-40">‹</button>
+            <span className="px-2">{page + 1} / {pages}</span>
+            <button disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)} className="px-2 py-1 rounded border border-outline-variant disabled:opacity-40">›</button>
+          </div>
+        </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-5">
+        <div className="bg-white rounded-xl border border-outline-variant p-4">
+          <h3 className="font-semibold text-on-surface mb-3">Action Frequency (last 24h, by hour)</h3>
+          <div className="flex items-end gap-[3px] h-40">
+            {hourly.map((c, h) => (
+              <div key={h} className="flex-1 rounded-t bg-[#0d631b]" style={{ height: `${(c / peak) * 100}%`, minHeight: c ? 4 : 1, opacity: 0.35 + 0.65 * (c / peak) }} title={`${String(h).padStart(2, '0')}:00 — ${c} events`} />
+            ))}
+          </div>
+          <div className="flex justify-between text-[10px] text-outline mt-2"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+        </div>
+        <div className="bg-white rounded-xl border border-outline-variant p-4">
+          <h3 className="font-semibold text-on-surface mb-3">Recent Audit Summary</h3>
+          <div className="space-y-3">
+            {logs.slice(0, 5).map((l) => (
+              <div key={l.id} className="flex gap-3">
+                <span className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${auditStatus(l.action).cls.includes('error') ? 'bg-error' : 'bg-[#0d631b]'}`} />
+                <div className="leading-tight">
+                  <div className="text-sm font-medium text-on-surface">{l.entity}/{l.entity_id?.slice(0, 8) ?? '-'} — {l.action}</div>
+                  <div className="text-xs text-outline">{actor(l.actor_id)} · {new Date(l.created_at).toLocaleString()}</div>
+                </div>
+              </div>
+            ))}
+            {logs.length === 0 && <div className="text-sm text-outline-variant">No recent activity.</div>}
+          </div>
+        </div>
+      </div>
+
+      {detail && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={() => setDetail(null)}>
+          <div className="bg-white rounded-xl border border-outline-variant max-w-lg w-full max-h-[80vh] overflow-auto p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">{detail.entity} · {detail.action}</h3>
+              <button onClick={() => setDetail(null)} className="text-outline hover:text-on-surface"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <pre className="text-xs bg-surface-container-low rounded-lg p-3 overflow-auto whitespace-pre-wrap break-words">{JSON.stringify({ actor: actor(detail.actor_id), entity_id: detail.entity_id, before: detail.before, after: detail.after }, null, 2)}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

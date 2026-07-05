@@ -9,7 +9,7 @@
  */
 import type { Config } from '@netlify/functions';
 import { audit, guard, json, parseBody } from './_lib';
-import { notifyStageChange, notifyDisapproval } from './_sms';
+import { notifyStageChange, notifyDisapproval } from './_fcm';
 import { CHECKLIST_ITEMS, stageTransitionSchema } from '../../shared/validation';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 export { ALL_STAGES, STAGE_MAP, STAGE_LABELS };

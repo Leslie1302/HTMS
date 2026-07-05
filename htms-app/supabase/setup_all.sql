@@ -576,6 +576,22 @@ alter table transporters add column if not exists contract_validated boolean not
 alter table transporters add column if not exists manager_name text;
 alter table app_users add column if not exists phone text;
 
+create table if not exists device_tokens (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references app_users(id) on delete cascade,
+  token        text not null unique,
+  platform     text not null default 'web',
+  created_at   timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+create index if not exists idx_device_tokens_user on device_tokens (user_id);
+alter table device_tokens enable row level security;
+drop policy if exists device_tokens_own on device_tokens;
+create policy device_tokens_own on device_tokens
+  for all to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
 -- ░░░░░░░░░░ migrations/0009_transporter_checklist.sql ░░░░░░░░░░
 
 -- ============================================================================
