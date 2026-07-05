@@ -9,6 +9,7 @@
  */
 import type { Config } from '@netlify/functions';
 import { audit, guard, json, parseBody } from './_lib';
+import { notifyStageChange, notifyDisapproval } from './_sms';
 import { CHECKLIST_ITEMS, stageTransitionSchema } from '../../shared/validation';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 export { ALL_STAGES, STAGE_MAP, STAGE_LABELS };
@@ -53,6 +54,9 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
       const { error: revErr } = await ctx.db.from('invoices').update(patch).eq('id', invoiceId);
       if (revErr) return json(400, { error: revErr.message });
       await audit(ctx.userId, `review_${body.review}`, 'invoice', invoiceId, null, patch);
+      if (body.review === 'disapproved') {
+        await notifyDisapproval(invoiceId, body.note!.trim()).catch(() => {});
+      }
       return json(200, { invoiceId, ...patch });
     }
 
@@ -147,6 +151,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
     if (updateErr) return json(400, { error: updateErr.message });
 
     await audit(ctx.userId, targetStage, 'invoice', invoiceId, before, after);
+    await notifyStageChange(invoiceId, targetStage as PriStage).catch(() => {});
     return json(200, { invoiceId, stage: targetStage, previous: currentStage });
   }
 

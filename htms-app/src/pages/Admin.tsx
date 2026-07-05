@@ -299,20 +299,54 @@ function Transporters() {
   );
 }
 
-function UserManagement() {
-  const [users, setUsers] = useState<any[]>([]);
+interface AppUserRow {
+  id: string; role: 'admin' | 'officer' | 'transporter'; full_name: string | null;
+  transporter_id: string | null; phone: string | null; created_at: string;
+}
 
+function UserManagement() {
+  const { msg, err, setMsg, setErr } = useToast();
+  const [users, setUsers] = useState<AppUserRow[]>([]);
+  const [transporters, setTransporters] = useState<{ id: string; display_name: string }[]>([]);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  function load() {
+    supabase.from('app_users').select('id, role, full_name, transporter_id, phone, created_at').order('created_at', { ascending: false }).then(({ data }) => setUsers((data as AppUserRow[]) ?? []));
+  }
   useEffect(() => {
-    supabase.from('app_users').select('id, role, full_name, transporter_id, created_at').order('created_at', { ascending: false }).then(({ data }) => setUsers(data ?? []));
+    load();
+    supabase.from('transporters').select('id, display_name').order('display_name').then(({ data }) => setTransporters(data ?? []));
   }, []);
 
+  function edit(id: string, patch: Partial<AppUserRow>) {
+    setUsers((list) => list.map((u) => (u.id === id ? { ...u, ...patch } : u)));
+  }
+
+  async function save(u: AppUserRow) {
+    setErr(null); setMsg(null);
+    // Enforce the app_users check constraint before hitting the DB.
+    if (u.role === 'transporter' && !u.transporter_id) return setErr('A transporter user must be assigned a company.');
+    setSavingId(u.id);
+    const { error } = await supabase.from('app_users').update({
+      role: u.role,
+      transporter_id: u.role === 'transporter' ? u.transporter_id : null,
+      phone: u.phone?.trim() || null,
+    }).eq('id', u.id);
+    setSavingId(null);
+    if (error) return setErr(error.message);
+    setMsg('User updated'); load();
+  }
+
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
+      {msg && <div className="mb-3 text-sm text-[#0d631b] bg-[#e8f5e9] p-3 rounded-lg">{msg}</div>}
+      {err && <div className="mb-3 text-sm text-error bg-error-container p-3 rounded-lg">{err}</div>}
+      <p className="text-xs text-on-surface-variant mb-3">Assign each user a role and — for transporters — their company. Staff phone numbers receive invoice SMS alerts.</p>
       <div className="bg-white rounded-lg border border-outline-variant overflow-auto">
         <table className="w-full text-sm">
           <thead className="bg-surface-container-low text-left">
             <tr>
-              {['Name', 'Role', 'Transporter ID', 'Created'].map((h) => (
+              {['Name', 'Role', 'Company (transporters only)', 'Phone (SMS alerts)', ''].map((h) => (
                 <th key={h} className="px-4 py-3 text-[11px] font-bold tracking-wide text-on-surface-variant uppercase">{h}</th>
               ))}
             </tr>
@@ -320,19 +354,31 @@ function UserManagement() {
           <tbody className="divide-y divide-outline-variant">
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-surface-container-low">
-                <td className="px-4 py-3">{u.full_name ?? '-'}</td>
+                <td className="px-4 py-3 whitespace-nowrap">{u.full_name ?? '-'}</td>
                 <td className="px-4 py-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    u.role === 'admin' ? 'bg-[#acf4a4] text-[#0c5216]' :
-                    u.role === 'officer' ? 'bg-[#e8f5e9] text-[#1b5e20]' :
-                    'bg-surface-container-high text-on-surface-variant'
-                  }`}>{u.role}</span>
+                  <select value={u.role} onChange={(e) => edit(u.id, { role: e.target.value as AppUserRow['role'] })} className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b]">
+                    <option value="admin">admin</option>
+                    <option value="officer">officer</option>
+                    <option value="transporter">transporter</option>
+                  </select>
                 </td>
-                <td className="px-4 py-3 text-xs font-mono text-outline">{u.transporter_id?.slice(0, 8) ?? '-'}</td>
-                <td className="px-4 py-3 text-xs text-outline">{new Date(u.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3">
+                  <select value={u.transporter_id ?? ''} disabled={u.role !== 'transporter'} onChange={(e) => edit(u.id, { transporter_id: e.target.value || null })} className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b] disabled:opacity-40">
+                    <option value="">— none —</option>
+                    {transporters.map((t) => (<option key={t.id} value={t.id}>{t.display_name}</option>))}
+                  </select>
+                </td>
+                <td className="px-4 py-3">
+                  <input value={u.phone ?? ''} onChange={(e) => edit(u.id, { phone: e.target.value })} placeholder="024… / +233…" className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b] w-32" />
+                </td>
+                <td className="px-4 py-3">
+                  <button onClick={() => save(u)} disabled={savingId === u.id} className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50">
+                    {savingId === u.id ? 'Saving…' : 'Save'}
+                  </button>
+                </td>
               </tr>
             ))}
-            {users.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-outline-variant">No users found.</td></tr>}
+            {users.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-outline-variant">No users found.</td></tr>}
           </tbody>
         </table>
       </div>

@@ -574,6 +574,7 @@ alter table invoices add column if not exists checklist jsonb not null default '
 alter table transporters add column if not exists contract_path text;
 alter table transporters add column if not exists contract_validated boolean not null default false;
 alter table transporters add column if not exists manager_name text;
+alter table app_users add column if not exists phone text;
 
 -- ░░░░░░░░░░ migrations/0009_transporter_checklist.sql ░░░░░░░░░░
 
