@@ -11,6 +11,7 @@ const SCAN_LABELS: Record<string, string> = {
   acknowledgement: 'Acknowledgement form',
   waybill: 'Waybill',
   release_letter: 'Release letter',
+  contract_agreement: 'Contract agreement',
 };
 
 const ghs = (n: number) =>
@@ -153,7 +154,7 @@ export default function Invoices() {
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
         )
         .eq('id', id)
         .single();
@@ -174,6 +175,18 @@ export default function Invoices() {
               label: SCAN_LABELS[s.scan_type] ?? 'Supporting scan',
             });
           }
+        }
+      }
+
+      const tp = (inv as any).transporters;
+      if (tp?.contract_path) {
+        const { data: contractBlob } = await supabase.storage.from('documents').download(tp.contract_path);
+        if (contractBlob) {
+          scans.push({
+            bytes: await contractBlob.arrayBuffer(),
+            mime: contractBlob.type || 'application/pdf',
+            label: 'Contract agreement',
+          });
         }
       }
 

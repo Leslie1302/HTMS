@@ -146,9 +146,9 @@ export default function WaybillEntry() {
       <div className="flex items-center gap-2 mb-1">
         <span className="text-xs text-outline">Pipeline</span>
         <span className="text-outline-variant">/</span>
-        <span className="text-xs text-on-surface font-medium">New Waybill Entry</span>
+        <span className="text-xs text-on-surface font-medium">Payment Request Form</span>
       </div>
-      <h1 className="text-2xl font-semibold text-on-surface mb-6">New Waybill</h1>
+      <h1 className="text-2xl font-semibold text-on-surface mb-6">Payment Request Form</h1>
       {msg && <div className="mb-4 text-sm text-[#0d631b] bg-[#e8f5e9] p-3 rounded-lg flex items-center gap-2">{msg}</div>}
       {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg flex items-center gap-2">{err}</div>}
 
@@ -230,25 +230,34 @@ export default function WaybillEntry() {
           </div>
         )}
 
-        <Field label="Truck size">
-          <select value={form.truckSize} onChange={(e) => set('truckSize', Number(e.target.value))} className="input">
-            <option value={20}>20ft</option>
-            <option value={40}>40ft</option>
-          </select>
-        </Field>
-        <Field label="No. of Trips">
-          <input type="number" min={1} value={form.numTrips} onChange={(e) => set('numTrips', Number(e.target.value))} className="input" />
-        </Field>
         <Field label="Waybill date">
           <input type="date" value={form.waybillDate} onChange={(e) => set('waybillDate', e.target.value)} className="input" />
         </Field>
 
-        <Field label="No. of Wooden Poles">
-          <input type="number" min={0} value={form.numPoles} onChange={(e) => set('numPoles', Number(e.target.value))} className="input" />
-        </Field>
-        <Field label="No. of Stay Blocks">
-          <input type="number" min={0} value={form.numStayBlocks} onChange={(e) => set('numStayBlocks', Number(e.target.value))} className="input" />
-        </Field>
+        {(form.category === 'Material') && (
+          <>
+            <Field label="Truck size">
+              <select value={form.truckSize} onChange={(e) => set('truckSize', Number(e.target.value))} className="input">
+                <option value={20}>20ft</option>
+                <option value={40}>40ft</option>
+              </select>
+            </Field>
+            <Field label="No. of Trips">
+              <input type="number" min={1} value={form.numTrips} onChange={(e) => set('numTrips', Number(e.target.value))} className="input" />
+            </Field>
+          </>
+        )}
+
+        {form.category !== 'Material' && (
+          <>
+            <Field label="No. of Wooden Poles">
+              <input type="number" min={0} value={form.numPoles} onChange={(e) => set('numPoles', Number(e.target.value))} className="input" />
+            </Field>
+            <Field label="No. of Stay Blocks">
+              <input type="number" min={0} value={form.numStayBlocks} onChange={(e) => set('numStayBlocks', Number(e.target.value))} className="input" />
+            </Field>
+          </>
+        )}
         <Field label="No. of Concrete Poles" full>
           <input type="number" min={0} value={form.numConcretePoles} onChange={(e) => set('numConcretePoles', Number(e.target.value))} className="input" />
         </Field>

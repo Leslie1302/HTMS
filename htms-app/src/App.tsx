@@ -28,12 +28,12 @@ function Nav() {
         </NavLink>
         <NavLink to="/waybills" className={link}>
           <span className="material-symbols-outlined text-base mr-1 align-text-bottom">note_add</span>
-          Waybills
+          Payment Request Form
         </NavLink>
         {profile?.role !== 'transporter' && (
           <NavLink to="/invoices" className={link}>
             <span className="material-symbols-outlined text-base mr-1 align-text-bottom">receipt_long</span>
-            Invoices
+            Payment Requests Status
           </NavLink>
         )}
         {profile?.role === 'transporter' && (
