@@ -15,16 +15,25 @@ function GhanaFlag({ className = '' }: { className?: string }) {
   );
 }
 
-/** Hero map: a truck driving pin-to-pin along a looping route (JS rAF). */
-const PINS = [
-  { x: 24, y: 74, name: 'Tema' },
-  { x: 40, y: 54, name: 'Kumasi' },
-  { x: 30, y: 30, name: 'Tamale' },
-  { x: 62, y: 22, name: 'Yendi' },
-  { x: 74, y: 50, name: 'Bimbilla' },
+/**
+ * Hero map: a truck driving pin-to-pin across a real Ghana silhouette (JS rAF).
+ * All geometry lives in one SVG (viewBox 0..70 × 0..100), derived from
+ * lon/lat so the country shape, cities and truck share one coordinate space.
+ */
+const GHANA_PATH =
+  'M8,2.6 L35.5,2.6 L37,4.2 L48.8,1.1 L51.9,2.6 L57.4,1.9 L56.7,13.5 L59.8,26 L55.9,36.9 ' +
+  'L59.8,46.2 L65.3,58.6 L60.6,68 L66.9,78.8 L69.8,78.8 L66.9,81.9 L54.3,83.8 L48,87.4 ' +
+  'L35.2,94.4 L22.9,97.5 L18.2,99.8 L8,96.7 L4.9,85.1 L5.6,71.1 L0.9,57.1 L6.4,41.5 ' +
+  'L8,26 L7.2,12 Z';
+const CITIES = [
+  { x: 51.4, y: 85.5, name: 'Tema', anchor: 'start' },
+  { x: 25.7, y: 69.7, name: 'Kumasi', anchor: 'end' },
+  { x: 38.0, y: 27.5, name: 'Tamale', anchor: 'end' },
+  { x: 51.5, y: 26.9, name: 'Yendi', anchor: 'start' },
+  { x: 52.1, y: 35.9, name: 'Bimbilla', anchor: 'start' },
 ];
 function RouteMap() {
-  const truck = useRef<HTMLDivElement>(null);
+  const truck = useRef<SVGGElement>(null);
 
   useEffect(() => {
     let seg = 0;
@@ -32,53 +41,54 @@ function RouteMap() {
     let paused = false;
     let pauseUntil = 0;
     let raf = 0;
-    const SEG_MS = 1700;
-    const PAUSE_MS = 650;
+    const SEG_MS = 1900;
+    const PAUSE_MS = 700;
 
     const tick = (now: number) => {
-      const a = PINS[seg];
-      const b = PINS[(seg + 1) % PINS.length];
+      const a = CITIES[seg];
+      const b = CITIES[(seg + 1) % CITIES.length];
       let t = (now - start) / SEG_MS;
       if (t >= 1) {
         t = 1;
         if (!paused) { paused = true; pauseUntil = now + PAUSE_MS; }
-        if (now >= pauseUntil) { seg = (seg + 1) % PINS.length; start = now; paused = false; }
+        if (now >= pauseUntil) { seg = (seg + 1) % CITIES.length; start = now; paused = false; }
       }
       const x = a.x + (b.x - a.x) * t;
       const y = a.y + (b.y - a.y) * t;
-      const facingRight = b.x - a.x >= 0;
-      if (truck.current) {
-        truck.current.style.left = `${x}%`;
-        truck.current.style.top = `${y}%`;
-        truck.current.style.transform = `translate(-50%,-50%) scaleX(${facingRight ? 1 : -1})`;
-      }
+      const dir = b.x - a.x >= 0 ? 1 : -1;
+      truck.current?.setAttribute('transform', `translate(${x} ${y}) scale(${dir} 1)`);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const routePoints = [...PINS, PINS[0]].map((p) => `${p.x},${p.y}`).join(' ');
+  const routePoints = [...CITIES, CITIES[0]].map((c) => `${c.x},${c.y}`).join(' ');
 
   return (
     <div className="relative w-full aspect-[4/3] rounded-2xl bg-[#0f1523] border border-white/10 overflow-hidden shadow-2xl">
-      {/* faint grid */}
-      <div className="absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
-      {/* route */}
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-        <polyline points={routePoints} fill="none" stroke="#2e7d32" strokeWidth="0.8" strokeDasharray="2 2" className="route-dash" />
+      <svg viewBox="-7 -6 84 112" className="absolute inset-0 w-full h-full">
+        {/* Ghana silhouette */}
+        <path d={GHANA_PATH} fill="#16273f" stroke="#2e7d32" strokeWidth="0.6" strokeLinejoin="round" />
+        {/* route */}
+        <polyline points={routePoints} fill="none" stroke="#8cc98f" strokeWidth="0.7" strokeDasharray="2 2" className="route-dash" />
+        {/* pins + labels */}
+        {CITIES.map((c) => (
+          <g key={c.name}>
+            <circle cx={c.x} cy={c.y} r="1.9" fill="#fcd116" opacity="0.25" />
+            <circle cx={c.x} cy={c.y} r="1.1" fill="#fcd116" stroke="#0f1523" strokeWidth="0.3" />
+            <text x={c.anchor === 'end' ? c.x - 2.4 : c.x + 2.4} y={c.y + 0.9} textAnchor={c.anchor as 'start' | 'end'} fontSize="3" fill="#e6ecf5" fontWeight="600">{c.name}</text>
+          </g>
+        ))}
+        {/* truck */}
+        <g ref={truck} transform="translate(51.4 85.5)">
+          <circle r="3.4" fill="#2e7d32" />
+          <rect x="-2.3" y="-1.4" width="2.7" height="2.2" rx="0.3" fill="#fff" />
+          <path d="M0.4 -0.6 L1.7 -0.6 L2.3 0.2 L2.3 0.8 L0.4 0.8 Z" fill="#fff" />
+          <circle cx="-1.3" cy="1.1" r="0.6" fill="#0f1523" />
+          <circle cx="1.2" cy="1.1" r="0.6" fill="#0f1523" />
+        </g>
       </svg>
-      {/* pins */}
-      {PINS.map((p) => (
-        <div key={p.name} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${p.x}%`, top: `${p.y}%` }}>
-          <div className="w-2.5 h-2.5 rounded-full bg-ghana-gold ring-4 ring-ghana-gold/20" />
-          <span className="absolute left-4 -top-1 text-[11px] font-medium text-white/80 whitespace-nowrap">{p.name}</span>
-        </div>
-      ))}
-      {/* truck */}
-      <div ref={truck} className="absolute z-10" style={{ left: '24%', top: '74%' }}>
-        <span className="material-symbols-outlined text-[26px] text-white bg-[#2e7d32] rounded-full p-1 shadow-lg" style={{ fontVariationSettings: "'FILL' 1" }}>local_shipping</span>
-      </div>
       <div className="absolute bottom-3 left-4 text-[11px] text-white/50 flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-ghana-green animate-pulse" /> Live haulage across Ghana
       </div>
