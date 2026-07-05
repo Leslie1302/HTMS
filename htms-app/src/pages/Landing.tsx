@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Crest } from '../components/Crest';
 import { STAGE_LABELS, ALL_STAGES } from '../../shared/lifecycle';
@@ -16,42 +16,67 @@ function GhanaFlag({ className = '' }: { className?: string }) {
 }
 
 /**
- * Hero map: a truck driving pin-to-pin across a real Ghana silhouette (JS rAF).
- * All geometry lives in one SVG (viewBox 0..70 × 0..100), derived from
- * lon/lat so the country shape, cities and truck share one coordinate space.
+ * Hero map: a truck driving pin-to-pin across the real Ghana regions map.
+ * Regions come from the project's ghana_regions.json GeoJSON (public/geojson),
+ * projected (equirectangular) into one SVG so map, cities and truck share
+ * one coordinate space. Route cities are anchored by real lon/lat.
  */
-const GHANA_PATH =
-  'M8,2.6 L35.5,2.6 L37,4.2 L48.8,1.1 L51.9,2.6 L57.4,1.9 L56.7,13.5 L59.8,26 L55.9,36.9 ' +
-  'L59.8,46.2 L65.3,58.6 L60.6,68 L66.9,78.8 L69.8,78.8 L66.9,81.9 L54.3,83.8 L48,87.4 ' +
-  'L35.2,94.4 L22.9,97.5 L18.2,99.8 L8,96.7 L4.9,85.1 L5.6,71.1 L0.9,57.1 L6.4,41.5 ' +
-  'L8,26 L7.2,12 Z';
-const CITIES = [
-  { x: 51.4, y: 85.5, name: 'Tema', anchor: 'start' },
-  { x: 25.7, y: 69.7, name: 'Kumasi', anchor: 'end' },
-  { x: 38.0, y: 27.5, name: 'Tamale', anchor: 'end' },
-  { x: 51.5, y: 26.9, name: 'Yendi', anchor: 'start' },
-  { x: 52.1, y: 35.9, name: 'Bimbilla', anchor: 'start' },
+const ROUTE_CITIES: { name: string; lon: number; lat: number; anchor: 'start' | 'end' }[] = [
+  { name: 'Tema', lon: 0.017, lat: 5.669, anchor: 'start' },
+  { name: 'Kumasi', lon: -1.616, lat: 6.688, anchor: 'end' },
+  { name: 'Tamale', lon: -0.839, lat: 9.408, anchor: 'end' },
+  { name: 'Yendi', lon: -0.009, lat: 9.443, anchor: 'start' },
+  { name: 'Bimbilla', lon: 0.057, lat: 8.863, anchor: 'start' },
 ];
+const VB_W = 100;
+
+type XY = { x: number; y: number };
+interface MapGeo { regions: string[]; cities: (XY & { name: string; anchor: 'start' | 'end' })[]; vbH: number; }
+
 function RouteMap() {
   const truck = useRef<SVGGElement>(null);
+  const [geo, setGeo] = useState<MapGeo | null>(null);
 
+  // Load + project the real Ghana regions GeoJSON once.
   useEffect(() => {
-    let seg = 0;
-    let start = performance.now();
-    let paused = false;
-    let pauseUntil = 0;
-    let raf = 0;
-    const SEG_MS = 1900;
-    const PAUSE_MS = 700;
+    let cancelled = false;
+    fetch('/geojson/ghana_regions.json')
+      .then((r) => r.json())
+      .then((data: { features: { geometry: { type: string; coordinates: number[][][] | number[][][][] } }[] }) => {
+        if (cancelled) return;
+        const ringsOf = (g: { type: string; coordinates: number[][][] | number[][][][] }): number[][][] =>
+          g.type === 'Polygon' ? [(g.coordinates as number[][][])[0]] : (g.coordinates as number[][][][]).map((p) => p[0]);
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const f of data.features) for (const ring of ringsOf(f.geometry)) for (const [lo, la] of ring) {
+          if (lo < minX) minX = lo; if (lo > maxX) maxX = lo; if (la < minY) minY = la; if (la > maxY) maxY = la;
+        }
+        const scale = VB_W / (maxX - minX);
+        const vbH = (maxY - minY) * scale;
+        const proj = (lo: number, la: number): XY => ({ x: (lo - minX) * scale, y: (maxY - la) * scale });
+        const regions: string[] = [];
+        for (const f of data.features) for (const ring of ringsOf(f.geometry)) {
+          regions.push('M' + ring.map(([lo, la]) => { const p = proj(lo, la); return `${p.x.toFixed(2)},${p.y.toFixed(2)}`; }).join(' L') + 'Z');
+        }
+        const cities = ROUTE_CITIES.map((c) => ({ ...proj(c.lon, c.lat), name: c.name, anchor: c.anchor }));
+        setGeo({ regions, cities, vbH });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
+  // Drive the truck along the route once the map is projected.
+  useEffect(() => {
+    if (!geo) return;
+    const pts = geo.cities;
+    let seg = 0, start = performance.now(), paused = false, pauseUntil = 0, raf = 0;
+    const SEG_MS = 1900, PAUSE_MS = 700;
     const tick = (now: number) => {
-      const a = CITIES[seg];
-      const b = CITIES[(seg + 1) % CITIES.length];
+      const a = pts[seg], b = pts[(seg + 1) % pts.length];
       let t = (now - start) / SEG_MS;
       if (t >= 1) {
         t = 1;
         if (!paused) { paused = true; pauseUntil = now + PAUSE_MS; }
-        if (now >= pauseUntil) { seg = (seg + 1) % CITIES.length; start = now; paused = false; }
+        if (now >= pauseUntil) { seg = (seg + 1) % pts.length; start = now; paused = false; }
       }
       const x = a.x + (b.x - a.x) * t;
       const y = a.y + (b.y - a.y) * t;
@@ -61,34 +86,38 @@ function RouteMap() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [geo]);
 
-  const routePoints = [...CITIES, CITIES[0]].map((c) => `${c.x},${c.y}`).join(' ');
+  const routePoints = geo ? [...geo.cities, geo.cities[0]].map((c) => `${c.x},${c.y}`).join(' ') : '';
 
   return (
     <div className="relative w-full aspect-[4/3] rounded-2xl bg-[#0f1523] border border-white/10 overflow-hidden shadow-2xl">
-      <svg viewBox="-7 -6 84 112" className="absolute inset-0 w-full h-full">
-        {/* Ghana silhouette */}
-        <path d={GHANA_PATH} fill="#16273f" stroke="#2e7d32" strokeWidth="0.6" strokeLinejoin="round" />
-        {/* route */}
-        <polyline points={routePoints} fill="none" stroke="#8cc98f" strokeWidth="0.7" strokeDasharray="2 2" className="route-dash" />
-        {/* pins + labels */}
-        {CITIES.map((c) => (
-          <g key={c.name}>
-            <circle cx={c.x} cy={c.y} r="1.9" fill="#fcd116" opacity="0.25" />
-            <circle cx={c.x} cy={c.y} r="1.1" fill="#fcd116" stroke="#0f1523" strokeWidth="0.3" />
-            <text x={c.anchor === 'end' ? c.x - 2.4 : c.x + 2.4} y={c.y + 0.9} textAnchor={c.anchor as 'start' | 'end'} fontSize="3" fill="#e6ecf5" fontWeight="600">{c.name}</text>
+      {geo && (
+        <svg viewBox={`-5 -5 ${VB_W + 10} ${geo.vbH + 10}`} className="absolute inset-0 w-full h-full">
+          {/* Ghana regions */}
+          {geo.regions.map((d, i) => (
+            <path key={i} d={d} fill="#16273f" stroke="#2e7d32" strokeWidth="0.35" strokeLinejoin="round" />
+          ))}
+          {/* route */}
+          <polyline points={routePoints} fill="none" stroke="#8cc98f" strokeWidth="0.7" strokeDasharray="2 2" className="route-dash" />
+          {/* pins + labels */}
+          {geo.cities.map((c) => (
+            <g key={c.name}>
+              <circle cx={c.x} cy={c.y} r="1.9" fill="#fcd116" opacity="0.25" />
+              <circle cx={c.x} cy={c.y} r="1.1" fill="#fcd116" stroke="#0f1523" strokeWidth="0.3" />
+              <text x={c.anchor === 'end' ? c.x - 2.4 : c.x + 2.4} y={c.y + 0.9} textAnchor={c.anchor} fontSize="3" fill="#e6ecf5" fontWeight="600">{c.name}</text>
+            </g>
+          ))}
+          {/* truck */}
+          <g ref={truck} transform={`translate(${geo.cities[0].x} ${geo.cities[0].y})`}>
+            <circle r="3.4" fill="#2e7d32" />
+            <rect x="-2.3" y="-1.4" width="2.7" height="2.2" rx="0.3" fill="#fff" />
+            <path d="M0.4 -0.6 L1.7 -0.6 L2.3 0.2 L2.3 0.8 L0.4 0.8 Z" fill="#fff" />
+            <circle cx="-1.3" cy="1.1" r="0.6" fill="#0f1523" />
+            <circle cx="1.2" cy="1.1" r="0.6" fill="#0f1523" />
           </g>
-        ))}
-        {/* truck */}
-        <g ref={truck} transform="translate(51.4 85.5)">
-          <circle r="3.4" fill="#2e7d32" />
-          <rect x="-2.3" y="-1.4" width="2.7" height="2.2" rx="0.3" fill="#fff" />
-          <path d="M0.4 -0.6 L1.7 -0.6 L2.3 0.2 L2.3 0.8 L0.4 0.8 Z" fill="#fff" />
-          <circle cx="-1.3" cy="1.1" r="0.6" fill="#0f1523" />
-          <circle cx="1.2" cy="1.1" r="0.6" fill="#0f1523" />
-        </g>
-      </svg>
+        </svg>
+      )}
       <div className="absolute bottom-3 left-4 text-[11px] text-white/50 flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-ghana-green animate-pulse" /> Live haulage across Ghana
       </div>
