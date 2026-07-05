@@ -8,10 +8,11 @@ import react from '@vitejs/plugin-react';
 const CSP =
   "default-src 'self'; " +
   "script-src 'self'; " +
-  "style-src 'self' 'unsafe-inline'; " +
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
   "img-src 'self' data: blob: https://*.supabase.co; " +
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co; " +
-  "font-src 'self'; object-src 'none'; base-uri 'self'";
+  "font-src 'self' https://fonts.gstatic.com; " +
+  "object-src 'none'; base-uri 'self'";
 
 function cspMeta(): Plugin {
   return {
