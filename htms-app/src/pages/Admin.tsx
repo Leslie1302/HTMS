@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 
 export default function Admin() {
   const { profile } = useAuth();
-  const [tab, setTab] = useState<'transporters' | 'users' | 'audit' | 'fuel' | 'rates'>('transporters');
+  const [tab, setTab] = useState<'transporters' | 'users' | 'audit' | 'fuel' | 'rates' | 'distances'>('transporters');
 
   if (profile?.role !== 'admin') {
     return <div className="text-error">Admin access only.</div>;
@@ -20,6 +20,7 @@ export default function Admin() {
           { key: 'audit' as const, label: 'Audit Logs' },
           { key: 'fuel' as const, label: 'Fuel Prices' },
           { key: 'rates' as const, label: 'Rates & FIDIC' },
+          { key: 'distances' as const, label: 'Distance Chart' },
         ]).map(({ key, label }) => (
           <button
             key={key}
@@ -39,6 +40,89 @@ export default function Admin() {
       {tab === 'audit' && <AuditLogs />}
       {tab === 'fuel' && <Fuel />}
       {tab === 'rates' && <Rates />}
+      {tab === 'distances' && <DistanceChart />}
+    </div>
+  );
+}
+
+/** Read-only reference: the surveyed chart distances the calc engine bills from. */
+function DistanceChart() {
+  const [rows, setRows] = useState<{ km: number; origin: string; district: string }[]>([]);
+  const [origin, setOrigin] = useState('');
+  const [q, setQ] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from('distance_matrix')
+      .select('km, origins(name), districts(name)')
+      .limit(10000)
+      .then(({ data, error }) => {
+        if (error) return setErr(error.message);
+        setRows(
+          ((data ?? []) as unknown as { km: number; origins: { name: string }; districts: { name: string } }[]).map(
+            (r) => ({ km: Number(r.km), origin: r.origins?.name ?? '', district: r.districts?.name ?? '' }),
+          ),
+        );
+      });
+  }, []);
+
+  const origins = [...new Set(rows.map((r) => r.origin))].sort();
+  const filtered = rows
+    .filter((r) => (!origin || r.origin === origin) && (!q || r.district.toLowerCase().includes(q.toLowerCase())))
+    .sort((a, b) => a.origin.localeCompare(b.origin) || b.km - a.km);
+
+  return (
+    <div>
+      {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg">{err}</div>}
+      <p className="text-sm text-on-surface-variant mb-3">
+        Surveyed chart distances used for billing. Multi-drop trips are billed at the furthest destination's
+        distance — verify a trip's billed km here against its drops.
+      </p>
+      <div className="flex gap-3 mb-4">
+        <select value={origin} onChange={(e) => setOrigin(e.target.value)} className="border border-outline-variant rounded-lg px-3 py-2 text-sm">
+          <option value="">All origins</option>
+          {origins.map((o) => (
+            <option key={o}>{o}</option>
+          ))}
+        </select>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search district…"
+          className="border border-outline-variant rounded-lg px-3 py-2 text-sm flex-1"
+        />
+        <span className="text-xs text-outline self-center">{filtered.length} routes</span>
+      </div>
+      <div className="bg-white rounded-lg border border-outline-variant overflow-auto max-h-[60vh]">
+        <table className="w-full text-sm">
+          <thead className="bg-surface-container-low text-left sticky top-0">
+            <tr>
+              {['Origin (warehouse)', 'District', 'Chart Km'].map((h) => (
+                <th key={h} className="px-3 py-3 font-semibold text-on-surface-variant tracking-wider text-[11px] uppercase">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r, i) => (
+              <tr key={i} className="border-t border-outline-variant">
+                <td className="px-3 py-2">{r.origin}</td>
+                <td className="px-3 py-2">{r.district}</td>
+                <td className="px-3 py-2 font-mono">{r.km.toFixed(1)}</td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-3 py-8 text-center text-outline-variant">
+                  No routes match.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

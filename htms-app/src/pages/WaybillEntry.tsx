@@ -107,9 +107,11 @@ export default function WaybillEntry() {
         originId: Number(form.originId),
         districtId: destinations[0].id,
         destinationDistrictIds: destinations.map((d) => d.id),
-        numPoles: Number(form.numPoles),
-        numStayBlocks: Number(form.numStayBlocks),
-        numConcretePoles: Number(form.numConcretePoles),
+        // Zero out counts that don't apply to the category — hidden fields can
+        // still hold stale values from before a category switch.
+        numPoles: form.category !== 'Material' ? Number(form.numPoles) : 0,
+        numStayBlocks: form.category !== 'Material' ? Number(form.numStayBlocks) : 0,
+        numConcretePoles: form.category === 'Concrete Poles' ? Number(form.numConcretePoles) : 0,
         numTrips: Number(form.numTrips),
         truckSize: Number(form.truckSize),
       })) as { waybill: { id: string; transporter_id: string } };
@@ -121,13 +123,16 @@ export default function WaybillEntry() {
         const path = `${wb.transporter_id}/${wb.id}/${key}-${Date.now()}-${file.name}`;
         const { error: upErr } = await supabase.storage.from('scans').upload(path, file, { contentType: file.type });
         if (upErr) throw new Error(`${key} upload: ${upErr.message}`);
-        await supabase.from('scans').insert({
+        const { error: insErr } = await supabase.from('scans').insert({
           waybill_id: wb.id,
           storage_path: path,
           mime_type: file.type,
           byte_size: file.size,
           scan_type: key,
         });
+        // A failed row means the file sits in Storage but is invisible to the
+        // checklist/preview/PDF merge — fail loudly, never silently.
+        if (insErr) throw new Error(`${key} record: ${insErr.message}`);
       }
 
       setMsg('Waybill saved.');
@@ -258,9 +263,11 @@ export default function WaybillEntry() {
             </Field>
           </>
         )}
-        <Field label="No. of Concrete Poles" full>
-          <input type="number" min={0} value={form.numConcretePoles} onChange={(e) => set('numConcretePoles', Number(e.target.value))} className="input" />
-        </Field>
+        {form.category === 'Concrete Poles' && (
+          <Field label="No. of Concrete Poles" full>
+            <input type="number" min={0} value={form.numConcretePoles} onChange={(e) => set('numConcretePoles', Number(e.target.value))} className="input" />
+          </Field>
+        )}
 
         <div className="col-span-2 border-t border-outline-variant pt-5">
           <h3 className="text-sm font-semibold text-on-surface mb-3">Supporting scans (PDF/image)</h3>

@@ -41,12 +41,26 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
     const distMap = new Map<string, number>();
     for (const r of distRows ?? []) distMap.set(`${r.origin_id}:${r.district_id}`, Number(r.km));
 
+    // District names for the per-drop breakdown shown in the UI.
+    const { data: distrNames } = await ctx.db
+      .from('districts')
+      .select('id, name')
+      .in('id', neededDistricts.size ? [...neededDistricts] : [-1]);
+    const nameById = new Map((distrNames ?? []).map((d) => [d.id as number, d.name as string]));
+
     const cfg = await loadCalcConfig(ctx.db);
     const waybills = list.map((w) => {
       try {
         const ds = destsByWaybill.get(w.id) ?? [w.district_id];
+        // Per-drop chart distances, furthest first — the first entry is billed.
+        const destinations = ds
+          .map((id) => ({ name: nameById.get(id) ?? `district ${id}`, km: distMap.get(`${w.origin_id}:${id}`) ?? null }))
+          .sort((a, b) => (b.km ?? -1) - (a.km ?? -1));
         const kms = ds.map((id) => distMap.get(`${w.origin_id}:${id}`)).filter((v): v is number => v != null);
-        if (!kms.length) return { ...w, cost: null, distance_km: null };
+        if (!kms.length) return { ...w, cost: null, distance_km: null, destinations };
+        // Flag when a drop has no distance row — the max below would silently
+        // bill a nearer destination, so the UI must show this is incomplete.
+        const distance_incomplete = kms.length !== ds.length;
         const distanceKm = chartToDistance(Math.max(...kms));
         const res = computeHaulageCost(
           {
@@ -61,7 +75,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
           },
           cfg,
         );
-        return { ...w, cost: res.cost, distance_km: distanceKm };
+        return { ...w, cost: res.cost, distance_km: distanceKm, distance_incomplete, destinations };
       } catch {
         return { ...w, cost: null, distance_km: null };
       }

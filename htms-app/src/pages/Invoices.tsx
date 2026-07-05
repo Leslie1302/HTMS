@@ -33,6 +33,8 @@ interface InvoiceRow {
   status: string;
   stage: string;
   checklist: Record<string, boolean>;
+  review_status: 'pending' | 'approved' | 'disapproved';
+  review_note: string | null;
   transporters?: { display_name: string };
   invoice_lines?: unknown[];
   created_at: string;
@@ -129,6 +131,35 @@ export default function Invoices() {
       setErr((e as Error).message);
     }
   }, []);
+
+  async function review(verdict: 'approved' | 'disapproved') {
+    if (!selectedId) return;
+    let note: string | undefined;
+    if (verdict === 'disapproved') {
+      const v = window.prompt('Reason for disapproval (logged and shown to the transporter):');
+      if (!v?.trim()) return;
+      note = v.trim();
+    }
+    setBusy(true);
+    setErr(null);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const res = await fetch('/api/invoice-stage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ invoiceId: selectedId, review: verdict, note }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setMsg(verdict === 'approved' ? 'Checklist approved — workflow may continue.' : 'Checklist disapproved — reason logged for the transporter.');
+      load();
+      loadDetail(selectedId);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // ponytail: window.prompt/confirm for flag reasons — a modal earns its place when someone complains
   async function toggleFlag(scanId: string, current: string | null) {
@@ -341,7 +372,7 @@ export default function Invoices() {
               </button>
               {profile?.role === 'admin' && selected.status === 'draft' && (
                 <button onClick={() => act(selected.id, 'approve')} className="flex items-center gap-1 border border-[#0d631b] text-[#0d631b] rounded-lg px-3 py-1.5 text-xs hover:bg-[#e8f5e9]" disabled={busy}>
-                  <span className="material-symbols-outlined text-sm">check</span> Approve
+                  <span className="material-symbols-outlined text-sm">check</span> Approve totals
                 </button>
               )}
               {profile?.role === 'admin' && selected.status === 'approved' && (
@@ -497,12 +528,45 @@ export default function Invoices() {
                 })}
               </div>
 
+              {/* Officer verdict on the checklist */}
+              {!isTransporter && (
+                <div className="mb-3">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => review('approved')}
+                      disabled={busy || !checklistAll || docLinks.some((d) => d.flagged) || selected.review_status === 'approved'}
+                      className="flex-1 flex items-center justify-center gap-1 border border-[#0d631b] text-[#0d631b] rounded-lg py-2 text-sm font-medium hover:bg-[#e8f5e9] disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <span className="material-symbols-outlined text-sm">check_circle</span> Approve
+                    </button>
+                    <button
+                      onClick={() => review('disapproved')}
+                      disabled={busy || selected.review_status === 'disapproved'}
+                      className="flex-1 flex items-center justify-center gap-1 border border-error text-error rounded-lg py-2 text-sm font-medium hover:bg-error-container/40 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <span className="material-symbols-outlined text-sm">cancel</span> Disapprove
+                    </button>
+                  </div>
+                  {selected.review_status === 'approved' && (
+                    <p className="text-center text-[11px] text-[#0d631b] mt-2">Checklist approved</p>
+                  )}
+                  {selected.review_status === 'disapproved' && (
+                    <p className="text-center text-[11px] text-error mt-2">Disapproved: {selected.review_note}</p>
+                  )}
+                </div>
+              )}
+
               {nextStage && !isTransporter && (
                 <button
                   onClick={() => advanceStage(selected.id, nextStage)}
-                  disabled={busy || (!checklistAll && selected.stage === 'generated')}
+                  disabled={
+                    busy ||
+                    selected.review_status === 'disapproved' ||
+                    (selected.stage === 'generated' && (!checklistAll || selected.review_status !== 'approved'))
+                  }
                   className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
-                    checklistAll || selected.stage !== 'generated'
+                    selected.review_status !== 'disapproved' &&
+                    (selected.stage !== 'generated' || (checklistAll && selected.review_status === 'approved'))
                       ? 'bg-[#2e7d32] text-white hover:opacity-90'
                       : 'bg-[#dce2f7] text-outline cursor-not-allowed opacity-50'
                   }`}
@@ -511,8 +575,10 @@ export default function Invoices() {
                   <span className="material-symbols-outlined text-lg">arrow_forward</span>
                 </button>
               )}
-              {nextStage && selected.stage === 'generated' && !checklistAll && (
-                <p className="text-center text-[11px] text-error mt-2">Complete checklist to enable advancement</p>
+              {nextStage && selected.stage === 'generated' && selected.review_status !== 'approved' && (
+                <p className="text-center text-[11px] text-error mt-2">
+                  {!checklistAll ? 'Complete checklist, then approve it to enable advancement' : 'Approve the checklist to enable advancement'}
+                </p>
               )}
             </div>
           </div>
@@ -562,7 +628,7 @@ export default function Invoices() {
                 <td className="px-3 py-3 flex gap-1 whitespace-nowrap">
                   {profile?.role === 'admin' && inv.status === 'draft' && (
                     <button onClick={(e) => { e.stopPropagation(); act(inv.id, 'approve'); }} className="text-[11px] text-[#0d631b] underline" disabled={busy}>
-                      Approve
+                      Approve totals
                     </button>
                   )}
                   {profile?.role === 'admin' && inv.status === 'approved' && (

@@ -15,6 +15,8 @@ interface InvoiceStatus {
   total_cost: number;
   transporter_id: string;
   created_at: string;
+  review_status: 'pending' | 'approved' | 'disapproved';
+  review_note: string | null;
 }
 
 interface TrailEntry {
@@ -32,6 +34,7 @@ export default function InvoiceStatus() {
   const [trail, setTrail] = useState<TrailEntry[]>([]);
   const [flags, setFlags] = useState<{ scan_type: string; flagged_reason: string; waybill_no?: string }[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const SCAN_LABELS: Record<string, string> = {
     acknowledgement: 'Acknowledgement form',
@@ -43,7 +46,7 @@ export default function InvoiceStatus() {
     if (!profile?.transporter_id) return;
     supabase
       .from('invoices')
-      .select('id, stage, checklist, reference_no, total_cost, transporter_id, created_at')
+      .select('id, stage, checklist, reference_no, total_cost, transporter_id, created_at, review_status, review_note')
       .eq('transporter_id', profile.transporter_id)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
@@ -89,6 +92,28 @@ export default function InvoiceStatus() {
   useEffect(() => {
     if (invoices.length === 1 && !selectedId) loadDetail(invoices[0].id);
   }, [invoices, selectedId, loadDetail]);
+
+  async function markSubmitted() {
+    if (!selectedId || !window.confirm('Confirm: you have submitted this invoice in person at the Ministry?')) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const res = await fetch('/api/invoice-stage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ invoiceId: selectedId, stage: 'submitted' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setInvoices((prev) => prev.map((i) => (i.id === selectedId ? { ...i, stage: 'submitted' } : i)));
+      loadDetail(selectedId);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const selected = invoices.find((i) => i.id === selectedId) ?? null;
   const currentStageIdx = selected ? ALL_STAGES.indexOf(selected.stage as PriStage) : -1;
@@ -141,6 +166,20 @@ export default function InvoiceStatus() {
             <div className="flex-1 bg-ghana-green" />
           </div>
 
+          {/* Checklist disapproved by officer */}
+          {selected.review_status === 'disapproved' && (
+            <div className="bg-error-container border border-error rounded-xl p-4 mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="material-symbols-outlined text-error">cancel</span>
+                <span className="text-xs font-bold tracking-wide text-error uppercase">Checklist Disapproved</span>
+              </div>
+              <p className="text-sm text-on-surface mb-1">{selected.review_note}</p>
+              <p className="text-xs text-on-surface-variant">
+                Once resolved, the Power Directorate will re-approve and your invoice continues from its current stage.
+              </p>
+            </div>
+          )}
+
           {/* Action required: flagged documents */}
           {flags.length > 0 && (
             <div className="bg-error-container border border-error rounded-xl p-4 mb-4">
@@ -177,6 +216,16 @@ export default function InvoiceStatus() {
             <h2 className="text-lg font-semibold text-[#0d631b]">
               Your invoice is at: {STAGE_LABELS[selected.stage as PriStage] ?? selected.stage}
             </h2>
+            {selected.stage === 'generated' && (
+              <button
+                onClick={markSubmitted}
+                disabled={busy}
+                className="w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-[#2e7d32] text-white hover:opacity-90 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-lg">assignment_turned_in</span>
+                Mark as submitted at Ministry
+              </button>
+            )}
           </div>
 
           {/* Summary card */}

@@ -19,6 +19,9 @@ interface Row {
   districts?: { name: string };
   origins?: { name: string };
   cost?: number | null;
+  distance_km?: number | null;
+  distance_incomplete?: boolean;
+  destinations?: { name: string; km: number | null }[];
 }
 
 export default function Dashboard() {
@@ -141,7 +144,7 @@ export default function Dashboard() {
         <table className="w-full text-sm">
           <thead className="bg-surface-container-low text-left">
             <tr>
-              {['Category', 'Date', 'From', 'To', 'Transporter', 'Truck', 'Poles', 'Trips', 'Waybill No.', 'Vehicle No.', 'Haulage Cost'].map(
+              {['Category', 'Date', 'From', 'To (billed)', 'Km', 'Transporter', 'Truck', 'Poles', 'Trips', 'Waybill No.', 'Vehicle No.', 'Haulage Cost'].map(
                 (h) => (
                   <th key={h} className="px-3 py-3 font-semibold text-on-surface-variant tracking-wider text-[11px] uppercase whitespace-nowrap">
                     {h}
@@ -156,19 +159,45 @@ export default function Dashboard() {
                 <td className="px-3 py-3">{r.category}</td>
                 <td className="px-3 py-3 whitespace-nowrap">{r.waybill_date}</td>
                 <td className="px-3 py-3">{r.origins?.name}</td>
-                <td className="px-3 py-3">{r.districts?.name}</td>
+                <td
+                  className="px-3 py-3"
+                  title={
+                    r.destinations && r.destinations.length > 1
+                      ? 'Drops (furthest billed):\n' +
+                        r.destinations
+                          .map((d, i) => `${d.name}: ${d.km ?? 'no distance!'} km${i === 0 ? '  ← billed' : ''}`)
+                          .join('\n')
+                      : undefined
+                  }
+                >
+                  {r.destinations?.[0]?.name ?? r.districts?.name}
+                  {r.destinations && r.destinations.length > 1 && (
+                    <span className="text-[10px] font-bold text-[#0d631b] ml-1">+{r.destinations.length - 1} drops</span>
+                  )}
+                </td>
+                <td className="px-3 py-3 whitespace-nowrap font-mono text-xs">{r.distance_km ?? '—'}</td>
                 <td className="px-3 py-3">{r.transporters?.display_name}</td>
                 <td className="px-3 py-3">{r.truck_size ?? '-'}</td>
                 <td className="px-3 py-3">{r.num_poles || '-'}</td>
                 <td className="px-3 py-3">{r.num_trips || '-'}</td>
                 <td className="px-3 py-3 whitespace-nowrap font-medium">{r.waybill_no}</td>
                 <td className="px-3 py-3">{r.vehicle_no}</td>
-                <td className="px-3 py-3 whitespace-nowrap font-mono text-sm">{r.cost != null ? ghs(r.cost) : '—'}</td>
+                <td className="px-3 py-3 whitespace-nowrap font-mono text-sm">
+                  {r.cost != null ? ghs(r.cost) : '—'}
+                  {r.distance_incomplete && (
+                    <span
+                      className="material-symbols-outlined text-sm text-amber-600 align-middle ml-1"
+                      title="A destination on this trip has no distance in the matrix — cost may be understated. Fix the distance matrix."
+                    >
+                      warning
+                    </span>
+                  )}
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-3 py-8 text-center text-outline-variant">
+                <td colSpan={12} className="px-3 py-8 text-center text-outline-variant">
                   No waybills found.
                 </td>
               </tr>

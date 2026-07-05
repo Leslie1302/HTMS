@@ -85,7 +85,12 @@ export const checklistSchema = z.object(
   Object.fromEntries(CHECKLIST_ITEMS.map((k) => [k, z.boolean()])) as Record<ChecklistItem, z.ZodBoolean>,
 );
 
-export const stageTransitionSchema = z.object({
-  invoiceId: uuid,
-  stage: z.string(),
-});
+export const stageTransitionSchema = z
+  .object({
+    invoiceId: uuid,
+    stage: z.string().optional(),
+    review: z.enum(['approved', 'disapproved']).optional(),
+    note: z.string().max(500).optional(),
+  })
+  .refine((b) => (b.stage ? !b.review : !!b.review), { message: 'Provide either stage or review, not both' })
+  .refine((b) => b.review !== 'disapproved' || !!b.note?.trim(), { message: 'Disapproval requires a note' });

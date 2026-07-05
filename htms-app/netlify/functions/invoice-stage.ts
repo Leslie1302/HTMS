@@ -23,7 +23,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
 
     const { data: invoice, error } = await ctx.db
       .from('invoices')
-      .select('id, stage, checklist, transporter_id, reference_no, total_cost, status')
+      .select('id, stage, checklist, transporter_id, reference_no, total_cost, status, review_status, review_note')
       .eq('id', id)
       .single();
     if (error || !invoice) return json(404, { error: 'Invoice not found' });
@@ -43,16 +43,37 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
     const body = await parseBody(req, stageTransitionSchema);
     const { invoiceId, stage: targetStage } = body;
 
+    // ── Checklist review verdict (staff only) ──
+    if (body.review) {
+      if (ctx.role === 'transporter') return json(403, { error: 'Only staff may review the checklist' });
+      const patch =
+        body.review === 'approved'
+          ? { review_status: 'approved', review_note: null }
+          : { review_status: 'disapproved', review_note: body.note!.trim() };
+      const { error: revErr } = await ctx.db.from('invoices').update(patch).eq('id', invoiceId);
+      if (revErr) return json(400, { error: revErr.message });
+      await audit(ctx.userId, `review_${body.review}`, 'invoice', invoiceId, null, patch);
+      return json(200, { invoiceId, ...patch });
+    }
+
     if (!ALL_STAGES.includes(targetStage as PriStage)) {
       return json(400, { error: `Invalid stage: ${targetStage}` });
     }
 
     const { data: invoice, error } = await ctx.db
       .from('invoices')
-      .select('id, stage, checklist, transporter_id')
+      .select('id, stage, checklist, transporter_id, review_status, review_note')
       .eq('id', invoiceId)
       .single();
     if (error || !invoice) return json(404, { error: 'Invoice not found' });
+
+    // A disapproved checklist freezes the workflow; it resumes at the same
+    // stage once an officer re-approves.
+    if (invoice.review_status === 'disapproved') {
+      return json(400, {
+        error: `Checklist disapproved: ${invoice.review_note ?? 'see officer'}. Resolve and obtain approval to continue.`,
+      });
+    }
 
     const currentStage = invoice.stage as PriStage;
 
@@ -85,6 +106,11 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
           error: `Cannot submit: checklist items incomplete: ${missing.join(', ')}`,
           missing,
         });
+      }
+
+      // Submission requires the officer's approval verdict on the checklist.
+      if (invoice.review_status !== 'approved') {
+        return json(400, { error: 'Cannot submit: checklist must be approved by an officer first' });
       }
 
       // Flagged (substandard) documents block submission until corrected.

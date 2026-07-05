@@ -64,11 +64,17 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
         .select('km, district_id')
         .eq('origin_id', w.origin_id)
         .in('district_id', districtIds);
-      if (!distRows || !distRows.length) {
-        return json(422, { error: `No distance for waybill ${w.waybill_no}` });
+      // EVERY drop must have a surveyed distance. Silently skipping one would
+      // bill a nearer destination (usually the first picked) and undercharge.
+      const foundIds = new Set((distRows ?? []).map((r) => r.district_id));
+      const missingIds = districtIds.filter((d) => !foundIds.has(d));
+      if (missingIds.length) {
+        return json(422, {
+          error: `Waybill ${w.waybill_no}: no distance from this origin to district id(s) ${missingIds.join(', ')}. Add them to the distance matrix (Admin) before invoicing.`,
+        });
       }
       // Same trip/car/day → bill using the FURTHEST destination.
-      const furthestChartKm = Math.max(...distRows.map((r) => Number(r.km)));
+      const furthestChartKm = Math.max(...(distRows ?? []).map((r) => Number(r.km)));
 
       const input: WaybillInput = {
         category: w.category,
