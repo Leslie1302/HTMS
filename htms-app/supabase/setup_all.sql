@@ -537,9 +537,68 @@ alter table transporters add column if not exists email       text;
 alter table transporters add column if not exists phone       text;
 alter table transporters add column if not exists gps_address text;
 
+-- ░░░░░░░░░░ migrations/0007_pri_lifecycle.sql ░░░░░░░░░░
+
+-- ============================================================================
+-- HTMS — PR/I lifecycle tracking (Phase 2)
+-- Adds: pri_stage enum, invoices.stage, invoices.checklist
+-- ============================================================================
+
+do $$ begin
+  create type pri_stage as enum (
+    'generated',
+    'submitted',
+    'with_chief_director',
+    'minuted_to_pd',
+    'pd_processing',
+    'pd_processed',
+    'cd_directive_audit',
+    'audit_validation',
+    'returned_to_cd',
+    'at_accounts',
+    'paid'
+  );
+exception when duplicate_object then null;
+end $$;
+
+alter table invoices add column if not exists stage pri_stage not null default 'generated';
+alter table invoices add column if not exists checklist jsonb not null default '{}';
+
+-- ░░░░░░░░░░ migrations/0008_transporter_contracts.sql ░░░░░░░░░░
+
+-- ============================================================================
+-- HTMS — Per-transporter contract agreement storage
+-- Adds: transporters.contract_path, transporters.contract_validated
+-- ============================================================================
+
+alter table transporters add column if not exists contract_path text;
+alter table transporters add column if not exists contract_validated boolean not null default false;
+
+-- ░░░░░░░░░░ migrations/0009_transporter_checklist.sql ░░░░░░░░░░
+
+-- ============================================================================
+-- HTMS — Transporter checklist update policy
+-- Allows transporters to update checklist on their own invoices when
+-- stage is 'generated'. Stage transitions remain gated by the Netlify
+-- function (service_role); this only covers the checklist jsonb column.
+-- ============================================================================
+
+create policy invoices_checklist_self on invoices
+  for update to authenticated
+  using (
+    auth_role() = 'transporter'
+    and transporter_id = auth_transporter_id()
+    and stage = 'generated'
+  )
+  with check (
+    auth_role() = 'transporter'
+    and transporter_id = auth_transporter_id()
+    and stage = 'generated'
+  );
+
 -- ░░░░░░░░░░ seed/seed.sql ░░░░░░░░░░
 
--- AUTO-GENERATED. Apply after migrations 0001-0003.
+-- AUTO-GENERATED. Apply after migrations 0001-0009.
 begin;
 
 -- origins

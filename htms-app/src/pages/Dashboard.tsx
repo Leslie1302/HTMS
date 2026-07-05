@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../lib/api';
+import { supabase } from '../lib/supabase';
+import { ALL_STAGES, STAGE_LABELS } from '../../shared/lifecycle';
 
 const ghs = (n: number) =>
   '₵' + Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -25,12 +27,27 @@ export default function Dashboard() {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('');
   const [transporter, setTransporter] = useState('');
+  const [stageCounts, setStageCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     api
       .listWaybills()
       .then((d) => setRows((d.waybills ?? []) as Row[]))
       .catch((e) => setErr(e.message));
+  }, []);
+
+  useEffect(() => {
+    supabase
+      .from('invoices')
+      .select('stage')
+      .then(({ data, error }) => {
+        if (error) return;
+        const counts: Record<string, number> = {};
+        for (const r of data ?? []) {
+          counts[r.stage] = (counts[r.stage] ?? 0) + 1;
+        }
+        setStageCounts(counts);
+      });
   }, []);
 
   const filtered = useMemo(
@@ -70,6 +87,24 @@ export default function Dashboard() {
         <Card label="Haulage Cost" value={ghs(totals.all)} icon="payments" />
         <Card label="Haulage Cost (Poles)" value={ghs(totals.poles)} icon="landslide" />
         <Card label="Haulage Cost (Materials)" value={ghs(totals.materials)} icon="inventory_2" />
+      </div>
+
+      {/* PR/I pipeline queue */}
+      <div className="mb-6">
+        <h2 className="text-xs font-bold tracking-wide text-outline uppercase mb-3">PR/I Queue by Stage</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {ALL_STAGES.map((stage) => {
+            const count = stageCounts[stage] ?? 0;
+            return (
+              <div key={stage} className="bg-white rounded-lg border border-outline-variant p-3 text-center">
+                <div className="text-lg font-bold text-[#0d631b]">{count}</div>
+                <div className="text-[10px] font-bold tracking-wide text-outline uppercase truncate">
+                  {STAGE_LABELS[stage].replace('Power Directorate', 'Power Dir.')}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-4 items-center">

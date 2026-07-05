@@ -58,6 +58,7 @@ function Banner({ msg, err }: { msg: string | null; err: string | null }) {
 interface TransporterRow {
   id: string; display_name: string; active: boolean;
   address: string | null; email: string | null; phone: string | null; gps_address: string | null;
+  contract_path: string | null; contract_validated: boolean;
 }
 
 function Transporters() {
@@ -66,6 +67,8 @@ function Transporters() {
   const blank = { display_name: '', address: '', email: '', phone: '', gps_address: '' };
   const [f, setF] = useState(blank);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const [contractValidated, setContractValidated] = useState(false);
 
   function load() {
     supabase.from('transporters').select('*').order('display_name').then(({ data }) => setList((data as TransporterRow[]) ?? []));
@@ -75,15 +78,40 @@ function Transporters() {
   function startEdit(t: TransporterRow) {
     setEditingId(t.id);
     setF({ display_name: t.display_name, address: t.address ?? '', email: t.email ?? '', phone: t.phone ?? '', gps_address: t.gps_address ?? '' });
+    setContractValidated(t.contract_validated ?? false);
+    setContractFile(null);
   }
-  function cancelEdit() { setEditingId(null); setF(blank); }
+  function cancelEdit() {
+    setEditingId(null);
+    setF(blank);
+    setContractFile(null);
+    setContractValidated(false);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const payload = {
+    setErr(null);
+    setMsg(null);
+    let contractPath = editingId ? list.find((t) => t.id === editingId)?.contract_path ?? null : null;
+
+    if (contractFile) {
+      const ext = contractFile.name.split('.').pop() || 'pdf';
+      const path = `contracts/${editingId ?? 'new'}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('documents').upload(path, contractFile, {
+        contentType: contractFile.type,
+        upsert: true,
+      });
+      if (upErr) return setErr(`Contract upload: ${upErr.message}`);
+      contractPath = path;
+    }
+
+    const payload: Record<string, unknown> = {
       display_name: f.display_name.trim(), address: f.address.trim() || null,
       email: f.email.trim() || null, phone: f.phone.trim() || null, gps_address: f.gps_address.trim() || null,
+      contract_path: contractPath,
+      contract_validated: contractValidated,
     };
+
     const { error } = editingId
       ? await supabase.from('transporters').update(payload).eq('id', editingId)
       : await supabase.from('transporters').insert(payload);
@@ -95,6 +123,13 @@ function Transporters() {
   async function toggleActive(t: TransporterRow) {
     const { error } = await supabase.from('transporters').update({ active: !t.active }).eq('id', t.id);
     if (error) setErr(error.message); else load();
+  }
+
+  async function downloadContract(path: string) {
+    const { data } = await supabase.storage.from('documents').download(path);
+    if (!data) return;
+    const url = URL.createObjectURL(data);
+    window.open(url, '_blank');
   }
 
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
@@ -110,7 +145,34 @@ function Transporters() {
           <input placeholder="Email" value={f.email} onChange={set('email')} className="border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
           <input placeholder="Phone" value={f.phone} onChange={set('phone')} className="border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
           <input placeholder="GPS address" value={f.gps_address} onChange={set('gps_address')} className="col-span-2 border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
-          <div className="col-span-2 flex gap-2">
+
+          <div className="col-span-2 border-t border-outline-variant pt-3">
+            <h4 className="text-xs font-bold uppercase text-on-surface-variant mb-2">Contract Agreement</h4>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setContractFile(e.target.files?.[0] ?? null)}
+                className="text-sm"
+              />
+              {editingId && list.find((t) => t.id === editingId)?.contract_path && (
+                <button type="button" onClick={() => downloadContract(list.find((t) => t.id === editingId)!.contract_path!)} className="text-[#0d631b] underline text-xs">
+                  View current
+                </button>
+              )}
+            </div>
+            <label className="flex items-center gap-2 mt-2">
+              <input
+                type="checkbox"
+                checked={contractValidated}
+                onChange={(e) => setContractValidated(e.target.checked)}
+                className="w-4 h-4 text-[#0d631b] border-outline-variant rounded focus:ring-[#0d631b]"
+              />
+              <span className="text-xs text-on-surface-variant">Contract validated by Ministry</span>
+            </label>
+          </div>
+
+          <div className="col-span-2 flex gap-2 pt-2">
             <button className="bg-[#2e7d32] text-white rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90">
               {editingId ? 'Save changes' : 'Add transporter'}
             </button>
@@ -123,9 +185,21 @@ function Transporters() {
           <div key={t.id} className="px-4 py-3 flex items-center justify-between text-sm gap-3">
             <div className="min-w-0">
               <div className="font-medium truncate">{t.display_name}</div>
-              <div className="text-xs text-outline truncate">{[t.email, t.phone, t.gps_address].filter(Boolean).join(' · ') || 'no contact'}</div>
+              <div className="text-xs text-outline truncate flex items-center gap-2">
+                {[t.email, t.phone, t.gps_address].filter(Boolean).join(' · ') || 'no contact'}
+                {t.contract_path && (
+                  <button onClick={() => downloadContract(t.contract_path!)} className="text-[#0d631b] underline ml-2">
+                    Contract
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-3 shrink-0">
+              {t.contract_path && (
+                <span className={`text-[10px] font-bold uppercase ${t.contract_validated ? 'text-[#0d631b]' : 'text-amber-600'}`}>
+                  {t.contract_validated ? 'Validated' : 'Pending'}
+                </span>
+              )}
               <span className={`text-xs font-bold uppercase ${t.active ? 'text-[#0d631b]' : 'text-outline'}`}>{t.active ? 'Active' : 'Inactive'}</span>
               <button onClick={() => startEdit(t)} className="text-[#0d631b] underline text-xs">Edit</button>
               <button onClick={() => toggleActive(t)} className="text-outline underline text-xs">{t.active ? 'Deactivate' : 'Activate'}</button>
