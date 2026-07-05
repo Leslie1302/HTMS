@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
-import { buildInvoice, buildLetter, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
+import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
 import { appendScansToPdf, downloadBytes, type ScanInput } from '../lib/mergeScans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
@@ -49,6 +49,7 @@ export default function Invoices() {
   const [transporters, setTransporters] = useState<{ id: string; name: string }[]>([]);
   const [pick, setPick] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [trail, setTrail] = useState<AuditTrailEntry[]>([]);
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
   const [docLinks, setDocLinks] = useState<
@@ -238,20 +239,42 @@ export default function Invoices() {
     }
   }
 
-  async function makeDoc(id: string, type: 'invoice' | 'letter') {
+  async function makeDoc(id: string, type: 'invoice' | 'letter' | 'memo' | 'signatory') {
     setBusy(true);
     setErr(null);
     try {
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
         )
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
 
       const logo = await loadLogo();
+
+      // Memo & signatory: no appended scans — build and save directly.
+      if (type === 'memo') {
+        const d = inv as InvoiceDoc;
+        const ls = (k: string, def: string) => localStorage.getItem(k) ?? def;
+        const fromTitle = window.prompt('FROM (designation)', ls('htms.memo.fromTitle', 'AG. DIRECTOR, POWER'));
+        if (fromTitle == null) return;
+        const signatoryName = window.prompt('Signatory name', ls('htms.memo.signatoryName', 'ING. SULEMANA ABUBAKARI'));
+        if (signatoryName == null) return;
+        const letterDefault = (d.period_end ?? d.created_at ?? '').slice(0, 10);
+        const letterDate = window.prompt("Date on the transporter's payment request letter (yyyy-mm-dd)", letterDefault);
+        if (letterDate == null) return;
+        localStorage.setItem('htms.memo.fromTitle', fromTitle);
+        localStorage.setItem('htms.memo.signatoryName', signatoryName);
+        buildMemo(d, { fromTitle, signatoryName, letterDate }, logo).save(`Memo_${invoiceRef(d)}.pdf`);
+        return;
+      }
+      if (type === 'signatory') {
+        buildSignatory(inv as InvoiceDoc, logo).save(`Signatory_${invoiceRef(inv as InvoiceDoc)}.pdf`);
+        return;
+      }
+
       const doc = type === 'invoice' ? buildInvoice(inv as InvoiceDoc, logo) : buildLetter(inv as InvoiceDoc, logo);
       const baseBytes = doc.output('arraybuffer') as ArrayBuffer;
 
@@ -370,14 +393,19 @@ export default function Invoices() {
               <button onClick={() => makeDoc(selected.id, 'letter')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
                 <span className="material-symbols-outlined text-sm">mail</span> Letter
               </button>
+              {!isTransporter && (
+                <button onClick={() => makeDoc(selected.id, 'memo')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                  <span className="material-symbols-outlined text-sm">assignment</span> Memo
+                </button>
+              )}
+              {!isTransporter && (
+                <button onClick={() => makeDoc(selected.id, 'signatory')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                  <span className="material-symbols-outlined text-sm">draw</span> Signatory
+                </button>
+              )}
               {profile?.role === 'admin' && selected.status === 'draft' && (
                 <button onClick={() => act(selected.id, 'approve')} className="flex items-center gap-1 border border-[#0d631b] text-[#0d631b] rounded-lg px-3 py-1.5 text-xs hover:bg-[#e8f5e9]" disabled={busy}>
                   <span className="material-symbols-outlined text-sm">check</span> Approve totals
-                </button>
-              )}
-              {profile?.role === 'admin' && selected.status === 'approved' && (
-                <button onClick={() => act(selected.id, 'lock')} className="flex items-center gap-1 border border-[#0d631b] text-[#0d631b] rounded-lg px-3 py-1.5 text-xs hover:bg-[#e8f5e9]" disabled={busy}>
-                  <span className="material-symbols-outlined text-sm">lock</span> Lock
                 </button>
               )}
               <button
@@ -541,7 +569,8 @@ export default function Invoices() {
                     </button>
                     <button
                       onClick={() => review('disapproved')}
-                      disabled={busy || selected.review_status === 'disapproved'}
+                      disabled={busy || selected.review_status !== 'pending'}
+                      title={selected.review_status === 'approved' ? 'Checklist already approved' : undefined}
                       className="flex-1 flex items-center justify-center gap-1 border border-error text-error rounded-lg py-2 text-sm font-medium hover:bg-error-container/40 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <span className="material-symbols-outlined text-sm">cancel</span> Disapprove
@@ -585,6 +614,17 @@ export default function Invoices() {
         </div>
       )}
 
+      {/* Search */}
+      <div className="mb-3 relative">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-lg">search</span>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by reference, transporter, stage or status…"
+          className="w-full border border-outline-variant rounded-lg pl-10 pr-3 py-2 text-sm bg-white"
+        />
+      </div>
+
       {/* Invoice list table */}
       <div className="bg-white rounded-lg border border-outline-variant overflow-auto">
         <table className="w-full text-sm">
@@ -598,7 +638,16 @@ export default function Invoices() {
             </tr>
           </thead>
           <tbody>
-            {invoices.map((inv) => (
+            {invoices.filter((inv) => {
+              const s = search.trim().toLowerCase();
+              if (!s) return true;
+              return (
+                (inv.reference_no ?? inv.id).toLowerCase().includes(s) ||
+                (inv.transporters?.display_name ?? '').toLowerCase().includes(s) ||
+                (STAGE_LABELS[inv.stage as PriStage] ?? inv.stage).toLowerCase().includes(s) ||
+                inv.status.toLowerCase().includes(s)
+              );
+            }).map((inv) => (
               <tr
                 key={inv.id}
                 className={`border-t border-outline-variant hover:bg-surface-container-low transition-colors cursor-pointer ${
@@ -629,11 +678,6 @@ export default function Invoices() {
                   {profile?.role === 'admin' && inv.status === 'draft' && (
                     <button onClick={(e) => { e.stopPropagation(); act(inv.id, 'approve'); }} className="text-[11px] text-[#0d631b] underline" disabled={busy}>
                       Approve totals
-                    </button>
-                  )}
-                  {profile?.role === 'admin' && inv.status === 'approved' && (
-                    <button onClick={(e) => { e.stopPropagation(); act(inv.id, 'lock'); }} className="text-[11px] text-[#0d631b] underline" disabled={busy}>
-                      Lock
                     </button>
                   )}
                 </td>

@@ -45,11 +45,16 @@ function monogram(name: string): string {
 
 interface Line {
   computed_cost: number;
+  category?: string;
+  distance_km?: number;
+  rate_snapshot?: { rates?: { haulagePerUnitKm?: number; stayPerKm?: number } };
   waybills?: {
     waybill_no?: string;
     vehicle_no?: string;
     waybill_date?: string;
     num_trips?: number;
+    num_poles?: number;
+    truck_size?: string | number;
     districts?: { name?: string };
     origins?: { name?: string };
   };
@@ -296,6 +301,219 @@ export function buildLetter(inv: InvoiceDoc, logo?: string | null): jsPDF {
   doc.text('______________________________', M, y);
   y += 16;
   doc.text(name, M, y);
+
+  return doc;
+}
+
+// ── Amount in words ──────────────────────────────────────────────────────────
+const ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+const SCALES = ['', 'Thousand', 'Million', 'Billion'];
+
+function under1000(x: number): string {
+  let out = '';
+  if (x >= 100) {
+    out += ONES[Math.floor(x / 100)] + ' Hundred';
+    x %= 100;
+    if (x) out += ' and ';
+  }
+  if (x >= 20) {
+    out += TENS[Math.floor(x / 10)];
+    if (x % 10) out += '-' + ONES[x % 10];
+  } else if (x > 0) out += ONES[x];
+  return out;
+}
+
+/** 13695.86 → "Thirteen Thousand, Six Hundred and Ninety-Five Ghana Cedis and Eighty-Six Pesewas". */
+export function amountInWords(n: number): string {
+  const cedis = Math.floor(n);
+  const pesewas = Math.round((n - cedis) * 100);
+  let whole = cedis;
+  const parts: string[] = [];
+  let scale = 0;
+  while (whole > 0) {
+    const chunk = whole % 1000;
+    if (chunk) parts.unshift(under1000(chunk) + (SCALES[scale] ? ' ' + SCALES[scale] : ''));
+    whole = Math.floor(whole / 1000);
+    scale++;
+  }
+  const cedisW = (parts.length ? parts.join(', ') : 'Zero') + ' Ghana Cedis';
+  return pesewas > 0 ? `${cedisW} and ${under1000(pesewas)} Pesewas` : cedisW;
+}
+
+// ── Memorandum PDF ───────────────────────────────────────────────────────────
+export interface MemoOpts {
+  fromTitle: string;
+  signatoryName: string;
+  letterDate: string; // yyyy-mm-dd
+}
+
+export function buildMemo(inv: InvoiceDoc, opts: MemoOpts, logo?: string | null): jsPDF {
+  const doc = newDoc();
+  const W = pageWidth(doc);
+  const H = doc.internal.pageSize.getHeight();
+  const name = (inv.transporters?.display_name ?? 'Transporter').toUpperCase();
+  const s = summary(inv);
+  const total = num(inv.total_cost);
+  const dateStr = `${MONTHS[(pd(inv.created_at) ?? new Date()).getUTCMonth()].toUpperCase()} ${String((pd(inv.created_at) ?? new Date()).getUTCDate()).padStart(2, '0')}, ${(pd(inv.created_at) ?? new Date()).getUTCFullYear()}`;
+  let y = M;
+
+  if (logo) {
+    const sz = 44;
+    doc.addImage(logo, 'PNG', (W - sz) / 2, y, sz, sz);
+    y += sz + 10;
+  }
+
+  // Title.
+  doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(17);
+  doc.text('MEMORANDUM', M, y);
+  doc.setLineWidth(1).line(M, y + 3, M + doc.getTextWidth('MEMORANDUM'), y + 3);
+  y += 26;
+
+  // Header block.
+  const labelX = M;
+  const valueX = M + 74;
+  const row = (label: string, value: string, bold = false) => {
+    doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(17).text(label, labelX, y);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    const lines = doc.splitTextToSize(value, W - M - valueX) as string[];
+    doc.text(lines, valueX, y);
+    y += lines.length * 15 + 4;
+  };
+  row('TO:', 'CHIEF DIRECTOR');
+  row('FROM:', opts.fromTitle);
+  row('SUBJECT:', `REQUEST FOR PAYMENT IN FAVOUR OF M/S ${name} FOR THE HAULAGE OF ELECTRICAL MATERIALS`, true);
+  row('DATE:', dateStr);
+  y += 4;
+  doc.setDrawColor(120).setLineWidth(0.8).line(M, y, W - M, y);
+  y += 20;
+
+  // Numbered, justified paragraphs.
+  let n = 0;
+  const numX = M;
+  const bodyX = M + 22;
+  const bodyW = W - M - bodyX;
+  // Word-flow renderer: wraps to bodyW while honouring per-word bold (jsPDF has no rich text).
+  const para = (segments: { text: string; bold?: boolean }[]) => {
+    n++;
+    const words = segments.flatMap((sg) =>
+      sg.text.trim().split(/\s+/).filter(Boolean).map((w) => ({ w, b: !!sg.bold })),
+    );
+    doc.setFontSize(11).setTextColor(17);
+    doc.setFont('helvetica', 'normal');
+    const sw = doc.getTextWidth(' ');
+    doc.setFont('helvetica', 'bold').text(`${n}.`, numX, y);
+    let x = bodyX;
+    for (const { w, b } of words) {
+      doc.setFont('helvetica', b ? 'bold' : 'normal');
+      const ww = doc.getTextWidth(w);
+      if (x > bodyX && x + ww > bodyX + bodyW) {
+        x = bodyX;
+        y += 15;
+        if (y > H - M - 40) {
+          doc.addPage();
+          y = M;
+        }
+      }
+      doc.text(w, x, y);
+      x += ww + sw;
+    }
+    y += 15 + 8;
+  };
+
+  para([{ text: `Reference is made to the letter dated ${long(opts.letterDate)}, from M/S ${name} requesting for payment for haulage of electrical materials (copy attached).` }]);
+  para([{ text: 'We confirm that the transporter has satisfactorily executed the work as evidenced by the attached waybills.' }]);
+  para([{ text: `Messrs. ${name} submitted ${s.waybills} waybills with an invoice amount of GHS ${total} for processing and payment.` }]);
+  para([{ text: `Furthermore, review of the submitted waybills indicated that the amount due the transporter under the invoice is GHS ${total}.` }]);
+  para([
+    { text: `The Power Directorate hereby submits the request for payment of an amount of GHS${total} ` },
+    { text: `(${amountInWords(inv.total_cost)})`, bold: true },
+    { text: ' for haulage of the electrical materials to your attention.' },
+  ]);
+  para([{ text: 'We have attached copies of the relevant documents for your perusal.' }]);
+
+  // Signatory (no signature line — signed above the name).
+  y += 45;
+  if (y > H - M) {
+    doc.addPage();
+    y = M + 45;
+  }
+  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(17);
+  doc.text(opts.signatoryName.toUpperCase(), M, y);
+
+  return doc;
+}
+
+// ── Signatory sheet PDF ──────────────────────────────────────────────────────
+export function buildSignatory(inv: InvoiceDoc, logo?: string | null): jsPDF {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
+  const W = pageWidth(doc);
+  const name = inv.transporters?.display_name ?? 'Transporter';
+  const s = summary(inv);
+  const period = `${long(s.ps)} - ${long(s.pe)}`;
+  let y = M;
+
+  if (logo) doc.addImage(logo, 'PNG', M, y - 4, 34, 34);
+
+  // Title centered + period box right.
+  doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(17);
+  doc.text('HAULAGE INVOICES', W / 2, y + 18, { align: 'center' });
+  doc.setDrawColor(120).setLineWidth(0.8).rect(W - M - 190, y, 190, 26);
+  doc.setFont('helvetica', 'normal').setFontSize(10);
+  doc.text(period, W - M - 95, y + 17, { align: 'center' });
+  y += 44;
+
+  // Haulage cost (left, big) + transporter (right).
+  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(90).text('Haulage Cost', M, y);
+  doc.setFont('helvetica', 'bold').setFontSize(18).setTextColor(17).text(num(inv.total_cost), M, y + 20);
+  doc.setFont('helvetica', 'bold').setFontSize(11).text(`Transporter Name: ${name}`, W - M, y + 14, { align: 'right' });
+  y += 40;
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: M, right: M },
+    head: [['Category', 'Date', 'Distance', 'From', 'To', 'Haulage Charge (Pole/Mats)', 'Haulage Charge/Stay block', 'Transporter', 'Truck Size/Trailer', 'No. of Poles', 'No. of trips', 'Waybill No.', 'Vehicle No.', 'Haulage Cost']],
+    body: (inv.invoice_lines ?? []).map((l) => {
+      const w = l.waybills ?? {};
+      const r = l.rate_snapshot?.rates ?? {};
+      return [
+        l.category ?? '',
+        short(w.waybill_date),
+        l.distance_km != null ? String(l.distance_km) : '',
+        w.origins?.name ?? '',
+        w.districts?.name ?? '',
+        r.haulagePerUnitKm != null ? String(r.haulagePerUnitKm) : '',
+        r.stayPerKm != null ? String(r.stayPerKm) : '',
+        name,
+        w.truck_size != null ? String(w.truck_size) : '',
+        w.num_poles != null ? String(w.num_poles) : '',
+        w.num_trips != null ? String(w.num_trips) : '',
+        w.waybill_no ?? '',
+        w.vehicle_no ?? '',
+        num(l.computed_cost),
+      ];
+    }),
+    styles: { font: 'helvetica', fontSize: 7, cellPadding: 3, lineColor: [150, 150, 150], lineWidth: 0.5, overflow: 'linebreak' },
+    headStyles: { fillColor: GREEN_LIGHT, textColor: 17, fontStyle: 'bold', fontSize: 7 },
+    columnStyles: { 13: { halign: 'right' } },
+  });
+
+  // Three signature blocks stacked.
+  let sy = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 50;
+  const H = doc.internal.pageSize.getHeight();
+  const col2 = M + 300;
+  const col3 = W - M - 200;
+  for (const role of ['Prepared by:', 'Checked by:', 'Approved by:']) {
+    if (sy > H - M) {
+      doc.addPage();
+      sy = M + 30;
+    }
+    doc.setFont('helvetica', 'normal').setFontSize(11).setTextColor(17);
+    doc.text(`${role} ____________________________`, M, sy);
+    doc.text('Name: ____________________________', col2, sy);
+    doc.text('Date: ________________', col3, sy);
+    sy += 70;
+  }
 
   return doc;
 }

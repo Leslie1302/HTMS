@@ -134,12 +134,15 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
       }
     }
 
-    // Perform the transition.
+    // Perform the transition. Reaching 'paid' locks the invoice automatically —
+    // there is no manual Lock button.
+    const patch: Record<string, string> = { stage: targetStage };
+    if (targetStage === 'paid') patch.status = 'locked';
     const before = { stage: currentStage };
-    const after = { stage: targetStage };
+    const after = patch;
     const { error: updateErr } = await ctx.db
       .from('invoices')
-      .update({ stage: targetStage })
+      .update(patch)
       .eq('id', invoiceId);
     if (updateErr) return json(400, { error: updateErr.message });
 

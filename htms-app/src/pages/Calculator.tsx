@@ -11,20 +11,27 @@ interface Opt { id: number; name: string }
 
 /**
  * Trip Calculator — estimate what a trip pays BEFORE hauling, using the exact
- * same calc engine, rates and fuel series as invoicing. For multi-drop trips,
- * pick the FURTHEST destination (that is the billed distance).
+ * same calc engine, rates and fuel series as invoicing. Add every drop on the
+ * trip; the system finds the furthest one and bills that distance — same as
+ * invoicing does.
  */
 export default function Calculator() {
   const [cfg, setCfg] = useState<CalcConfig | null>(null);
   const [origins, setOrigins] = useState<Opt[]>([]);
   const [districts, setDistricts] = useState<Opt[]>([]);
+  const [drops, setDrops] = useState<Opt[]>([]);
   const [err, setErr] = useState<string | null>(null);
-  const [result, setResult] = useState<{ res: CalcResult; chartKm: number; distanceKm: number } | null>(null);
+  const [result, setResult] = useState<{
+    res: CalcResult;
+    chartKm: number;
+    distanceKm: number;
+    billedName: string;
+    breakdown: { name: string; km: number }[];
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     category: 'Poles' as Category,
     originId: '',
-    districtId: '',
     numPoles: 0,
     numStayBlocks: 0,
     numConcretePoles: 0,
@@ -33,6 +40,16 @@ export default function Calculator() {
   });
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
+    setResult(null);
+  };
+  const addDrop = (id: number) => {
+    const d = districts.find((x) => x.id === id);
+    if (!d || drops.some((x) => x.id === id)) return;
+    setDrops((prev) => [...prev, d]);
+    setResult(null);
+  };
+  const removeDrop = (id: number) => {
+    setDrops((prev) => prev.filter((x) => x.id !== id));
     setResult(null);
   };
 
@@ -46,17 +63,27 @@ export default function Calculator() {
     setErr(null);
     setResult(null);
     if (!cfg) return setErr('Rates are still loading — try again in a moment.');
-    if (!form.originId || !form.districtId) return setErr('Choose an origin and a destination.');
+    if (!form.originId || drops.length === 0) return setErr('Choose an origin and add at least one drop.');
     setBusy(true);
     try {
-      const { data: dist } = await supabase
+      const { data: distRows } = await supabase
         .from('distance_matrix')
-        .select('km')
+        .select('km, district_id')
         .eq('origin_id', Number(form.originId))
-        .eq('district_id', Number(form.districtId))
-        .maybeSingle();
-      if (!dist) throw new Error('No surveyed distance for this origin/destination — it cannot be billed yet.');
-      const chartKm = Number(dist.km);
+        .in('district_id', drops.map((d) => d.id));
+      const kmById = new Map((distRows ?? []).map((r) => [r.district_id as number, Number(r.km)]));
+      const missing = drops.filter((d) => !kmById.has(d.id));
+      if (missing.length) {
+        throw new Error(
+          `No surveyed distance for: ${missing.map((d) => d.name).join(', ')} — these cannot be billed yet.`,
+        );
+      }
+      // Same rule as invoicing: the FURTHEST drop sets the billed distance.
+      const breakdown = drops
+        .map((d) => ({ name: d.name, km: kmById.get(d.id)! }))
+        .sort((a, b) => b.km - a.km);
+      const chartKm = breakdown[0].km;
+      const billedName = breakdown[0].name;
       const distanceKm = chartToDistance(chartKm);
       const res = computeHaulageCost(
         {
@@ -71,7 +98,7 @@ export default function Calculator() {
         },
         cfg,
       );
-      setResult({ res, chartKm, distanceKm });
+      setResult({ res, chartKm, distanceKm, billedName, breakdown });
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -83,9 +110,9 @@ export default function Calculator() {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-xl font-bold text-ministry-dark mb-1">Trip Calculator</h1>
       <p className="text-sm text-on-surface-variant mb-5">
-        Estimate what a trip pays before you haul. Uses the live rates and this week's fuel price — the actual
-        invoice uses the fuel price of the trip's week, so treat this as an estimate. For multi-drop trips, pick
-        your <b>furthest</b> destination.
+        Estimate what a trip pays before you haul. Add <b>every drop</b> on the trip — the system finds the
+        furthest one and bills that distance, exactly like invoicing. Uses the live rates and this week's fuel
+        price; the actual invoice uses the fuel price of the trip's week, so treat this as an estimate.
       </p>
 
       {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg">{err}</div>}
@@ -118,13 +145,31 @@ export default function Calculator() {
           </select>
         </label>
         <label className="block">
-          <span className="block text-xs font-medium text-on-surface-variant mb-1">Destination (furthest drop)</span>
-          <select value={form.districtId} onChange={(e) => set('districtId', e.target.value)} className="input w-full border border-outline-variant rounded-lg px-3 py-2 text-sm">
-            <option value="">Select…</option>
-            {districts.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
+          <span className="block text-xs font-medium text-on-surface-variant mb-1">Add drop(s) — every destination on the trip</span>
+          <select
+            value=""
+            onChange={(e) => e.target.value && addDrop(Number(e.target.value))}
+            className="input w-full border border-outline-variant rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="">Add a destination…</option>
+            {districts
+              .filter((d) => !drops.some((x) => x.id === d.id))
+              .map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
           </select>
+          {drops.length > 0 && (
+            <span className="flex flex-wrap gap-1 mt-2">
+              {drops.map((d) => (
+                <span key={d.id} className="flex items-center gap-1 bg-[#e8f5e9] text-[#1b5e20] rounded px-2 py-0.5 text-xs">
+                  {d.name}
+                  <button onClick={() => removeDrop(d.id)} aria-label={`Remove ${d.name}`} className="material-symbols-outlined text-sm hover:text-error">
+                    close
+                  </button>
+                </span>
+              ))}
+            </span>
+          )}
         </label>
 
         {form.category === 'Poles' && (
@@ -173,11 +218,21 @@ export default function Calculator() {
           <div className="text-xs font-bold tracking-wide text-on-surface-variant uppercase mb-1">Estimated payment</div>
           <div className="text-[32px] font-bold text-[#0d631b] mb-3">{ghs(result.res.cost)}</div>
           <div className="grid grid-cols-2 gap-2 text-sm text-on-surface-variant">
+            <span>Billed drop (furthest): <b>{result.billedName}</b></span>
             <span>Chart distance: <b>{result.chartKm.toFixed(1)} km</b></span>
             <span>Billed distance: <b>{result.distanceKm.toFixed(1)} km</b></span>
             <span>Fuel price used: <b>{ghs(result.res.fuelPrice)}/L</b></span>
             <span>Escalation factor: <b>{result.res.factor.toFixed(4)}</b></span>
           </div>
+          {result.breakdown.length > 1 && (
+            <div className="mt-3 text-xs text-on-surface-variant">
+              {result.breakdown.map((d, i) => (
+                <span key={d.name} className="inline-block mr-3">
+                  {d.name}: {d.km.toFixed(1)} km{i === 0 ? ' ← billed' : ''}
+                </span>
+              ))}
+            </div>
+          )}
           <p className="text-xs text-outline mt-3">
             Estimate only — the invoice amount is computed from the fuel price of the week the trip happens and
             the rates active at invoicing time.
