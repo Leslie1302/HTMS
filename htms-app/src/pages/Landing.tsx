@@ -1,6 +1,91 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Crest } from '../components/Crest';
 import { STAGE_LABELS, ALL_STAGES } from '../../shared/lifecycle';
+
+/** Tiny Ghana flag (red/gold/green with black star). */
+function GhanaFlag({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 21 14" className={`w-5 h-[13px] rounded-[2px] shadow-sm ${className}`} aria-label="Ghana">
+      <rect width="21" height="14" fill="#006b3f" />
+      <rect width="21" height="9.33" fill="#fcd116" />
+      <rect width="21" height="4.66" fill="#ce1126" />
+      <path d="M10.5 5.1l.77 2.36h2.48l-2.0 1.46.76 2.36-2.0-1.46-2.0 1.46.76-2.36-2.0-1.46h2.48z" fill="#000" />
+    </svg>
+  );
+}
+
+/** Hero map: a truck driving pin-to-pin along a looping route (JS rAF). */
+const PINS = [
+  { x: 24, y: 74, name: 'Tema' },
+  { x: 40, y: 54, name: 'Kumasi' },
+  { x: 30, y: 30, name: 'Tamale' },
+  { x: 62, y: 22, name: 'Yendi' },
+  { x: 74, y: 50, name: 'Bimbilla' },
+];
+function RouteMap() {
+  const truck = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let seg = 0;
+    let start = performance.now();
+    let paused = false;
+    let pauseUntil = 0;
+    let raf = 0;
+    const SEG_MS = 1700;
+    const PAUSE_MS = 650;
+
+    const tick = (now: number) => {
+      const a = PINS[seg];
+      const b = PINS[(seg + 1) % PINS.length];
+      let t = (now - start) / SEG_MS;
+      if (t >= 1) {
+        t = 1;
+        if (!paused) { paused = true; pauseUntil = now + PAUSE_MS; }
+        if (now >= pauseUntil) { seg = (seg + 1) % PINS.length; start = now; paused = false; }
+      }
+      const x = a.x + (b.x - a.x) * t;
+      const y = a.y + (b.y - a.y) * t;
+      const facingRight = b.x - a.x >= 0;
+      if (truck.current) {
+        truck.current.style.left = `${x}%`;
+        truck.current.style.top = `${y}%`;
+        truck.current.style.transform = `translate(-50%,-50%) scaleX(${facingRight ? 1 : -1})`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const routePoints = [...PINS, PINS[0]].map((p) => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <div className="relative w-full aspect-[4/3] rounded-2xl bg-[#0f1523] border border-white/10 overflow-hidden shadow-2xl">
+      {/* faint grid */}
+      <div className="absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
+      {/* route */}
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+        <polyline points={routePoints} fill="none" stroke="#2e7d32" strokeWidth="0.8" strokeDasharray="2 2" className="route-dash" />
+      </svg>
+      {/* pins */}
+      {PINS.map((p) => (
+        <div key={p.name} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${p.x}%`, top: `${p.y}%` }}>
+          <div className="w-2.5 h-2.5 rounded-full bg-ghana-gold ring-4 ring-ghana-gold/20" />
+          <span className="absolute left-4 -top-1 text-[11px] font-medium text-white/80 whitespace-nowrap">{p.name}</span>
+        </div>
+      ))}
+      {/* truck */}
+      <div ref={truck} className="absolute z-10" style={{ left: '24%', top: '74%' }}>
+        <span className="material-symbols-outlined text-[26px] text-white bg-[#2e7d32] rounded-full p-1 shadow-lg" style={{ fontVariationSettings: "'FILL' 1" }}>local_shipping</span>
+      </div>
+      <div className="absolute bottom-3 left-4 text-[11px] text-white/50 flex items-center gap-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-ghana-green animate-pulse" /> Live haulage across Ghana
+      </div>
+      <style>{`.route-dash{animation:htms-dash 1.4s linear infinite}@keyframes htms-dash{to{stroke-dashoffset:-8}}`}</style>
+    </div>
+  );
+}
 
 const FEATURES: { icon: string; title: string; body: string }[] = [
   { icon: 'note_add', title: 'Waybill capture', body: 'Log every trip — origin, destination, poles, trailer, trips — in seconds. No more shoeboxes of paper waybills.' },
@@ -33,34 +118,37 @@ export default function Landing() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-[#141b2b] text-white">
         <div className="absolute inset-0 opacity-[0.15] bg-[radial-gradient(60%_60%_at_70%_10%,#2e7d32_0%,transparent_60%)]" />
-        <div className="relative max-w-6xl mx-auto px-5 pt-32 pb-24">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-medium text-white/80 mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-ghana-green" /> Haulage Transport Management System · Ghana
+        <div className="relative max-w-6xl mx-auto px-5 pt-32 pb-24 grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-medium text-white/80 mb-6">
+              <GhanaFlag /> Haulage Transport Management System · Ghana
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-3xl leading-[1.05]">
+              From waybill to cedi,<br />without the paper chase.
+            </h1>
+            <p className="mt-6 text-lg text-white/70 max-w-2xl">
+              HTMS turns stacks of haulage waybills into fuel-indexed invoices, approval-ready documents and a fully audited
+              payment pipeline — for the Ministry of Energy&apos;s electrical-materials transport.
+            </p>
+            <div className="mt-9 flex flex-wrap items-center gap-3">
+              <Link to="/login" className="inline-flex items-center gap-2 bg-[#2e7d32] hover:opacity-90 text-white font-semibold rounded-lg px-6 py-3.5 text-sm transition-opacity">
+                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>login</span>
+                Get started
+              </Link>
+              <a href="#how" className="inline-flex items-center gap-2 text-white/80 hover:text-white font-medium rounded-lg px-5 py-3.5 text-sm border border-white/20 hover:bg-white/5 transition-colors">
+                See how it works
+              </a>
+            </div>
+            <div className="mt-12 flex flex-wrap gap-x-10 gap-y-4 text-sm">
+              {[['11-step', 'audited pipeline'], ['FIDIC-indexed', 'haulage costing'], ['4 documents', 'generated instantly'], ['Every action', 'logged']].map(([a, b]) => (
+                <div key={a}>
+                  <div className="text-2xl font-bold text-white">{a}</div>
+                  <div className="text-white/55">{b}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-3xl leading-[1.05]">
-            From waybill to cedi,<br />without the paper chase.
-          </h1>
-          <p className="mt-6 text-lg text-white/70 max-w-2xl">
-            HTMS turns stacks of haulage waybills into fuel-indexed invoices, approval-ready documents and a fully audited
-            payment pipeline — for the Ministry of Energy&apos;s electrical-materials transport.
-          </p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
-            <Link to="/login" className="inline-flex items-center gap-2 bg-[#2e7d32] hover:opacity-90 text-white font-semibold rounded-lg px-6 py-3.5 text-sm transition-opacity">
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>login</span>
-              Get started
-            </Link>
-            <a href="#how" className="inline-flex items-center gap-2 text-white/80 hover:text-white font-medium rounded-lg px-5 py-3.5 text-sm border border-white/20 hover:bg-white/5 transition-colors">
-              See how it works
-            </a>
-          </div>
-          <div className="mt-12 flex flex-wrap gap-x-10 gap-y-4 text-sm">
-            {[['11-step', 'audited pipeline'], ['FIDIC-indexed', 'haulage costing'], ['4 documents', 'generated instantly'], ['Every action', 'logged']].map(([a, b]) => (
-              <div key={a}>
-                <div className="text-2xl font-bold text-white">{a}</div>
-                <div className="text-white/55">{b}</div>
-              </div>
-            ))}
-          </div>
+          <RouteMap />
         </div>
         <div className="flex h-1.5">
           <div className="flex-1 bg-ghana-red" />
