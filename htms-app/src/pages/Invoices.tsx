@@ -440,7 +440,9 @@ export default function Invoices() {
                       release_letters: 'release_letter',
                     } as Record<string, string>
                   )[k];
-                  const files = scanType ? docLinks.filter((d) => d.type === scanType) : [];
+                  const files = docLinks.filter((d) =>
+                    scanType ? d.type === scanType : k === 'contract_agreement_copy' && d.type === 'contract_agreement',
+                  );
                   const blocked = scanType
                     ? files.length === 0 || files.some((d) => d.flagged)
                     : k === 'contract_agreement_copy' && !contractOk;
@@ -453,25 +455,44 @@ export default function Invoices() {
                         ? 'Contract not validated (Admin)'
                         : '';
                   return (
-                    <label
+                    <div
                       key={k}
-                      title={why}
                       className={`flex items-center gap-3 p-2 bg-surface rounded-lg border border-transparent transition-all ${
-                        blocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-outline-variant'
+                        blocked ? 'opacity-60' : 'hover:border-outline-variant'
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={!!checklist[k]}
-                        onChange={(e) => updateChecklist(k, e.target.checked)}
-                        className="w-5 h-5 text-[#0d631b] border-outline-variant rounded focus:ring-[#0d631b]"
-                        disabled={blocked || (isTransporter && selected?.stage !== 'generated')}
-                      />
-                      <span className="text-sm text-on-surface">
-                        {k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                        {why && <span className="block text-[10px] text-error">{why}</span>}
+                      <label title={why} className={`flex items-center gap-3 flex-1 min-w-0 ${blocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                        <input
+                          type="checkbox"
+                          checked={!!checklist[k]}
+                          onChange={(e) => updateChecklist(k, e.target.checked)}
+                          className="w-5 h-5 text-[#0d631b] border-outline-variant rounded focus:ring-[#0d631b]"
+                          disabled={blocked || (isTransporter && selected?.stage !== 'generated')}
+                        />
+                        <span className="text-sm text-on-surface">
+                          {k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                          {why && <span className="block text-[10px] text-error">{why}</span>}
+                        </span>
+                      </label>
+                      {/* Preview links for this item's files */}
+                      <span className="flex gap-1 shrink-0">
+                        {files.map((f, i) => (
+                          <a
+                            key={f.scanId ?? f.url}
+                            href={f.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title={`Preview ${f.label}${f.flagged ? ` — flagged: ${f.flagged}` : ''}`}
+                            className={`flex items-center gap-0.5 px-1.5 py-1 rounded border text-[10px] hover:bg-surface-container-low ${
+                              f.flagged ? 'border-error text-error' : 'border-outline-variant text-on-surface-variant'
+                            }`}
+                          >
+                            <span className="material-symbols-outlined text-sm">visibility</span>
+                            {files.length > 1 ? i + 1 : ''}
+                          </a>
+                        ))}
                       </span>
-                    </label>
+                    </div>
                   );
                 })}
               </div>
