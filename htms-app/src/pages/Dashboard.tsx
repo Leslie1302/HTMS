@@ -64,18 +64,29 @@ export default function Dashboard() {
     [rows, q, cat, transporter],
   );
 
-  const totals = useMemo(() => {
-    let all = 0,
-      poles = 0,
-      materials = 0;
-    for (const r of filtered) {
-      const c = Number(r.cost ?? 0);
-      all += c;
-      if (r.category === 'Material') materials += c;
-      else poles += c;
-    }
-    return { all, poles, materials };
-  }, [filtered]);
+  // KPI totals come ONLY from approved/locked invoices — never on-the-fly
+  // estimates, so the figures are real. RLS scopes transporters to their own
+  // lines, which makes the "owed" card their personal amount automatically.
+  const [approved, setApproved] = useState({ total: 0, poles: 0, materials: 0, owed: 0 });
+  useEffect(() => {
+    supabase
+      .from('invoice_lines')
+      .select('computed_cost, category, invoices!inner(status, stage)')
+      .in('invoices.status', ['approved', 'locked'])
+      .then(({ data, error }) => {
+        if (error) return setErr(error.message);
+        let total = 0, poles = 0, materials = 0, owed = 0;
+        type LineRow = { computed_cost: number; category: string; invoices: { status: string; stage: string } };
+        for (const r of (data ?? []) as unknown as LineRow[]) {
+          const c = Number(r.computed_cost);
+          total += c;
+          if (r.category === 'Material') materials += c;
+          else poles += c;
+          if (r.invoices.stage !== 'paid') owed += c;
+        }
+        setApproved({ total, poles, materials, owed });
+      });
+  }, []);
 
   const transporters = useMemo(
     () => Array.from(new Set(rows.map((r) => r.transporters?.display_name).filter(Boolean))) as string[],
@@ -86,10 +97,11 @@ export default function Dashboard() {
     <div>
       {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg flex items-center gap-2">{err}</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card label="Haulage Cost" value={ghs(totals.all)} icon="payments" />
-        <Card label="Haulage Cost (Poles)" value={ghs(totals.poles)} icon="landslide" />
-        <Card label="Haulage Cost (Materials)" value={ghs(totals.materials)} icon="inventory_2" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card label="Approved Haulage Cost" value={ghs(approved.total)} icon="payments" />
+        <Card label="Approved (Poles)" value={ghs(approved.poles)} icon="landslide" />
+        <Card label="Approved (Materials)" value={ghs(approved.materials)} icon="inventory_2" />
+        <Card label="Owed (approved, unpaid)" value={ghs(approved.owed)} icon="hourglass_top" />
       </div>
 
       {/* PR/I pipeline queue */}
@@ -144,7 +156,7 @@ export default function Dashboard() {
         <table className="w-full text-sm">
           <thead className="bg-surface-container-low text-left">
             <tr>
-              {['Category', 'Date', 'From', 'To (billed)', 'Km', 'Transporter', 'Truck', 'Poles', 'Trips', 'Waybill No.', 'Vehicle No.', 'Haulage Cost'].map(
+              {['Category', 'Date', 'From', 'To (billed)', 'Km', 'Transporter', 'Truck', 'Poles', 'Trips', 'Waybill No.', 'Vehicle No.', 'Est. Cost'].map(
                 (h) => (
                   <th key={h} className="px-3 py-3 font-semibold text-on-surface-variant tracking-wider text-[11px] uppercase whitespace-nowrap">
                     {h}

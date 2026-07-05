@@ -6,6 +6,7 @@ import WaybillEntry from './pages/WaybillEntry';
 import Invoices from './pages/Invoices';
 import InvoiceStatus from './pages/InvoiceStatus';
 import Admin from './pages/Admin';
+import Calculator from './pages/Calculator';
 import { Crest } from './components/Crest';
 
 function Nav() {
@@ -29,6 +30,10 @@ function Nav() {
         <NavLink to="/waybills" className={link}>
           <span className="material-symbols-outlined text-base mr-1 align-text-bottom">note_add</span>
           Payment Request Form
+        </NavLink>
+        <NavLink to="/calculator" className={link}>
+          <span className="material-symbols-outlined text-base mr-1 align-text-bottom">calculate</span>
+          Trip Calculator
         </NavLink>
         {profile?.role !== 'transporter' && (
           <NavLink to="/invoices" className={link}>
@@ -76,6 +81,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/waybills" element={<WaybillEntry />} />
+          <Route path="/calculator" element={<Calculator />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/invoice-status" element={<InvoiceStatus />} />
           <Route path="/admin" element={<Admin />} />

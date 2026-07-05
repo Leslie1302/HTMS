@@ -109,7 +109,7 @@ export default function WaybillEntry() {
         destinationDistrictIds: destinations.map((d) => d.id),
         // Zero out counts that don't apply to the category — hidden fields can
         // still hold stale values from before a category switch.
-        numPoles: form.category !== 'Material' ? Number(form.numPoles) : 0,
+        numPoles: form.category === 'Poles' ? Number(form.numPoles) : 0,
         numStayBlocks: form.category !== 'Material' ? Number(form.numStayBlocks) : 0,
         numConcretePoles: form.category === 'Concrete Poles' ? Number(form.numConcretePoles) : 0,
         numTrips: Number(form.numTrips),
@@ -253,15 +253,15 @@ export default function WaybillEntry() {
           </>
         )}
 
+        {form.category === 'Poles' && (
+          <Field label="No. of Wooden Poles">
+            <input type="number" min={0} value={form.numPoles} onChange={(e) => set('numPoles', Number(e.target.value))} className="input" />
+          </Field>
+        )}
         {form.category !== 'Material' && (
-          <>
-            <Field label="No. of Wooden Poles">
-              <input type="number" min={0} value={form.numPoles} onChange={(e) => set('numPoles', Number(e.target.value))} className="input" />
-            </Field>
-            <Field label="No. of Stay Blocks">
-              <input type="number" min={0} value={form.numStayBlocks} onChange={(e) => set('numStayBlocks', Number(e.target.value))} className="input" />
-            </Field>
-          </>
+          <Field label="No. of Stay Blocks">
+            <input type="number" min={0} value={form.numStayBlocks} onChange={(e) => set('numStayBlocks', Number(e.target.value))} className="input" />
+          </Field>
         )}
         {form.category === 'Concrete Poles' && (
           <Field label="No. of Concrete Poles" full>
