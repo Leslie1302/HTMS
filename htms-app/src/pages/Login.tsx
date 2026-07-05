@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Crest } from '../components/Crest';
 
@@ -26,6 +27,9 @@ export default function Login() {
           <div className="flex-1 bg-ghana-green" />
         </div>
         <div className="px-8 py-8 flex flex-col items-center">
+          <Link to="/" className="self-start -mt-2 mb-2 flex items-center gap-1 text-xs text-outline hover:text-[#0d631b]">
+            <span className="material-symbols-outlined text-[16px]">arrow_back</span> Home
+          </Link>
           <div className="mb-6">
             <Crest size={80} />
           </div>

@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthProvider';
 import Login from './pages/Login';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import WaybillEntry from './pages/WaybillEntry';
 import Invoices from './pages/Invoices';
@@ -75,7 +76,13 @@ function Nav() {
 export default function App() {
   const { session, loading } = useAuth();
   if (loading) return <div className="p-8 text-gray-500">Loading…</div>;
-  if (!session) return <Login />;
+  if (!session)
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Landing />} />
+      </Routes>
+    );
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       <Nav />
