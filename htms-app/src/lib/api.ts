@@ -35,4 +35,8 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(d),
   }),
+  createUser: (u: unknown) => call<{ id: string; tempPassword: string }>('/api/admin-users', {
+    method: 'POST',
+    body: JSON.stringify(u),
+  }),
 };

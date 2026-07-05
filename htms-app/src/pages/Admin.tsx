@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 
 export default function Admin() {
@@ -312,6 +313,11 @@ function UserManagement() {
   const [transporters, setTransporters] = useState<{ id: string; display_name: string }[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const blankNew = { full_name: '', email: '', role: 'transporter' as AppUserRow['role'], transporter_id: '', phone: '' };
+  const [showNew, setShowNew] = useState(false);
+  const [nf, setNf] = useState(blankNew);
+  const [creating, setCreating] = useState(false);
+  const [tempPw, setTempPw] = useState<{ email: string; password: string } | null>(null);
 
   function load() {
     supabase.from('app_users').select('id, role, full_name, transporter_id, phone, created_at').order('created_at', { ascending: false }).then(({ data }) => setUsers((data as AppUserRow[]) ?? []));
@@ -341,6 +347,28 @@ function UserManagement() {
     setMsg('User updated'); load();
   }
 
+  async function createUser() {
+    setErr(null); setMsg(null);
+    if (!nf.full_name.trim() || !nf.email.trim()) return setErr('Name and email are required.');
+    if (nf.role === 'transporter' && !nf.transporter_id) return setErr('A transporter user must be assigned a company.');
+    setCreating(true);
+    try {
+      const res = await api.createUser({
+        full_name: nf.full_name.trim(),
+        email: nf.email.trim(),
+        role: nf.role,
+        transporter_id: nf.role === 'transporter' ? nf.transporter_id : null,
+        phone: nf.phone.trim() || undefined,
+      });
+      setTempPw({ email: nf.email.trim(), password: res.tempPassword });
+      setShowNew(false); setNf(blankNew); load();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setCreating(false);
+    }
+  }
+
   const staff = users.filter((u) => u.role !== 'transporter').length;
   const transporterUsers = users.filter((u) => u.role === 'transporter').length;
   const unassigned = users.filter((u) => u.role === 'transporter' && !u.transporter_id).length;
@@ -363,9 +391,14 @@ function UserManagement() {
 
   return (
     <div>
-      <div className="mb-5">
-        <h2 className="text-xl font-semibold text-on-surface">System Users</h2>
-        <p className="text-sm text-on-surface-variant">Manage institutional access for Ministry staff, transporters and site admins. Assign each user a role and — for transporters — their company.</p>
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-on-surface">System Users</h2>
+          <p className="text-sm text-on-surface-variant">Manage institutional access for Ministry staff, transporters and site admins. Assign each user a role and — for transporters — their company.</p>
+        </div>
+        <button onClick={() => { setShowNew(true); setTempPw(null); }} className="shrink-0 flex items-center gap-1.5 bg-[#0d631b] hover:opacity-90 text-white rounded-lg px-4 py-2.5 text-sm font-medium">
+          <span className="material-symbols-outlined text-[18px]">person_add</span> Add New User
+        </button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -453,6 +486,47 @@ function UserManagement() {
           {users.length === 0 && <div className="text-sm text-outline-variant">No users yet.</div>}
         </div>
       </div>
+
+      {tempPw && (
+        <div className="mt-4 rounded-xl border border-[#0d631b]/40 bg-[#e8f5e9] p-4">
+          <div className="font-semibold text-[#0c5216] flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px]">key</span> User created — share these credentials once</div>
+          <div className="text-sm mt-1">Email: <span className="font-mono">{tempPw.email}</span></div>
+          <div className="text-sm">Temporary password: <span className="font-mono font-bold">{tempPw.password}</span></div>
+          <p className="text-xs text-on-surface-variant mt-1">The user should sign in and change this password. This is shown only once.</p>
+          <button onClick={() => setTempPw(null)} className="mt-2 text-xs text-[#0d631b] hover:underline">Dismiss</button>
+        </div>
+      )}
+
+      {showNew && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4 z-50" onClick={() => setShowNew(false)}>
+          <div className="bg-white rounded-xl border border-outline-variant w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-on-surface">Add New User</h3>
+              <button onClick={() => setShowNew(false)} className="text-outline hover:text-on-surface"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <div className="space-y-3">
+              <input value={nf.full_name} onChange={(e) => setNf({ ...nf, full_name: e.target.value })} placeholder="Full name" className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
+              <input value={nf.email} onChange={(e) => setNf({ ...nf, email: e.target.value })} type="email" placeholder="Email" className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
+              <select value={nf.role} onChange={(e) => setNf({ ...nf, role: e.target.value as AppUserRow['role'] })} className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]">
+                <option value="transporter">Transporter</option>
+                <option value="officer">Ministry Staff</option>
+                <option value="admin">System Admin</option>
+              </select>
+              {nf.role === 'transporter' && (
+                <select value={nf.transporter_id} onChange={(e) => setNf({ ...nf, transporter_id: e.target.value })} className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]">
+                  <option value="">— select company —</option>
+                  {transporters.map((t) => (<option key={t.id} value={t.id}>{t.display_name}</option>))}
+                </select>
+              )}
+              <input value={nf.phone} onChange={(e) => setNf({ ...nf, phone: e.target.value })} placeholder="Phone (optional)" className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]" />
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setShowNew(false)} className="px-4 py-2 text-sm rounded-lg border border-outline-variant hover:bg-surface-container-low">Cancel</button>
+              <button onClick={createUser} disabled={creating} className="px-4 py-2 text-sm rounded-lg bg-[#0d631b] text-white font-medium hover:opacity-90 disabled:opacity-50">{creating ? 'Creating…' : 'Create user'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
