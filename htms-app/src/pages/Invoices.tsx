@@ -257,6 +257,14 @@ export default function Invoices() {
                   <span className="material-symbols-outlined text-sm">lock</span> Lock
                 </button>
               )}
+              <button
+                onClick={() => setSelectedId(null)}
+                title="Minimize"
+                aria-label="Minimize invoice details"
+                className="flex items-center border border-outline-variant rounded-lg px-2 py-1.5 text-xs hover:bg-surface-container-low"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
             </div>
           </div>
 
@@ -391,7 +399,7 @@ export default function Invoices() {
                 className={`border-t border-outline-variant hover:bg-surface-container-low transition-colors cursor-pointer ${
                   selectedId === inv.id ? 'bg-[#e8f5e9]' : ''
                 }`}
-                onClick={() => loadDetail(inv.id)}
+                onClick={() => (selectedId === inv.id ? setSelectedId(null) : loadDetail(inv.id))}
               >
                 <td className="px-3 py-3 font-mono text-xs">{inv.reference_no ?? inv.id.slice(0, 8)}</td>
                 <td className="px-3 py-3">{inv.transporters?.display_name}</td>

@@ -61,6 +61,11 @@ export default function InvoiceStatus() {
     }
   }, []);
 
+  // ponytail: auto-open the only invoice — with n=1 neither list nor empty state renders
+  useEffect(() => {
+    if (invoices.length === 1 && !selectedId) loadDetail(invoices[0].id);
+  }, [invoices, selectedId, loadDetail]);
+
   const selected = invoices.find((i) => i.id === selectedId) ?? null;
   const currentStageIdx = selected ? ALL_STAGES.indexOf(selected.stage as PriStage) : -1;
   const checklistItems = selected?.checklist ?? {};
