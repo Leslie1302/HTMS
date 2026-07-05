@@ -86,6 +86,26 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
           missing,
         });
       }
+
+      // Flagged (substandard) documents block submission until corrected.
+      const { data: lineRows } = await ctx.db
+        .from('invoice_lines')
+        .select('waybill_id')
+        .eq('invoice_id', invoiceId);
+      const wbIds = (lineRows ?? []).map((r: { waybill_id: string }) => r.waybill_id);
+      if (wbIds.length > 0) {
+        const { data: flagged } = await ctx.db
+          .from('scans')
+          .select('id, flagged_reason')
+          .in('waybill_id', wbIds)
+          .not('flagged_reason', 'is', null);
+        if (flagged && flagged.length > 0) {
+          return json(400, {
+            error: `Cannot submit: ${flagged.length} flagged document(s) must be corrected first`,
+            flagged,
+          });
+        }
+      }
     }
 
     // Perform the transition.

@@ -30,7 +30,14 @@ export default function InvoiceStatus() {
   const [invoices, setInvoices] = useState<InvoiceStatus[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [trail, setTrail] = useState<TrailEntry[]>([]);
+  const [flags, setFlags] = useState<{ scan_type: string; flagged_reason: string; waybill_no?: string }[]>([]);
   const [err, setErr] = useState<string | null>(null);
+
+  const SCAN_LABELS: Record<string, string> = {
+    acknowledgement: 'Acknowledgement form',
+    waybill: 'Waybill',
+    release_letter: 'Release letter',
+  };
 
   useEffect(() => {
     if (!profile?.transporter_id) return;
@@ -56,6 +63,23 @@ export default function InvoiceStatus() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setTrail(data.trail ?? []);
+
+      // Flagged documents → "action required" prompt.
+      setFlags([]);
+      const { data: lineRows } = await supabase.from('invoice_lines').select('waybill_id').eq('invoice_id', id);
+      const wbIds = (lineRows ?? []).map((r) => r.waybill_id as string);
+      if (wbIds.length) {
+        const { data: flagged } = await supabase
+          .from('scans')
+          .select('scan_type, flagged_reason, waybills(waybill_no)')
+          .in('waybill_id', wbIds)
+          .not('flagged_reason', 'is', null);
+        setFlags(
+          ((flagged ?? []) as { scan_type: string; flagged_reason: string; waybills?: { waybill_no?: string } }[]).map(
+            (f) => ({ scan_type: f.scan_type, flagged_reason: f.flagged_reason, waybill_no: f.waybills?.waybill_no }),
+          ),
+        );
+      }
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -116,6 +140,33 @@ export default function InvoiceStatus() {
             <div className="flex-1 bg-ghana-gold" />
             <div className="flex-1 bg-ghana-green" />
           </div>
+
+          {/* Action required: flagged documents */}
+          {flags.length > 0 && (
+            <div className="bg-error-container border border-error rounded-xl p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-error">flag</span>
+                <span className="text-xs font-bold tracking-wide text-error uppercase">
+                  Action Required — {flags.length} document{flags.length > 1 ? 's' : ''} flagged
+                </span>
+              </div>
+              <ul className="space-y-1 mb-2">
+                {flags.map((f, i) => (
+                  <li key={i} className="text-sm text-on-surface">
+                    <span className="font-medium">
+                      {SCAN_LABELS[f.scan_type] ?? f.scan_type}
+                      {f.waybill_no ? ` (WB ${f.waybill_no})` : ''}:
+                    </span>{' '}
+                    {f.flagged_reason}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-on-surface-variant">
+                Please provide corrected copies to the Power Directorate. Your invoice cannot be submitted until
+                these are resolved.
+              </p>
+            </div>
+          )}
 
           {/* Current status banner */}
           <div className="bg-white border border-outline-variant rounded-xl p-4 mb-4">

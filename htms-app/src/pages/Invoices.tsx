@@ -49,6 +49,10 @@ export default function Invoices() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [trail, setTrail] = useState<AuditTrailEntry[]>([]);
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [docLinks, setDocLinks] = useState<
+    { label: string; url: string; type: string; scanId?: string; flagged?: string | null }[]
+  >([]);
+  const [contractOk, setContractOk] = useState(false);
 
   function load() {
     api
@@ -79,10 +83,66 @@ export default function Invoices() {
       const inv = data.invoice;
       setTrail(data.trail ?? []);
       setChecklist(inv.checklist ?? {});
+
+      // Supporting documents: signed links for waybill/ack/release scans + contract.
+      setDocLinks([]);
+      type ScanMeta = { id: string; storage_path: string; scan_type: string; flagged_reason: string | null };
+      const { data: docs } = await supabase
+        .from('invoices')
+        .select(
+          'transporters(contract_path,contract_validated), invoice_lines(waybills(scans(id,storage_path,scan_type,flagged_reason)))',
+        )
+        .eq('id', id)
+        .single();
+      const lines = (docs?.invoice_lines ?? []) as { waybills?: { scans?: ScanMeta[] } }[];
+      const scans = lines.flatMap((l) => l.waybills?.scans ?? []);
+      const links: typeof docLinks = [];
+      if (scans.length) {
+        const { data: signed } = await supabase.storage
+          .from('scans')
+          .createSignedUrls(scans.map((s) => s.storage_path), 3600);
+        const totals: Record<string, number> = {};
+        for (const s of scans) totals[s.scan_type] = (totals[s.scan_type] ?? 0) + 1;
+        const seen: Record<string, number> = {};
+        scans.forEach((s, i) => {
+          const url = signed?.[i]?.signedUrl;
+          if (!url) return;
+          const n = (seen[s.scan_type] = (seen[s.scan_type] ?? 0) + 1);
+          const base = SCAN_LABELS[s.scan_type] ?? s.scan_type;
+          links.push({
+            label: totals[s.scan_type] > 1 ? `${base} ${n}` : base,
+            url,
+            type: s.scan_type,
+            scanId: s.id,
+            flagged: s.flagged_reason,
+          });
+        });
+      }
+      const tp = docs?.transporters as { contract_path?: string; contract_validated?: boolean } | null;
+      setContractOk(!!tp?.contract_validated);
+      if (tp?.contract_path) {
+        const { data: c } = await supabase.storage.from('documents').createSignedUrl(tp.contract_path, 3600);
+        if (c?.signedUrl) links.push({ label: SCAN_LABELS.contract_agreement, url: c.signedUrl, type: 'contract_agreement' });
+      }
+      setDocLinks(links);
     } catch (e) {
       setErr((e as Error).message);
     }
   }, []);
+
+  // ponytail: window.prompt/confirm for flag reasons — a modal earns its place when someone complains
+  async function toggleFlag(scanId: string, current: string | null) {
+    let reason: string | null = null;
+    if (!current) {
+      reason = window.prompt('Reason for flagging (what must the transporter fix)?');
+      if (!reason) return;
+    } else if (!window.confirm('Clear this flag? Only do this once a compliant copy is in hand.')) {
+      return;
+    }
+    const { error } = await supabase.from('scans').update({ flagged_reason: reason }).eq('id', scanId);
+    if (error) setErr(error.message);
+    else if (selectedId) loadDetail(selectedId);
+  }
 
   async function updateChecklist(key: string, value: boolean) {
     if (!selectedId) return;
@@ -240,7 +300,39 @@ export default function Invoices() {
               </h2>
               <p className="text-sm text-on-surface-variant">{selected.transporters?.display_name}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 justify-end">
+              {docLinks.map((d) => (
+                <span
+                  key={d.scanId ?? d.url}
+                  className={`flex items-center rounded-lg border text-xs ${
+                    d.flagged ? 'border-error bg-error-container/40' : 'border-outline-variant'
+                  }`}
+                >
+                  <a
+                    href={d.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={d.flagged ? `Flagged: ${d.flagged}` : d.label}
+                    className="flex items-center gap-1 px-3 py-1.5 hover:bg-surface-container-low rounded-l-lg"
+                  >
+                    <span className={`material-symbols-outlined text-sm ${d.flagged ? 'text-error' : ''}`}>
+                      {d.flagged ? 'flag' : 'attach_file'}
+                    </span>
+                    {d.label}
+                  </a>
+                  {!isTransporter && d.scanId && (
+                    <button
+                      onClick={() => toggleFlag(d.scanId!, d.flagged ?? null)}
+                      title={d.flagged ? 'Clear flag' : 'Flag as substandard'}
+                      className="px-1.5 py-1.5 border-l border-outline-variant/50 hover:bg-surface-container-low rounded-r-lg"
+                    >
+                      <span className={`material-symbols-outlined text-sm ${d.flagged ? 'text-[#0d631b]' : 'text-outline'}`}>
+                        {d.flagged ? 'flag_check' : 'flag'}
+                      </span>
+                    </button>
+                  )}
+                </span>
+              ))}
               <button onClick={() => makeDoc(selected.id, 'invoice')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
                 <span className="material-symbols-outlined text-sm">description</span> Invoice
               </button>
@@ -339,23 +431,49 @@ export default function Invoices() {
             <div>
               <h3 className="text-xs font-bold tracking-wide text-outline uppercase mb-3">Checklist</h3>
               <div className="space-y-2 mb-4">
-                {CHECKLIST_ITEMS.map((k) => (
-                  <label
-                    key={k}
-                    className="flex items-center gap-3 p-2 bg-surface rounded-lg cursor-pointer border border-transparent hover:border-outline-variant transition-all"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={!!checklist[k]}
-                      onChange={(e) => updateChecklist(k, e.target.checked)}
-                      className="w-5 h-5 text-[#0d631b] border-outline-variant rounded focus:ring-[#0d631b]"
-                      disabled={isTransporter && selected?.stage !== 'generated'}
-                    />
-                    <span className="text-sm text-on-surface">
-                      {k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </span>
-                  </label>
-                ))}
+                {CHECKLIST_ITEMS.map((k) => {
+                  // Tick only when the matching files exist and none are flagged.
+                  const scanType = (
+                    {
+                      original_waybills: 'waybill',
+                      original_acknowledgement_forms: 'acknowledgement',
+                      release_letters: 'release_letter',
+                    } as Record<string, string>
+                  )[k];
+                  const files = scanType ? docLinks.filter((d) => d.type === scanType) : [];
+                  const blocked = scanType
+                    ? files.length === 0 || files.some((d) => d.flagged)
+                    : k === 'contract_agreement_copy' && !contractOk;
+                  const why =
+                    blocked && scanType
+                      ? files.length === 0
+                        ? 'No file uploaded'
+                        : 'Has flagged files'
+                      : blocked
+                        ? 'Contract not validated (Admin)'
+                        : '';
+                  return (
+                    <label
+                      key={k}
+                      title={why}
+                      className={`flex items-center gap-3 p-2 bg-surface rounded-lg border border-transparent transition-all ${
+                        blocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-outline-variant'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!checklist[k]}
+                        onChange={(e) => updateChecklist(k, e.target.checked)}
+                        className="w-5 h-5 text-[#0d631b] border-outline-variant rounded focus:ring-[#0d631b]"
+                        disabled={blocked || (isTransporter && selected?.stage !== 'generated')}
+                      />
+                      <span className="text-sm text-on-surface">
+                        {k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                        {why && <span className="block text-[10px] text-error">{why}</span>}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
 
               {nextStage && !isTransporter && (
