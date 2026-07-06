@@ -91,12 +91,12 @@ function RouteMap() {
   const routePoints = geo ? [...geo.cities, geo.cities[0]].map((c) => `${c.x},${c.y}`).join(' ') : '';
 
   return (
-    <div className="relative w-full aspect-[4/3] rounded-2xl bg-[#0f1523] border border-white/10 overflow-hidden shadow-2xl">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {geo && (
-        <svg viewBox={`-5 -5 ${VB_W + 10} ${geo.vbH + 10}`} className="absolute inset-0 w-full h-full">
+        <svg viewBox={`-5 -5 ${VB_W + 10} ${geo.vbH + 10}`} preserveAspectRatio="xMaxYMid meet" className="absolute inset-0 w-full h-full opacity-[0.85]">
           {/* Ghana regions */}
           {geo.regions.map((d, i) => (
-            <path key={i} d={d} fill="#16273f" stroke="#2e7d32" strokeWidth="0.35" strokeLinejoin="round" />
+            <path key={i} d={d} fill="#182a45" stroke="#2e7d32" strokeWidth="0.3" strokeLinejoin="round" strokeOpacity="0.7" />
           ))}
           {/* route */}
           <polyline points={routePoints} fill="none" stroke="#8cc98f" strokeWidth="0.7" strokeDasharray="2 2" className="route-dash" />
@@ -118,7 +118,7 @@ function RouteMap() {
           </g>
         </svg>
       )}
-      <div className="absolute bottom-3 left-4 text-[11px] text-white/50 flex items-center gap-1.5">
+      <div className="absolute bottom-4 right-5 text-[11px] text-white/45 flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-ghana-green animate-pulse" /> Live haulage across Ghana
       </div>
       <style>{`.route-dash{animation:htms-dash 1.4s linear infinite}@keyframes htms-dash{to{stroke-dashoffset:-8}}`}</style>
@@ -156,16 +156,20 @@ export default function Landing() {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-[#141b2b] text-white">
-        <div className="absolute inset-0 opacity-[0.15] bg-[radial-gradient(60%_60%_at_70%_10%,#2e7d32_0%,transparent_60%)]" />
-        <div className="relative max-w-6xl mx-auto px-5 pt-32 pb-24 grid lg:grid-cols-2 gap-12 items-center">
-          <div>
+        {/* Full-bleed Ghana map background */}
+        <RouteMap />
+        {/* Legibility scrim: dark on the left where the text sits, clearing toward the map on the right */}
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#141b2b] via-[#141b2b]/85 to-[#141b2b]/10" />
+        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-[#141b2b]/70 to-transparent" />
+        <div className="relative z-10 max-w-6xl mx-auto px-5 pt-32 pb-24">
+          <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs font-medium text-white/80 mb-6">
               <GhanaFlag /> Haulage Transport Management System · Ghana
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-3xl leading-[1.05]">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-[1.05]">
               From waybill to cedi,<br />without the paper chase.
             </h1>
-            <p className="mt-6 text-lg text-white/70 max-w-2xl">
+            <p className="mt-6 text-lg text-white/70">
               HTMS turns stacks of haulage waybills into fuel-indexed invoices, approval-ready documents and a fully audited
               payment pipeline — for the Ministry of Energy&apos;s electrical-materials transport.
             </p>
@@ -187,7 +191,6 @@ export default function Landing() {
               ))}
             </div>
           </div>
-          <RouteMap />
         </div>
         <div className="flex h-1.5">
           <div className="flex-1 bg-ghana-red" />
