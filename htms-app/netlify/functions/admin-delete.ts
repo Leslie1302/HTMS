@@ -42,25 +42,29 @@ async function deleteInvoices(db: Db, invoiceIds: string[]): Promise<void> {
   await db.from('audit_log').delete().in('entity', ['invoice', 'document']).in('entity_id', invoiceIds);
 }
 
+/** Permanently remove waybills: their scans (+ files), the rows, and audit trail. */
+async function deleteWaybills(db: Db, wbIds: string[]): Promise<void> {
+  if (!wbIds.length) return;
+  const { data: scans } = await db.from('scans').select('storage_path').in('waybill_id', wbIds);
+  await rmFiles(db, 'scans', (scans ?? []).map((s: { storage_path: string }) => s.storage_path));
+  await db.from('scans').delete().in('waybill_id', wbIds);
+  await db.from('waybills').delete().in('id', wbIds);
+  await db.from('audit_log').delete().eq('entity', 'waybill').in('entity_id', wbIds);
+}
+
 async function deleteInvoice(db: Db, id: string): Promise<void> {
-  // Release the waybills so they can be re-invoiced instead of being stranded.
+  // A payment request and its underlying trips are removed together — otherwise
+  // the "released" waybills get re-summed into the next invoice.
   const { data: lines } = await db.from('invoice_lines').select('waybill_id').eq('invoice_id', id);
   const wbIds = (lines ?? []).map((l: { waybill_id: string }) => l.waybill_id);
   await deleteInvoices(db, [id]);
-  if (wbIds.length) await db.from('waybills').update({ status: 'submitted' }).in('id', wbIds);
+  await deleteWaybills(db, wbIds);
 }
 
 async function deleteTransporter(db: Db, id: string): Promise<void> {
   await deleteInvoices(db, ids(await db.from('invoices').select('id').eq('transporter_id', id).then((r) => r.data)));
 
-  const wbIds = ids(await db.from('waybills').select('id').eq('transporter_id', id).then((r) => r.data));
-  if (wbIds.length) {
-    const { data: scans } = await db.from('scans').select('storage_path').in('waybill_id', wbIds);
-    await rmFiles(db, 'scans', (scans ?? []).map((s: { storage_path: string }) => s.storage_path));
-    await db.from('scans').delete().in('waybill_id', wbIds);
-    await db.from('waybills').delete().in('id', wbIds);
-    await db.from('audit_log').delete().eq('entity', 'waybill').in('entity_id', wbIds);
-  }
+  await deleteWaybills(db, ids(await db.from('waybills').select('id').eq('transporter_id', id).then((r) => r.data)));
 
   const { data: t } = await db.from('transporters').select('contract_path').eq('id', id).single();
   await rmFiles(db, 'documents', [(t as { contract_path?: string } | null)?.contract_path]);

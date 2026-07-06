@@ -427,7 +427,7 @@ export default function Invoices() {
               {profile?.role === 'admin' && (
                 <button
                   onClick={async () => {
-                    if (!window.confirm(`Permanently delete invoice ${selected.reference_no ?? selected.id.slice(0, 8)} and its generated documents?\n\nIts waybills are released for re-invoicing. This cannot be undone.`)) return;
+                    if (!window.confirm(`Permanently delete invoice ${selected.reference_no ?? selected.id.slice(0, 8)}, its generated documents AND its underlying waybills?\n\nThe trips are removed entirely so they won't be re-invoiced. This cannot be undone.`)) return;
                     setBusy(true);
                     setErr(null);
                     try {
