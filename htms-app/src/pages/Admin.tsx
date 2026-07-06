@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
@@ -233,11 +234,78 @@ function Transporters() {
     window.open(url, '_blank');
   }
 
+  // ── Bulk import (Excel / CSV) ──────────────────────────────────────────────
+  const [importing, setImporting] = useState(false);
+
+  function downloadTemplate() {
+    const headers = ['Name', 'Address', 'Email', 'Phone', 'GPS', 'Manager'];
+    const example = ['Among The Gods Ltd', 'No. 12 Spintex Road, Tema', 'ops@example.com', '024 123 4567', 'GA-123-4567', 'Kwame Mensah'];
+    const csv = [headers, example].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'transporters_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function bulkImport(file: File) {
+    setErr(null); setMsg(null); setImporting(true);
+    try {
+      const wb = XLSX.read(await file.arrayBuffer());
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      // Case-insensitive header lookup for each field.
+      const pick = (row: Record<string, unknown>, keys: string[]) => {
+        const found = Object.keys(row).find((k) => keys.includes(k.trim().toLowerCase()));
+        return found ? String(row[found]).trim() : '';
+      };
+      const existing = new Set(list.map((t) => t.display_name.toLowerCase()));
+      const seen = new Set<string>();
+      const payload: Record<string, string | null>[] = [];
+      let skipped = 0, added = 0, updated = 0;
+      for (const row of rows) {
+        const name = pick(row, ['name', 'company', 'transporter', 'display_name', 'company name']);
+        if (!name || seen.has(name.toLowerCase())) { if (!name) skipped++; continue; }
+        seen.add(name.toLowerCase());
+        if (existing.has(name.toLowerCase())) updated++; else added++;
+        payload.push({
+          display_name: name,
+          address: pick(row, ['address']) || null,
+          email: pick(row, ['email', 'e-mail']) || null,
+          phone: pick(row, ['phone', 'contact', 'phone number', 'tel']) || null,
+          gps_address: pick(row, ['gps', 'gps address', 'digital address', 'ghana post gps']) || null,
+          manager_name: pick(row, ['manager', 'manager name', 'signatory', 'signatory name']) || null,
+        });
+      }
+      if (!payload.length) throw new Error('No rows with a Name/Company column were found.');
+      const { error } = await supabase.from('transporters').upsert(payload, { onConflict: 'display_name' });
+      if (error) throw new Error(error.message);
+      setMsg(`Imported ${payload.length} transporter(s): ${added} added, ${updated} updated${skipped ? `, ${skipped} skipped (no name)` : ''}.`);
+      load();
+    } catch (e) {
+      setErr(`Import failed: ${(e as Error).message}`);
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const set = (k: keyof typeof blank) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   return (
     <div className="max-w-3xl mx-auto">
       <Banner msg={msg} err={err} />
+      <div className="bg-white rounded-lg border border-outline-variant p-4 mb-5 flex flex-wrap items-center gap-3">
+        <div className="flex-1 min-w-[200px]">
+          <h3 className="text-sm font-semibold text-on-surface">Bulk import from Excel / CSV</h3>
+          <p className="text-xs text-on-surface-variant mt-0.5">Upserts on company name — new names are added, existing ones updated. Columns: Name, Address, Email, Phone, GPS, Manager.</p>
+        </div>
+        <button onClick={downloadTemplate} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-2 text-sm hover:bg-surface-container-low">
+          <span className="material-symbols-outlined text-[18px]">download</span> Template
+        </button>
+        <label className={`flex items-center gap-1 bg-[#2e7d32] text-white rounded-lg px-3 py-2 text-sm font-medium cursor-pointer hover:opacity-90 ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+          <span className="material-symbols-outlined text-[18px]">upload_file</span>
+          {importing ? 'Importing…' : 'Upload file'}
+          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) bulkImport(file); e.target.value = ''; }} />
+        </label>
+      </div>
       <div className="bg-white rounded-lg border border-outline-variant p-5 mb-5">
         <h3 className="text-sm font-semibold text-on-surface mb-3">{editingId ? 'Edit Transporter' : 'Add Transporter'}</h3>
         <form onSubmit={submit} className="grid grid-cols-2 gap-3">

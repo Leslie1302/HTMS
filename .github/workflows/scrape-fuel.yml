@@ -1,9 +1,10 @@
-name: Weekly GOIL fuel price
+name: Daily GOIL fuel price
 
 on:
   schedule:
-    # Every Monday 06:00 UTC. The scraper keys the row to the week's Monday.
-    - cron: '0 6 * * 1'
+    # Every day 08:00 UTC (08:00 Accra, UTC+0). Fuel prices change irregularly,
+    # so we check daily; the scraper keys each row to the price's effective date.
+    - cron: '0 8 * * *'
   workflow_dispatch: {}
 
 jobs:
