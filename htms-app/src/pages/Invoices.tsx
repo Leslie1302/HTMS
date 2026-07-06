@@ -411,6 +411,29 @@ export default function Invoices() {
                   <span className="material-symbols-outlined text-sm">check</span> Approve totals
                 </button>
               )}
+              {profile?.role === 'admin' && (
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`Permanently delete invoice ${selected.reference_no ?? selected.id.slice(0, 8)} and its generated documents?\n\nIts waybills are released for re-invoicing. This cannot be undone.`)) return;
+                    setBusy(true);
+                    setErr(null);
+                    try {
+                      await api.adminDelete({ action: 'delete_invoice', id: selected.id });
+                      setSelectedId(null);
+                      load();
+                    } catch (e) {
+                      setErr((e as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                  disabled={busy}
+                  title="Delete this payment request"
+                  className="flex items-center gap-1 border border-error text-error rounded-lg px-3 py-1.5 text-xs hover:bg-error-container/40"
+                >
+                  <span className="material-symbols-outlined text-sm">delete</span> Delete
+                </button>
+              )}
               <button
                 onClick={() => setSelectedId(null)}
                 title="Minimize"

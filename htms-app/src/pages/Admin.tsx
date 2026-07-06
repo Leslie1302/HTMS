@@ -212,6 +212,20 @@ function Transporters() {
     if (error) setErr(error.message); else load();
   }
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  async function removeTransporter(t: TransporterRow) {
+    if (!window.confirm(`Permanently delete "${t.display_name}" and ALL of its waybills, invoices, documents and user accounts?\n\nThis cannot be undone.`)) return;
+    setErr(null); setMsg(null); setDeletingId(t.id);
+    try {
+      await api.adminDelete({ action: 'delete_transporter', id: t.id });
+      setMsg(`Deleted "${t.display_name}" and all its data.`); load();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function downloadContract(path: string) {
     const { data } = await supabase.storage.from('documents').download(path);
     if (!data) return;
@@ -291,11 +305,57 @@ function Transporters() {
               <span className={`text-xs font-bold uppercase ${t.active ? 'text-[#0d631b]' : 'text-outline'}`}>{t.active ? 'Active' : 'Inactive'}</span>
               <button onClick={() => startEdit(t)} className="text-[#0d631b] underline text-xs">Edit</button>
               <button onClick={() => toggleActive(t)} className="text-outline underline text-xs">{t.active ? 'Deactivate' : 'Activate'}</button>
+              <button onClick={() => removeTransporter(t)} disabled={deletingId === t.id} title="Delete transporter and all its data" className="text-error hover:text-error disabled:opacity-40">
+                <span className="material-symbols-outlined text-[18px]">{deletingId === t.id ? 'hourglass_top' : 'delete'}</span>
+              </button>
             </div>
           </div>
         ))}
         {list.length === 0 && <div className="px-4 py-6 text-center text-outline-variant text-sm">No transporters yet.</div>}
       </div>
+
+      <DangerZone onDone={load} />
+    </div>
+  );
+}
+
+/** Guarded bulk flush for going live — keeps config data and admin logins. */
+function DangerZone({ onDone }: { onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function reset() {
+    setBusy(true); setErr(null); setMsg(null);
+    try {
+      await api.adminDelete({ action: 'reset_pilot' });
+      setMsg('All transporters and payment-request activity have been cleared. Configuration and admin accounts were kept.');
+      setOpen(false); setConfirm(''); onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-8 rounded-xl border border-error/40 bg-error-container/30 p-5">
+      <div className="flex items-center gap-2 text-error font-semibold"><span className="material-symbols-outlined text-[20px]">warning</span> Danger zone</div>
+      <p className="text-sm text-on-surface-variant mt-1">Flush every transporter, waybill, invoice, document and non-admin account to start the pilot fresh. Reference/config data (rates, fuel, distances) and admin logins are kept. This cannot be undone.</p>
+      {msg && <div className="mt-3 text-sm text-[#0d631b] bg-[#e8f5e9] p-2 rounded-lg">{msg}</div>}
+      {err && <div className="mt-3 text-sm text-error bg-error-container p-2 rounded-lg">{err}</div>}
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="mt-3 border border-error text-error rounded-lg px-4 py-2 text-sm font-medium hover:bg-error-container/50">Reset pilot data…</button>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-sm">Type <span className="font-mono font-bold">RESET</span> to confirm:</span>
+          <input value={confirm} onChange={(e) => setConfirm(e.target.value)} className="border border-outline-variant rounded-lg px-3 py-1.5 text-sm w-28 outline-none focus:border-error" autoFocus />
+          <button onClick={reset} disabled={confirm !== 'RESET' || busy} className="bg-error text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-40">{busy ? 'Flushing…' : 'Flush all data'}</button>
+          <button onClick={() => { setOpen(false); setConfirm(''); }} className="border border-outline-variant rounded-lg px-4 py-1.5 text-sm">Cancel</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -39,4 +39,6 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(u),
   }),
+  adminDelete: (body: { action: 'delete_transporter' | 'delete_invoice' | 'reset_pilot'; id?: string }) =>
+    call<{ ok: true }>('/api/admin-delete', { method: 'POST', body: JSON.stringify(body) }),
 };
