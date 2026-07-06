@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Crest } from '../components/Crest';
-import { STAGE_LABELS, ALL_STAGES } from '../../shared/lifecycle';
 
 /** Tiny Ghana flag (red/gold/green with black star). */
 function GhanaFlag({ className = '' }: { className?: string }) {
@@ -218,19 +217,55 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Pipeline ── */}
+      {/* ── Document generation ── */}
       <section id="how" className="bg-[#0f1523] text-white py-20">
         <div className="max-w-6xl mx-auto px-5">
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold tracking-tight">One transparent pipeline, eleven accountable steps.</h2>
-            <p className="mt-3 text-white/60">Each payment request moves forward only — from the moment it&apos;s generated to the day it&apos;s paid. Every transition is stamped, attributed and notified.</p>
+            <h2 className="text-3xl font-bold tracking-tight">Letters and invoices, generated — not typed.</h2>
+            <p className="mt-3 text-white/60">Enter the trip once. HTMS builds the payment-request letter and the invoice as clean, print-ready PDFs straight from your waybill data — with the PD memo and signatory sheet a click away.</p>
           </div>
-          <div className="mt-10 flex flex-wrap gap-2">
-            {ALL_STAGES.map((s, i) => (
-              <div key={s} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                <span className="w-6 h-6 rounded-full bg-[#2e7d32] grid place-items-center text-[11px] font-bold">{i + 1}</span>
-                <span className="text-sm text-white/85">{STAGE_LABELS[s]}</span>
+          <div className="mt-10 grid md:grid-cols-2 gap-6">
+            {/* Invoice preview */}
+            <div className="bg-white text-on-surface rounded-xl shadow-2xl p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-lg bg-[#0d631b]" />
+                  <div className="space-y-1"><div className="h-2 w-24 bg-gray-800 rounded" /><div className="h-1.5 w-16 bg-gray-300 rounded" /></div>
+                </div>
+                <div className="text-right"><div className="h-2 w-20 bg-gray-800 rounded ml-auto" /><div className="h-1.5 w-12 bg-gray-300 rounded ml-auto mt-1" /></div>
               </div>
+              <div className="h-[2px] bg-[#0d631b] my-4" />
+              <div className="rounded-md border border-gray-200 overflow-hidden">
+                <div className="grid grid-cols-4 gap-2 bg-[#e8f5e9] px-3 py-2">{[16, 12, 12, 14].map((w, i) => <div key={i} className="h-1.5 bg-[#0d631b]/50 rounded" style={{ width: w * 4 }} />)}</div>
+                {[0, 1, 2].map((r) => (
+                  <div key={r} className="grid grid-cols-4 gap-2 px-3 py-2 border-t border-gray-100">{[18, 10, 10, 12].map((w, i) => <div key={i} className="h-1.5 bg-gray-200 rounded" style={{ width: w * 4 }} />)}</div>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end"><div className="h-3.5 w-40 bg-[#0d631b]/80 rounded" /></div>
+              <div className="mt-4 text-xs font-semibold text-[#0d631b] flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">description</span> Invoice.pdf</div>
+            </div>
+            {/* Letter preview */}
+            <div className="bg-white text-on-surface rounded-xl shadow-2xl p-6">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg bg-[#0d631b]" />
+                <div className="space-y-1"><div className="h-2 w-28 bg-gray-800 rounded" /><div className="h-1.5 w-20 bg-gray-300 rounded" /></div>
+              </div>
+              <div className="h-[2px] bg-[#0d631b] my-4" />
+              <div className="space-y-2">
+                <div className="h-1.5 w-24 bg-gray-300 rounded" />
+                <div className="h-1.5 w-40 bg-gray-300 rounded" />
+                <div className="h-2 w-56 bg-gray-800 rounded my-3" />
+                {[92, 96, 88, 94, 70].map((w, i) => <div key={i} className="h-1.5 bg-gray-200 rounded" style={{ width: `${w}%` }} />)}
+              </div>
+              <div className="mt-5 space-y-1"><div className="h-1.5 w-28 bg-gray-300 rounded" /><div className="h-2 w-24 bg-gray-800 rounded" /></div>
+              <div className="mt-4 text-xs font-semibold text-[#0d631b] flex items-center gap-1"><span className="material-symbols-outlined text-[16px]">mail</span> Payment_Request.pdf</div>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {['Invoice', 'Payment Request Letter', 'PD Memo', 'Signatory Sheet'].map((d) => (
+              <span key={d} className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white/85">
+                <span className="w-1.5 h-1.5 rounded-full bg-ghana-gold" /> {d}
+              </span>
             ))}
           </div>
         </div>
