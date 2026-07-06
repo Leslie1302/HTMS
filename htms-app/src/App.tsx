@@ -37,12 +37,10 @@ function Nav() {
           <span className="material-symbols-outlined text-base mr-1 align-text-bottom">calculate</span>
           Trip Calculator
         </NavLink>
-        {profile?.role !== 'transporter' && (
-          <NavLink to="/invoices" className={link}>
-            <span className="material-symbols-outlined text-base mr-1 align-text-bottom">receipt_long</span>
-            Payment Requests Status
-          </NavLink>
-        )}
+        <NavLink to="/invoices" className={link}>
+          <span className="material-symbols-outlined text-base mr-1 align-text-bottom">receipt_long</span>
+          {profile?.role === 'transporter' ? 'Raise Invoice' : 'Payment Requests Status'}
+        </NavLink>
         {profile?.role === 'transporter' && (
           <NavLink to="/invoice-status" className={link}>
             <span className="material-symbols-outlined text-base mr-1 align-text-bottom">track_changes</span>

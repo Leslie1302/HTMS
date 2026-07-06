@@ -2726,3 +2726,13 @@ insert into weekly_fuel (week_start,price_per_litre,status) values ('2026-04-08'
 insert into weekly_fuel (week_start,price_per_litre,status) values ('2026-05-02',15.77,'manual') on conflict (week_start) do update set price_per_litre=excluded.price_per_litre;
 
 commit;
+
+-- Migration 0015: allow deletion of locked invoices (immutability = no updates).
+create or replace function forbid_locked_invoice_change() returns trigger
+  language plpgsql as $$
+begin
+  if (tg_op = 'UPDATE' and old.status = 'locked') then
+    raise exception 'Invoice % is locked and cannot be modified', old.id;
+  end if;
+  return case when tg_op = 'DELETE' then old else new end;
+end $$;

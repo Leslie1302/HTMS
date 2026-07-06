@@ -4,7 +4,7 @@
  * the client never supplies an amount. Each line stores an immutable snapshot.
  */
 import type { Config } from '@netlify/functions';
-import { audit, guard, json, parseBody } from './_lib';
+import { audit, guard, json, parseBody, serviceDb } from './_lib';
 import { invoiceCreateSchema } from '../../shared/validation';
 import { computeHaulageCost, CalcError, chartToDistance, type WaybillInput } from '../../shared/calc';
 import { loadCalcConfig } from './_calcConfig';
@@ -24,16 +24,18 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
 
   // ── Create / assemble (staff only) ──
   if (req.method === 'POST') {
-    if (ctx.role === 'transporter') return json(403, { error: 'Only staff assemble invoices' });
     const body = await parseBody(req, invoiceCreateSchema);
+    // Transporters may only assemble their own invoices; staff assemble for anyone.
+    const transporterId = ctx.role === 'transporter' ? ctx.transporterId : body.transporterId;
+    if (!transporterId) return json(403, { error: 'No transporter to assemble for' });
     const cfg = await loadCalcConfig(ctx.db);
 
-    // Fetch the waybills for this transporter.
+    // Fetch the waybills (RLS-scoped read — proves the caller owns them).
     const { data: wbs, error: wbErr } = await ctx.db
       .from('waybills')
       .select('*')
       .in('id', body.waybillIds)
-      .eq('transporter_id', body.transporterId);
+      .eq('transporter_id', transporterId);
     if (wbErr) return json(400, { error: wbErr.message });
     if (!wbs || wbs.length !== body.waybillIds.length) {
       return json(400, { error: 'Some waybills not found or belong to another transporter' });
@@ -108,10 +110,13 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
       ? (await ctx.db.from('rate_versions').select('id').eq('is_active', true).single()).data?.id
       : null;
 
-    const { data: invoice, error: invErr } = await ctx.db
+    // Writes go through the service role: ownership was validated above, and
+    // this lets transporters raise their own invoices (RLS only lets staff write).
+    const wdb = serviceDb();
+    const { data: invoice, error: invErr } = await wdb
       .from('invoices')
       .insert({
-        transporter_id: body.transporterId,
+        transporter_id: transporterId,
         rate_version_id: activeVersion,
         status: 'draft',
         total_cost: Math.round(total * 100) / 100,
@@ -124,13 +129,13 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
       .single();
     if (invErr) return json(400, { error: invErr.message });
 
-    const { error: lineErr } = await ctx.db
+    const { error: lineErr } = await wdb
       .from('invoice_lines')
       .insert(lines.map((l) => ({ ...l, invoice_id: invoice.id })));
     if (lineErr) return json(400, { error: lineErr.message });
 
     // Mark waybills invoiced.
-    await ctx.db.from('waybills').update({ status: 'invoiced' }).in('id', body.waybillIds);
+    await wdb.from('waybills').update({ status: 'invoiced' }).in('id', body.waybillIds);
     await audit(ctx.userId, 'create', 'invoice', invoice.id, null, { total, lines: lines.length });
     return json(201, { invoice, lineCount: lines.length });
   }

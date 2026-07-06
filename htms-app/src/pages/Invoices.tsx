@@ -206,18 +206,18 @@ export default function Invoices() {
     }
   }
 
-  async function assemble() {
-    if (!pick) return;
+  async function assembleFor(transporterId: string) {
+    if (!transporterId) return;
     setBusy(true);
     setErr(null);
     setMsg(null);
     try {
       const { waybills } = await api.listWaybills();
       const ids = (waybills ?? [])
-        .filter((w: any) => w.transporter_id === pick && w.status !== 'invoiced')
+        .filter((w: any) => w.transporter_id === transporterId && w.status !== 'invoiced')
         .map((w: any) => w.id);
-      if (!ids.length) throw new Error('No un-invoiced waybills for that transporter');
-      await api.createInvoice({ transporterId: pick, waybillIds: ids });
+      if (!ids.length) throw new Error('No un-invoiced waybills to raise an invoice from');
+      await api.createInvoice({ transporterId, waybillIds: ids });
       setMsg(`Invoice assembled from ${ids.length} waybill(s).`);
       load();
     } catch (e) {
@@ -226,6 +226,7 @@ export default function Invoices() {
       setBusy(false);
     }
   }
+  const assemble = () => assembleFor(pick);
 
   async function act(id: string, action: 'approve' | 'lock' | 'void') {
     setBusy(true);
@@ -327,7 +328,19 @@ export default function Invoices() {
       {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg flex items-center gap-2">{err}</div>}
       {msg && <div className="mb-4 text-sm text-[#0d631b] bg-[#e8f5e9] p-3 rounded-lg flex items-center gap-2">{msg}</div>}
 
-      {!isTransporter && (
+      {isTransporter ? (
+        <div className="mb-5 flex gap-2 items-center bg-white rounded-lg border border-outline-variant p-3">
+          <button
+            onClick={() => { if (profile?.transporter_id) { setPick(profile.transporter_id); assembleFor(profile.transporter_id); } }}
+            disabled={busy || !profile?.transporter_id}
+            className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+          >
+            <span className="material-symbols-outlined text-sm">receipt_long</span>
+            {busy ? 'Working…' : 'Raise invoice from my waybills'}
+          </button>
+          <span className="text-xs text-outline">Groups your un-invoiced waybills into one invoice, then print the letter &amp; invoice below.</span>
+        </div>
+      ) : (
         <div className="mb-5 flex gap-2 items-center bg-white rounded-lg border border-outline-variant p-3">
           <span className="text-xs font-medium text-on-surface-variant">Assemble invoice for:</span>
           <select value={pick} onChange={(e) => setPick(e.target.value)} className="border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none">

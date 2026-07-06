@@ -119,7 +119,11 @@ export default guard({ roles: ['admin'] }, async (req, ctx) => {
   const db = serviceDb();
 
   if (body.action === 'reset_pilot') {
-    await resetPilot(db);
+    try {
+      await resetPilot(db);
+    } catch (e) {
+      return json(400, { error: (e as Error).message });
+    }
     await audit(ctx.userId, 'reset_pilot', 'system', 'all', null, null);
     return json(200, { ok: true });
   }
