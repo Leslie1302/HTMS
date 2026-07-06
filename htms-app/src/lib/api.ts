@@ -1,9 +1,20 @@
 import { supabase } from './supabase';
 
+/** A non-expired access token, refreshing first if the stored one is stale. */
+async function freshToken(): Promise<string | undefined> {
+  const { data } = await supabase.auth.getSession();
+  let session = data.session;
+  // Refresh if the token is expired or within 60s of expiring (idle-tab guard).
+  if (session?.expires_at && session.expires_at * 1000 < Date.now() + 60_000) {
+    const { data: r } = await supabase.auth.refreshSession();
+    session = r.session ?? session;
+  }
+  return session?.access_token;
+}
+
 /** Authenticated fetch to a Netlify function — always attaches the live JWT. */
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  const token = await freshToken();
   const res = await fetch(path, {
     ...init,
     headers: {
