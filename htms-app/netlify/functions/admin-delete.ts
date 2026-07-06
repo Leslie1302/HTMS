@@ -36,7 +36,10 @@ async function deleteInvoices(db: Db, invoiceIds: string[]): Promise<void> {
   await rmFiles(db, 'documents', (docs ?? []).map((d: { storage_path: string }) => d.storage_path));
   await db.from('documents').delete().in('invoice_id', invoiceIds);
   await db.from('invoice_lines').delete().in('invoice_id', invoiceIds);
-  await db.from('invoices').delete().in('id', invoiceIds);
+  const { error } = await db.from('invoices').delete().in('id', invoiceIds);
+  if (error) throw new Error(`invoices: ${error.message}`);
+  // Flush the payment-request status trail + generated-doc audit rows.
+  await db.from('audit_log').delete().in('entity', ['invoice', 'document']).in('entity_id', invoiceIds);
 }
 
 async function deleteInvoice(db: Db, id: string): Promise<void> {
@@ -56,16 +59,21 @@ async function deleteTransporter(db: Db, id: string): Promise<void> {
     await rmFiles(db, 'scans', (scans ?? []).map((s: { storage_path: string }) => s.storage_path));
     await db.from('scans').delete().in('waybill_id', wbIds);
     await db.from('waybills').delete().in('id', wbIds);
+    await db.from('audit_log').delete().eq('entity', 'waybill').in('entity_id', wbIds);
   }
 
   const { data: t } = await db.from('transporters').select('contract_path').eq('id', id).single();
   await rmFiles(db, 'documents', [(t as { contract_path?: string } | null)?.contract_path]);
 
-  // Delete the company's user logins (cascades their app_users + device tokens).
+  // Remove the company's user logins. Drop the app_users rows explicitly first
+  // (this is the FK that otherwise blocks the transporter delete), then
+  // best-effort remove their auth accounts.
   const { data: us } = await db.from('app_users').select('id').eq('transporter_id', id);
+  await db.from('app_users').delete().eq('transporter_id', id);
   for (const u of us ?? []) await db.auth.admin.deleteUser((u as { id: string }).id).catch(() => {});
 
-  await db.from('transporters').delete().eq('id', id);
+  const { error } = await db.from('transporters').delete().eq('id', id);
+  if (error) throw new Error(`transporter: ${error.message}`);
 }
 
 /** Remove every auth user that isn't an admin (covers parked signups too). */
@@ -117,8 +125,13 @@ export default guard({ roles: ['admin'] }, async (req, ctx) => {
   }
 
   if (!body.id) return json(400, { error: 'id required' });
-  if (body.action === 'delete_transporter') await deleteTransporter(db, body.id);
-  else await deleteInvoice(db, body.id);
+  try {
+    if (body.action === 'delete_transporter') await deleteTransporter(db, body.id);
+    else await deleteInvoice(db, body.id);
+  } catch (e) {
+    // Surface the real reason (e.g. a foreign-key block) instead of a false success.
+    return json(400, { error: (e as Error).message });
+  }
   await audit(ctx.userId, body.action, body.action === 'delete_invoice' ? 'invoice' : 'transporter', body.id, null, null);
   return json(200, { ok: true });
 });
