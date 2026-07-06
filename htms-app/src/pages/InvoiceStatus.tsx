@@ -32,7 +32,7 @@ export default function InvoiceStatus() {
   const [invoices, setInvoices] = useState<InvoiceStatus[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [trail, setTrail] = useState<TrailEntry[]>([]);
-  const [flags, setFlags] = useState<{ scan_type: string; flagged_reason: string; waybill_no?: string }[]>([]);
+  const [flags, setFlags] = useState<{ id: string; waybill_id: string; scan_type: string; flagged_reason: string; waybill_no?: string }[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -74,12 +74,12 @@ export default function InvoiceStatus() {
       if (wbIds.length) {
         const { data: flagged } = await supabase
           .from('scans')
-          .select('scan_type, flagged_reason, waybills(waybill_no)')
+          .select('id, waybill_id, scan_type, flagged_reason, waybills(waybill_no)')
           .in('waybill_id', wbIds)
           .not('flagged_reason', 'is', null);
         setFlags(
-          ((flagged ?? []) as { scan_type: string; flagged_reason: string; waybills?: { waybill_no?: string } }[]).map(
-            (f) => ({ scan_type: f.scan_type, flagged_reason: f.flagged_reason, waybill_no: f.waybills?.waybill_no }),
+          ((flagged ?? []) as { id: string; waybill_id: string; scan_type: string; flagged_reason: string; waybills?: { waybill_no?: string } }[]).map(
+            (f) => ({ id: f.id, waybill_id: f.waybill_id, scan_type: f.scan_type, flagged_reason: f.flagged_reason, waybill_no: f.waybills?.waybill_no }),
           ),
         );
       }
@@ -87,6 +87,27 @@ export default function InvoiceStatus() {
       setErr((e as Error).message);
     }
   }, []);
+
+  // Re-upload a corrected copy for a flagged document, clearing the flag.
+  async function resolveFlag(flag: { id: string; waybill_id: string; scan_type: string }, file: File) {
+    if (!profile?.transporter_id || !selectedId) return;
+    setErr(null); setBusy(true);
+    try {
+      const path = `${profile.transporter_id}/${flag.waybill_id}/${flag.scan_type}-${Date.now()}-${file.name}`;
+      const { error: upErr } = await supabase.storage.from('scans').upload(path, file, { contentType: file.type });
+      if (upErr) throw new Error(upErr.message);
+      const { error: updErr } = await supabase
+        .from('scans')
+        .update({ storage_path: path, mime_type: file.type, byte_size: file.size, flagged_reason: null })
+        .eq('id', flag.id);
+      if (updErr) throw new Error(updErr.message);
+      await loadDetail(selectedId);
+    } catch (e) {
+      setErr(`Replace failed: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // ponytail: auto-open the only invoice — with n=1 neither list nor empty state renders
   useEffect(() => {
@@ -189,20 +210,27 @@ export default function InvoiceStatus() {
                   Action Required — {flags.length} document{flags.length > 1 ? 's' : ''} flagged
                 </span>
               </div>
-              <ul className="space-y-1 mb-2">
-                {flags.map((f, i) => (
-                  <li key={i} className="text-sm text-on-surface">
-                    <span className="font-medium">
-                      {SCAN_LABELS[f.scan_type] ?? f.scan_type}
-                      {f.waybill_no ? ` (WB ${f.waybill_no})` : ''}:
-                    </span>{' '}
-                    {f.flagged_reason}
+              <ul className="space-y-2 mb-2">
+                {flags.map((f) => (
+                  <li key={f.id} className="text-sm text-on-surface flex items-start justify-between gap-3">
+                    <div>
+                      <span className="font-medium">
+                        {SCAN_LABELS[f.scan_type] ?? f.scan_type}
+                        {f.waybill_no ? ` (WB ${f.waybill_no})` : ''}:
+                      </span>{' '}
+                      {f.flagged_reason}
+                    </div>
+                    <label className={`shrink-0 flex items-center gap-1 bg-[#2e7d32] text-white rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer hover:opacity-90 ${busy ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                      {busy ? 'Uploading…' : 'Replace document'}
+                      <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) resolveFlag(f, file); e.target.value = ''; }} />
+                    </label>
                   </li>
                 ))}
               </ul>
               <p className="text-xs text-on-surface-variant">
-                Please provide corrected copies to the Power Directorate. Your invoice cannot be submitted until
-                these are resolved.
+                Upload a corrected copy for each flagged item above. Once replaced, the flag clears and you can
+                submit — the Power Directorate will review the new document.
               </p>
             </div>
           )}

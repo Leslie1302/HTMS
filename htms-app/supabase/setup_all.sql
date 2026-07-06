@@ -2736,3 +2736,15 @@ begin
   end if;
   return case when tg_op = 'DELETE' then old else new end;
 end $$;
+
+-- Migration 0016: transporter can replace their own flagged scan.
+drop policy if exists scans_resubmit_update on scans;
+create policy scans_resubmit_update on scans
+  for update to authenticated
+  using (
+    auth_role() = 'transporter' and flagged_reason is not null
+    and exists (select 1 from waybills w where w.id = scans.waybill_id and w.transporter_id = auth_transporter_id())
+  )
+  with check (
+    exists (select 1 from waybills w where w.id = scans.waybill_id and w.transporter_id = auth_transporter_id())
+  );

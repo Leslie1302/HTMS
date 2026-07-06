@@ -25,6 +25,20 @@ interface AuditTrailEntry {
   after: { stage?: string };
 }
 
+interface TripRow {
+  waybill_no: string;
+  vehicle_no: string;
+  date: string;
+  origin: string;
+  destination: string;
+  distance: number | null;
+  category: string;
+  poles: number | null;
+  trips: number | null;
+  truck: string;
+  cost: number;
+}
+
 interface InvoiceRow {
   id: string;
   reference_no: string | null;
@@ -52,6 +66,7 @@ export default function Invoices() {
   const [search, setSearch] = useState('');
   const [trail, setTrail] = useState<AuditTrailEntry[]>([]);
   const [checklist, setChecklist] = useState<Record<string, boolean>>({});
+  const [lineRows, setLineRows] = useState<TripRow[]>([]);
   const [docLinks, setDocLinks] = useState<
     { label: string; url: string; type: string; scanId?: string; flagged?: string | null }[]
   >([]);
@@ -89,15 +104,38 @@ export default function Invoices() {
 
       // Supporting documents: signed links for waybill/ack/release scans + contract.
       setDocLinks([]);
+      setLineRows([]);
       type ScanMeta = { id: string; storage_path: string; scan_type: string; flagged_reason: string | null };
+      type Wb = {
+        waybill_no?: string; vehicle_no?: string; waybill_date?: string; num_poles?: number; num_trips?: number;
+        truck_size?: string | number; origins?: { name?: string }; districts?: { name?: string }; scans?: ScanMeta[];
+      };
+      type LineRec = { computed_cost?: number; category?: string; distance_km?: number; waybills?: Wb };
       const { data: docs } = await supabase
         .from('invoices')
         .select(
-          'transporters(contract_path,contract_validated), invoice_lines(waybills(scans(id,storage_path,scan_type,flagged_reason)))',
+          'transporters(contract_path,contract_validated), invoice_lines(computed_cost, category, distance_km, waybills(waybill_no, vehicle_no, waybill_date, num_poles, num_trips, truck_size, origins(name), districts(name), scans(id,storage_path,scan_type,flagged_reason)))',
         )
         .eq('id', id)
         .single();
-      const lines = (docs?.invoice_lines ?? []) as { waybills?: { scans?: ScanMeta[] } }[];
+      const lines = (docs?.invoice_lines ?? []) as (LineRec & { waybills?: { scans?: ScanMeta[] } })[];
+
+      // Trip details for review validation.
+      setLineRows(
+        (docs?.invoice_lines as LineRec[] | undefined ?? []).map((l) => ({
+          waybill_no: l.waybills?.waybill_no ?? '—',
+          vehicle_no: l.waybills?.vehicle_no ?? '—',
+          date: l.waybills?.waybill_date ?? '',
+          origin: l.waybills?.origins?.name ?? '—',
+          destination: l.waybills?.districts?.name ?? '—',
+          distance: l.distance_km ?? null,
+          category: l.category ?? '',
+          poles: l.waybills?.num_poles ?? null,
+          trips: l.waybills?.num_trips ?? null,
+          truck: l.waybills?.truck_size != null ? String(l.waybills.truck_size) : '—',
+          cost: l.computed_cost ?? 0,
+        })),
+      );
       const scans = lines.flatMap((l) => l.waybills?.scans ?? []);
       const links: typeof docLinks = [];
       if (scans.length) {
@@ -495,6 +533,45 @@ export default function Invoices() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Trip / waybill details for review validation */}
+          <div className="mt-5 bg-white rounded-lg border border-outline-variant overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-on-surface">Trips in this request ({lineRows.length})</h3>
+              <span className="text-xs text-outline">Total: {ghs(selected.total_cost)}</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-surface-container-low text-left">
+                  <tr>
+                    {['Date', 'Category', 'From', 'Destination', 'Distance (km)', 'Poles', 'Trips', 'Truck', 'Waybill No.', 'Vehicle', 'Cost'].map((h) => (
+                      <th key={h} className="px-3 py-2 text-[11px] font-bold tracking-wide text-on-surface-variant uppercase whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
+                  {lineRows.map((r, i) => (
+                    <tr key={i} className="hover:bg-surface-container-low">
+                      <td className="px-3 py-2 whitespace-nowrap">{r.date ? new Date(r.date).toLocaleDateString() : '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{r.category || '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{r.origin}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-medium">{r.destination}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{r.distance ?? '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{r.poles ?? '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{r.trips ?? '—'}</td>
+                      <td className="px-3 py-2 whitespace-nowrap">{r.truck}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{r.waybill_no}</td>
+                      <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{r.vehicle_no}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-right font-medium">{ghs(r.cost)}</td>
+                    </tr>
+                  ))}
+                  {lineRows.length === 0 && (
+                    <tr><td colSpan={11} className="px-3 py-6 text-center text-outline-variant">No trips linked to this request.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
