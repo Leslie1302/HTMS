@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 import { ALL_STAGES, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
@@ -91,16 +92,18 @@ export default function InvoiceStatus() {
   // Re-upload a corrected copy for a flagged document, clearing the flag.
   async function resolveFlag(flag: { id: string; waybill_id: string; scan_type: string }, file: File) {
     if (!profile?.transporter_id || !selectedId) return;
+    if (file.size > 15 * 1024 * 1024) { setErr('That file is over 15 MB — please upload a smaller scan or photo.'); return; }
     setErr(null); setBusy(true);
     try {
-      const path = `${profile.transporter_id}/${flag.waybill_id}/${flag.scan_type}-${Date.now()}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from('scans').upload(path, file, { contentType: file.type });
+      // Make sure the session token is live so the upload doesn't hang on an expired one.
+      await supabase.auth.refreshSession().catch(() => supabase.auth.getSession());
+      const mime = file.type || 'application/octet-stream';
+      const safeName = file.name.replace(/[^\w.-]+/g, '_');
+      const path = `${profile.transporter_id}/${flag.waybill_id}/${flag.scan_type}-${Date.now()}-${safeName}`;
+      const { error: upErr } = await supabase.storage.from('scans').upload(path, file, { contentType: mime, upsert: true });
       if (upErr) throw new Error(upErr.message);
-      const { error: updErr } = await supabase
-        .from('scans')
-        .update({ storage_path: path, mime_type: file.type, byte_size: file.size, flagged_reason: null })
-        .eq('id', flag.id);
-      if (updErr) throw new Error(updErr.message);
+      // Update the record via the server (service role) so RLS can't silently block it.
+      await api.resolveFlag({ scanId: flag.id, storagePath: path, mime, size: file.size });
       await loadDetail(selectedId);
     } catch (e) {
       setErr(`Replace failed: ${(e as Error).message}`);
