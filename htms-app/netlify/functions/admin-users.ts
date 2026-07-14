@@ -14,7 +14,7 @@ import { guard, json, parseBody, serviceDb } from './_lib';
 const schema = z.object({
   email: z.string().email(),
   full_name: z.string().trim().min(1),
-  role: z.enum(['admin', 'officer', 'transporter']),
+  role: z.enum(['admin', 'officer', 'transporter', 'deputy_director', 'director']),
   transporter_id: z.string().uuid().nullable().optional(),
   phone: z.string().trim().optional(),
 });

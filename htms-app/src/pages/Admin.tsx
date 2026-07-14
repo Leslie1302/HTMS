@@ -455,11 +455,11 @@ function DangerZone({ onDone }: { onDone: () => void }) {
 }
 
 interface AppUserRow {
-  id: string; role: 'admin' | 'officer' | 'transporter'; full_name: string | null;
+  id: string; role: 'admin' | 'officer' | 'transporter' | 'deputy_director' | 'director'; full_name: string | null;
   transporter_id: string | null; phone: string | null; created_at: string;
 }
 
-const ROLE_LABEL: Record<string, string> = { admin: 'System Admin', officer: 'Ministry Staff', transporter: 'Transporter' };
+const ROLE_LABEL: Record<string, string> = { admin: 'System Admin', officer: 'Ministry Staff', transporter: 'Transporter', deputy_director: 'Deputy Director', director: 'Director' };
 
 function UserManagement() {
   const { msg, err, setMsg, setErr } = useToast();
@@ -599,6 +599,8 @@ function UserManagement() {
                   <select value={u.role} onChange={(e) => edit(u.id, { role: e.target.value as AppUserRow['role'] })} className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b]">
                     <option value="admin">System Admin</option>
                     <option value="officer">Ministry Staff</option>
+                    <option value="deputy_director">Deputy Director</option>
+                    <option value="director">Director</option>
                     <option value="transporter">Transporter</option>
                   </select>
                 </td>
@@ -664,6 +666,8 @@ function UserManagement() {
               <select value={nf.role} onChange={(e) => setNf({ ...nf, role: e.target.value as AppUserRow['role'] })} className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0d631b]">
                 <option value="transporter">Transporter</option>
                 <option value="officer">Ministry Staff</option>
+                <option value="deputy_director">Deputy Director</option>
+                <option value="director">Director</option>
                 <option value="admin">System Admin</option>
               </select>
               {nf.role === 'transporter' && (

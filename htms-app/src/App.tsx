@@ -8,6 +8,7 @@ import Invoices from './pages/Invoices';
 import InvoiceStatus from './pages/InvoiceStatus';
 import Admin from './pages/Admin';
 import Calculator from './pages/Calculator';
+import Settings from './pages/Settings';
 import { Crest } from './components/Crest';
 import { NotificationsButton } from './components/NotificationsButton';
 
@@ -15,6 +16,9 @@ function Nav() {
   const { profile, signOut } = useAuth();
   const link = ({ isActive }: { isActive: boolean }) =>
     `px-3 py-2 rounded text-sm font-medium transition-colors ${isActive ? 'bg-ministry text-white' : 'text-white/70 hover:bg-white/10'}`;
+  const isTransporter = profile?.role === 'transporter';
+  const isAdmin = profile?.role === 'admin';
+  const isReviewer = profile?.role === 'deputy_director' || profile?.role === 'director';
   return (
     <header className="bg-[#141b2b] text-white">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-2">
@@ -29,25 +33,29 @@ function Nav() {
           <span className="material-symbols-outlined text-base mr-1 align-text-bottom">dashboard</span>
           Dashboard
         </NavLink>
-        <NavLink to="/waybills" className={link}>
-          <span className="material-symbols-outlined text-base mr-1 align-text-bottom">note_add</span>
-          Payment Request Form
-        </NavLink>
-        <NavLink to="/calculator" className={link}>
-          <span className="material-symbols-outlined text-base mr-1 align-text-bottom">calculate</span>
-          Trip Calculator
-        </NavLink>
+        {!isReviewer && (
+          <>
+            <NavLink to="/waybills" className={link}>
+              <span className="material-symbols-outlined text-base mr-1 align-text-bottom">note_add</span>
+              Payment Request Form
+            </NavLink>
+            <NavLink to="/calculator" className={link}>
+              <span className="material-symbols-outlined text-base mr-1 align-text-bottom">calculate</span>
+              Trip Calculator
+            </NavLink>
+          </>
+        )}
         <NavLink to="/invoices" className={link}>
           <span className="material-symbols-outlined text-base mr-1 align-text-bottom">receipt_long</span>
-          {profile?.role === 'transporter' ? 'Raise Invoice' : 'Payment Requests Status'}
+          {isTransporter ? 'Raise Invoice' : 'Payment Requests Status'}
         </NavLink>
-        {profile?.role === 'transporter' && (
+        {isTransporter && (
           <NavLink to="/invoice-status" className={link}>
             <span className="material-symbols-outlined text-base mr-1 align-text-bottom">track_changes</span>
             My Status
           </NavLink>
         )}
-        {profile?.role === 'admin' && (
+        {isAdmin && (
           <NavLink to="/admin" className={link}>
             <span className="material-symbols-outlined text-base mr-1 align-text-bottom">admin_panel_settings</span>
             Admin
@@ -55,8 +63,11 @@ function Nav() {
         )}
         <div className="ml-auto flex items-center gap-3 text-sm">
           <NotificationsButton />
+          <NavLink to="/settings" className="text-white/60 hover:text-white" title="Settings">
+            <span className="material-symbols-outlined text-base">settings</span>
+          </NavLink>
           <span className="material-symbols-outlined text-base text-white/60">account_circle</span>
-          <span className="text-white/80 text-xs capitalize">{profile?.role}</span>
+          <span className="text-white/80 text-xs capitalize">{profile?.role?.replace('_', ' ')}</span>
           <button onClick={() => signOut()} className="text-white/60 hover:text-white text-xs underline-offset-2 underline">
             Sign out
           </button>
@@ -91,6 +102,7 @@ export default function App() {
           <Route path="/calculator" element={<Calculator />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/invoice-status" element={<InvoiceStatus />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

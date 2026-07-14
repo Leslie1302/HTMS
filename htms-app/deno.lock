@@ -13,16 +13,20 @@
       "dependencies": [
         "npm:@netlify/functions@^2.8.1",
         "npm:@supabase/supabase-js@^2.45.4",
+        "npm:@types/node@^20.14.0",
         "npm:@types/react-dom@^18.3.0",
         "npm:@types/react@^18.3.5",
+        "npm:@types/ws@^8.5.10",
         "npm:@typescript-eslint/eslint-plugin@^8.5.0",
         "npm:@typescript-eslint/parser@^8.5.0",
         "npm:@vitejs/plugin-react@5",
         "npm:autoprefixer@^10.4.20",
         "npm:eslint-plugin-react-hooks@5",
         "npm:eslint@^8.57.1",
+        "npm:firebase@^12.15.0",
         "npm:jspdf-autotable@^3.8.4",
         "npm:jspdf@^2.5.2",
+        "npm:pdf-lib@^1.17.1",
         "npm:postcss@^8.4.45",
         "npm:react-dom@^18.3.1",
         "npm:react-router-dom@^6.26.2",
@@ -32,6 +36,7 @@
         "npm:typescript@^5.5.4",
         "npm:vite@7",
         "npm:vitest@3",
+        "npm:ws@^8.18.0",
         "npm:zod@^3.23.8"
       ],
       "overrides": {

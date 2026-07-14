@@ -15,7 +15,7 @@ import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared
 export { ALL_STAGES, STAGE_MAP, STAGE_LABELS };
 export type { PriStage };
 
-export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req, ctx) => {
+export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_director', 'director'] }, async (req, ctx) => {
   // ── Read current stage + audit trail ──
   if (req.method === 'GET') {
     const url = new URL(req.url);
@@ -135,6 +135,17 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
             flagged,
           });
         }
+      }
+
+      // Transporter signature must exist before submission.
+      const { data: tsSig } = await ctx.db
+        .from('invoice_signatures')
+        .select('slot')
+        .eq('invoice_id', invoiceId)
+        .eq('slot', 'transporter')
+        .maybeSingle();
+      if (!tsSig) {
+        return json(400, { error: 'Cannot submit: transporter must sign first (Sign & Submit)' });
       }
     }
 

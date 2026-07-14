@@ -6,6 +6,7 @@ import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoice
 import { appendScansToPdf, downloadBytes, type ScanInput } from '../lib/mergeScans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
+import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, type SignSlot } from '../../shared/signing';
 
 const SCAN_LABELS: Record<string, string> = {
   acknowledgement: 'Acknowledgement form',
@@ -71,6 +72,8 @@ export default function Invoices() {
     { label: string; url: string; type: string; scanId?: string; flagged?: string | null }[]
   >([]);
   const [contractOk, setContractOk] = useState(false);
+  const [signatures, setSignatures] = useState<{ slot: string; signed_at: string; user_id: string; full_name: string | null }[]>([]);
+  const [sigBusy, setSigBusy] = useState(false);
 
   function load() {
     api
@@ -166,6 +169,25 @@ export default function Invoices() {
         if (c?.signedUrl) links.push({ label: SCAN_LABELS.contract_agreement, url: c.signedUrl, type: 'contract_agreement' });
       }
       setDocLinks(links);
+
+      // Fetch signatures for this invoice
+      const { data: sigRows } = await supabase
+        .from('invoice_signatures')
+        .select('slot, signed_at, user_id')
+        .eq('invoice_id', id);
+      if (sigRows && sigRows.length > 0) {
+        const userIds = [...new Set(sigRows.map((s: { user_id: string }) => s.user_id))];
+        const { data: users } = await supabase.from('app_users').select('id, full_name').in('id', userIds);
+        const nameMap = new Map((users ?? []).map((u: { id: string; full_name: string | null }) => [u.id, u.full_name]));
+        setSignatures(sigRows.map((s: { slot: string; signed_at: string; user_id: string }) => ({
+          slot: s.slot,
+          signed_at: s.signed_at,
+          user_id: s.user_id,
+          full_name: nameMap.get(s.user_id) ?? null,
+        })));
+      } else {
+        setSignatures([]);
+      }
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -278,6 +300,137 @@ export default function Invoices() {
     }
   }
 
+  async function signInvoice(invoiceId: string) {
+    setSigBusy(true);
+    setErr(null);
+    try {
+      // Step-up to AAL2 if needed
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.currentLevel !== 'aal2') {
+        // Need to step up — challenge a TOTP factor
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totp = factors?.totp?.[0];
+        if (!totp) {
+          setErr('No MFA factor enrolled. Please set up MFA in Settings first.');
+          setSigBusy(false);
+          return;
+        }
+        const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+        if (chErr) throw new Error(chErr.message);
+        const code = window.prompt('Enter your 6-digit MFA code:');
+        if (!code) { setSigBusy(false); return; }
+        const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
+        if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
+      }
+      await api.signInvoice(invoiceId);
+      setMsg('Signature applied successfully.');
+      load();
+      if (selectedId) loadDetail(selectedId);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSigBusy(false);
+    }
+  }
+
+  /** Build the reviewer's merged "Payment request documentation" PDF. */
+  async function buildReviewerDoc(id: string) {
+    setBusy(true);
+    setErr(null);
+    try {
+      const { data: inv, error } = await supabase
+        .from('invoices')
+        .select(
+          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id,storage_path,mime_type,scan_type)))',
+        )
+        .eq('id', id)
+        .single();
+      if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
+
+      // Fetch signatures for PDF rendering
+      const { data: sigRows } = await supabase.from('invoice_signatures').select('slot, signed_at, user_id').eq('invoice_id', id);
+      const sigData: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[] = [];
+      if (sigRows && sigRows.length > 0) {
+        const userIds = [...new Set(sigRows.map((s: { user_id: string }) => s.user_id))];
+        const { data: users } = await supabase.from('app_users').select('id, full_name, signature_path').in('id', userIds);
+        const userMap = new Map((users ?? []).map((u: { id: string; full_name: string | null; signature_path: string | null }) => [u.id, u]));
+        for (const s of sigRows) {
+          const u = userMap.get(s.user_id);
+          let sigDataUrl: string | null = null;
+          if (u?.signature_path) {
+            const { data: signedUrl } = await supabase.storage.from('documents').createSignedUrl(u.signature_path, 3600);
+            if (signedUrl?.signedUrl) {
+              const resp = await fetch(signedUrl.signedUrl);
+              const blob = await resp.blob();
+              sigDataUrl = await new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+              });
+            }
+          }
+          sigData.push({ slot: s.slot, signed_at: s.signed_at, name: u?.full_name ?? '', sigDataUrl });
+        }
+      }
+
+      const docInv = inv as InvoiceDoc;
+      (docInv as InvoiceDoc & { signatures?: typeof sigData }).signatures = sigData;
+
+      // 1. Letter + Invoice (with signatures)
+      const letterBytes = buildLetter(docInv).output('arraybuffer') as ArrayBuffer;
+      const invoiceBytes = buildInvoice(docInv).output('arraybuffer') as ArrayBuffer;
+
+      // Merge letter + invoice
+      const { PDFDocument } = await import('pdf-lib');
+      const merged = await PDFDocument.create();
+      const letterDoc = await PDFDocument.load(letterBytes);
+      const invoiceDoc = await PDFDocument.load(invoiceBytes);
+      const letterPages = await merged.copyPages(letterDoc, letterDoc.getPageIndices());
+      letterPages.forEach((p) => merged.addPage(p));
+      const invoicePages = await merged.copyPages(invoiceDoc, invoiceDoc.getPageIndices());
+      invoicePages.forEach((p) => merged.addPage(p));
+
+      // 2. Append scans in order: acknowledgement → waybill → release_letter
+      const scanOrder = ['acknowledgement', 'waybill', 'release_letter'];
+      const allScans: ScanInput[] = [];
+      const lines = (inv as any).invoice_lines ?? [];
+      const scans = lines.flatMap((l: any) => l.waybills?.scans ?? []);
+      // Sort scans by type order, then by created_at
+      const sortedScans = [...scans].sort((a: any, b: any) => {
+        const ai = scanOrder.indexOf(a.scan_type);
+        const bi = scanOrder.indexOf(b.scan_type);
+        const aIdx = ai === -1 ? scanOrder.length : ai;
+        const bIdx = bi === -1 ? scanOrder.length : bi;
+        return aIdx - bIdx;
+      });
+      for (const s of sortedScans) {
+        const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
+        if (blob) {
+          allScans.push({
+            bytes: await blob.arrayBuffer(),
+            mime: s.mime_type || blob.type,
+            label: SCAN_LABELS[s.scan_type] ?? 'Supporting scan',
+          });
+        }
+      }
+
+      const mergedBytes = await merged.save();
+      const finalBytes = allScans.length > 0
+        ? await appendScansToPdf(mergedBytes.buffer.slice(mergedBytes.byteOffset, mergedBytes.byteOffset + mergedBytes.byteLength) as ArrayBuffer, allScans)
+        : mergedBytes;
+
+      // Open in new tab
+      const ab = finalBytes.buffer.slice(finalBytes.byteOffset, finalBytes.byteOffset + finalBytes.byteLength) as ArrayBuffer;
+      const blob = new Blob([ab], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function makeDoc(id: string, type: 'invoice' | 'letter' | 'memo' | 'signatory') {
     setBusy(true);
     setErr(null);
@@ -360,6 +513,7 @@ export default function Invoices() {
   const nextStage = selected ? STAGE_MAP[selected.stage as PriStage] : null;
   const checklistAll = CHECKLIST_ITEMS.every((k) => checklist[k]);
   const isTransporter = profile?.role === 'transporter';
+  const isReviewer = isReviewerRole(profile?.role ?? 'transporter');
 
   return (
     <div>
@@ -409,7 +563,8 @@ export default function Invoices() {
               <p className="text-sm text-on-surface-variant">{selected.transporters?.display_name}</p>
             </div>
             <div className="flex flex-wrap gap-2 justify-end">
-              {docLinks.map((d) => (
+              {/* Scan chips: hidden for reviewers */}
+              {!isReviewer && docLinks.map((d) => (
                 <span
                   key={d.scanId ?? d.url}
                   className={`flex items-center rounded-lg border text-xs ${
@@ -428,7 +583,7 @@ export default function Invoices() {
                     </span>
                     {d.label}
                   </a>
-                  {!isTransporter && d.scanId && (
+                  {!isTransporter && !isReviewer && d.scanId && (
                     <button
                       onClick={() => toggleFlag(d.scanId!, d.flagged ?? null)}
                       title={d.flagged ? 'Clear flag' : 'Flag as substandard'}
@@ -441,20 +596,28 @@ export default function Invoices() {
                   )}
                 </span>
               ))}
-              <button onClick={() => makeDoc(selected.id, 'invoice')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
-                <span className="material-symbols-outlined text-sm">description</span> Invoice
-              </button>
-              <button onClick={() => makeDoc(selected.id, 'letter')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
-                <span className="material-symbols-outlined text-sm">mail</span> Letter
-              </button>
-              {!isTransporter && (
-                <button onClick={() => makeDoc(selected.id, 'memo')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
-                  <span className="material-symbols-outlined text-sm">assignment</span> Memo
-                </button>
-              )}
-              {!isTransporter && (
-                <button onClick={() => makeDoc(selected.id, 'signatory')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
-                  <span className="material-symbols-outlined text-sm">draw</span> Signatory
+              {!isReviewer ? (
+                <>
+                  <button onClick={() => makeDoc(selected.id, 'invoice')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                    <span className="material-symbols-outlined text-sm">description</span> Invoice
+                  </button>
+                  <button onClick={() => makeDoc(selected.id, 'letter')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                    <span className="material-symbols-outlined text-sm">mail</span> Letter
+                  </button>
+                  {!isTransporter && (
+                    <button onClick={() => makeDoc(selected.id, 'memo')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                      <span className="material-symbols-outlined text-sm">assignment</span> Memo
+                    </button>
+                  )}
+                  {!isTransporter && (
+                    <button onClick={() => makeDoc(selected.id, 'signatory')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                      <span className="material-symbols-outlined text-sm">draw</span> Signatory
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button onClick={() => buildReviewerDoc(selected.id)} className="flex items-center gap-1 bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-1.5 text-xs font-medium" disabled={busy}>
+                  <span className="material-symbols-outlined text-sm">description</span> Payment request documentation
                 </button>
               )}
               {profile?.role === 'admin' && selected.status === 'draft' && (
@@ -536,6 +699,52 @@ export default function Invoices() {
             </div>
           </div>
 
+          {/* Signature status strip + Approve button */}
+          {!isTransporter && (
+            <div className="mt-4 p-4 bg-surface rounded-lg border border-outline-variant">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-bold tracking-wide text-on-surface-variant uppercase">Signatures</span>
+                  {(['prepared', 'checked', 'approved'] as const).map((slot) => {
+                    const sig = signatures.find((s) => s.slot === slot);
+                    const label = slot === 'prepared' ? 'Prepared' : slot === 'checked' ? 'Checked' : 'Approved';
+                    return (
+                      <div key={slot} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs ${sig ? 'bg-[#e8f5e9] border border-[#0d631b]/30' : 'bg-surface-container-low border border-outline-variant'}`}>
+                        <span className={`material-symbols-outlined text-sm ${sig ? 'text-[#0d631b]' : 'text-outline'}`}>
+                          {sig ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span className={sig ? 'font-medium text-on-surface' : 'text-outline'}>{label}</span>
+                        {sig && (
+                          <span className="text-outline ml-1">
+                            {sig.full_name ?? '—'} · {new Date(sig.signed_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                {(() => {
+                  const mySlot = roleToSlot(profile?.role ?? 'transporter');
+                  if (!mySlot || mySlot === 'transporter') return null;
+                  const alreadySigned = isSlotSigned(mySlot, signatures.map((s) => s.slot as SignSlot));
+                  const prereqOk = canSignSlot(mySlot, signatures.map((s) => s.slot as SignSlot));
+                  const label = mySlot === 'prepared' ? 'Sign (Prepared by)' : 'Approve';
+                  return (
+                    <button
+                      onClick={() => signInvoice(selected.id)}
+                      disabled={sigBusy || alreadySigned || !prereqOk}
+                      title={alreadySigned ? 'Already signed' : !prereqOk ? 'Prerequisite signature missing' : undefined}
+                      className="flex items-center gap-1.5 bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="material-symbols-outlined text-sm">draw</span>
+                      {sigBusy ? 'Signing…' : alreadySigned ? 'Signed' : label}
+                    </button>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
           {/* Trip / waybill details for review validation */}
           <div className="mt-5 bg-white rounded-lg border border-outline-variant overflow-hidden">
             <div className="px-4 py-2.5 border-b border-outline-variant flex items-center justify-between">
@@ -575,7 +784,8 @@ export default function Invoices() {
             </div>
           </div>
 
-          {/* Two-column detail: trail + checklist */}
+          {/* Two-column detail: trail + checklist — hidden for reviewers */}
+          {!isReviewer && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
             {/* Audit trail */}
             <div>
@@ -727,6 +937,7 @@ export default function Invoices() {
               )}
             </div>
           </div>
+          )}
         </div>
       )}
 

@@ -19,7 +19,7 @@ const realtime: any = { transport: ws };
 
 export interface AuthContext {
   userId: string;
-  role: 'admin' | 'officer' | 'transporter';
+  role: 'admin' | 'officer' | 'transporter' | 'deputy_director' | 'director';
   transporterId: string | null;
   /** A Supabase client scoped to the CALLER's JWT — RLS applies to every query. */
   db: SupabaseClient;

@@ -54,4 +54,9 @@ export const api = {
     call<{ ok: true }>('/api/admin-delete', { method: 'POST', body: JSON.stringify(body) }),
   resolveFlag: (body: { scanId: string; storagePath: string; mime: string; size: number }) =>
     call<{ ok: true }>('/api/resolve-flag', { method: 'POST', body: JSON.stringify(body) }),
+  signInvoice: (invoiceId: string) =>
+    call<{ ok: boolean; slot: string; signed_at: string }>('/api/invoice-sign', {
+      method: 'POST',
+      body: JSON.stringify({ invoice_id: invoiceId }),
+    }),
 };

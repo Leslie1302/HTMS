@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 import { ALL_STAGES, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
+import { Link } from 'react-router-dom';
 
 const ghs = (n: number) =>
   '₵' + Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -36,6 +37,8 @@ export default function InvoiceStatus() {
   const [flags, setFlags] = useState<{ id: string; waybill_id: string; scan_type: string; flagged_reason: string; waybill_no?: string }[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
+  const [hasMfa, setHasMfa] = useState(false);
 
   const SCAN_LABELS: Record<string, string> = {
     acknowledgement: 'Acknowledgement form',
@@ -117,11 +120,41 @@ export default function InvoiceStatus() {
     if (invoices.length === 1 && !selectedId) loadDetail(invoices[0].id);
   }, [invoices, selectedId, loadDetail]);
 
-  async function markSubmitted() {
-    if (!selectedId || !window.confirm('Confirm: you have submitted this invoice in person at the Ministry?')) return;
+  // Check if transporter has signature + MFA
+  useEffect(() => {
+    const check = async () => {
+      const uid = (await supabase.auth.getUser()).data.user?.id;
+      if (!uid) return;
+      const { data: prof } = await supabase.from('app_users').select('signature_path').eq('id', uid).single();
+      setHasSignature(!!prof?.signature_path);
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      setHasMfa((factors?.totp?.length ?? 0) > 0);
+    };
+    check();
+  }, []);
+
+  const mfaReadyForSign = hasSignature && hasMfa;
+
+  async function signAndSubmit() {
+    if (!selectedId) return;
     setBusy(true);
     setErr(null);
     try {
+      // Step-up to AAL2
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.currentLevel !== 'aal2') {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totp = factors?.totp?.[0];
+        if (!totp) { setErr('No MFA factor enrolled. Please set up MFA in Settings first.'); setBusy(false); return; }
+        const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+        if (chErr) throw new Error(chErr.message);
+        const code = window.prompt('Enter your 6-digit MFA code to authorize signing:');
+        if (!code) { setBusy(false); return; }
+        const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
+        if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
+      }
+      await api.signInvoice(selectedId);
+      // Now submit
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       const res = await fetch('/api/invoice-stage', {
         method: 'POST',
@@ -247,15 +280,31 @@ export default function InvoiceStatus() {
             <h2 className="text-lg font-semibold text-[#0d631b]">
               Your invoice is at: {STAGE_LABELS[selected.stage as PriStage] ?? selected.stage}
             </h2>
-            {selected.stage === 'generated' && (
+            {selected.stage === 'generated' && mfaReadyForSign && (
               <button
-                onClick={markSubmitted}
+                onClick={signAndSubmit}
                 disabled={busy}
                 className="w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-[#2e7d32] text-white hover:opacity-90 disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-lg">assignment_turned_in</span>
-                Mark as submitted at Ministry
+                {busy ? 'Signing & Submitting…' : 'Sign & Submit'}
               </button>
+            )}
+            {selected.stage === 'generated' && !mfaReadyForSign && (
+              <div className="mt-3 p-3 bg-error-container border border-error rounded-xl">
+                <p className="text-sm text-error">
+                  <span className="font-bold">Cannot submit yet.</span> You need to{' '}
+                  <Link to="/settings" className="underline font-semibold">upload your signature and set up MFA</Link> before you can sign and submit this invoice.
+                </p>
+              </div>
+            )}
+            {selected.stage === 'generated' && mfaReadyForSign && !hasSignature && (
+              <div className="mt-3 p-3 bg-error-container border border-error rounded-xl">
+                <p className="text-sm text-error">
+                  <span className="font-bold">Cannot submit yet.</span> Please{' '}
+                  <Link to="/settings" className="underline font-semibold">upload your signature</Link> first.
+                </p>
+              </div>
             )}
           </div>
 
