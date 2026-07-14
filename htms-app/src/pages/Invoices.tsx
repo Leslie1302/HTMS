@@ -532,7 +532,7 @@ export default function Invoices() {
           </button>
           <span className="text-xs text-outline">Groups your un-invoiced waybills into one invoice, then print the letter &amp; invoice below.</span>
         </div>
-      ) : (
+      ) : !isReviewer ? (
         <div className="mb-5 flex gap-2 items-center bg-white rounded-lg border border-outline-variant p-3">
           <span className="text-xs font-medium text-on-surface-variant">Assemble invoice for:</span>
           <select value={pick} onChange={(e) => setPick(e.target.value)} className="border border-outline-variant rounded-lg px-3 py-2 text-sm outline-none">
@@ -550,7 +550,7 @@ export default function Invoices() {
           </button>
           <span className="text-xs text-outline">Groups un-invoiced waybills into one invoice.</span>
         </div>
-      )}
+      ) : null /* ponytail: reviewers (DD/Director) are read-only — no assemble bar */}
 
       {/* Pipeline stepper for selected invoice */}
       {selected && (

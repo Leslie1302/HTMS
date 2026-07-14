@@ -10,7 +10,11 @@ import { computeHaulageCost, CalcError, chartToDistance, type WaybillInput } fro
 import { loadCalcConfig } from './_calcConfig';
 import type { Category } from '../../shared/rates';
 
-export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req, ctx) => {
+export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_director', 'director'] }, async (req, ctx) => {
+  // Reviewers are read-only: list yes, assemble/approve no.
+  if (req.method !== 'GET' && (ctx.role === 'deputy_director' || ctx.role === 'director')) {
+    return json(403, { error: 'Forbidden for your role' });
+  }
   // ── List (RLS-scoped) ──
   if (req.method === 'GET') {
     const { data, error } = await ctx.db
