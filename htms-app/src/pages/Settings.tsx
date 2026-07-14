@@ -78,6 +78,14 @@ export default function Settings() {
   async function startEnroll() {
     setMfaBusy(true); setErr(null); setMsg(null);
     try {
+      // An abandoned enroll leaves an unverified factor that blocks re-enrolling
+      // under the same friendly name — clean those up first.
+      const { data: existing } = await supabase.auth.mfa.listFactors();
+      for (const f of existing?.all ?? []) {
+        if (f.factor_type === 'totp' && f.status !== 'verified') {
+          await supabase.auth.mfa.unenroll({ factorId: f.id });
+        }
+      }
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator App' });
       if (error) throw new Error(error.message);
       setQrSvg(data.totp.qr_code);

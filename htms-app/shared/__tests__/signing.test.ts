@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, isStaffRole, type SignSlot } from '../signing';
+import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, isStaffRole } from '../signing';
 
 describe('roleToSlot', () => {
   it('maps admin/officer to prepared', () => {
