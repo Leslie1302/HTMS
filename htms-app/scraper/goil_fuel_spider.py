@@ -31,6 +31,7 @@ import os
 import re
 import sys
 import json
+import time
 from datetime import date, datetime, timezone
 
 import requests
@@ -59,10 +60,24 @@ MONTHS = {m: i + 1 for i, m in enumerate(
 
 
 def fetch_text() -> str:
-    r = requests.get(GOIL_URL, headers=HEADERS, timeout=25)
-    r.raise_for_status()
-    # crude tag strip so the regexes see clean text
-    return re.sub(r"<[^>]+>", " ", r.text)
+    # GOIL fronts the page with an anti-bot splash ("One moment, please...")
+    # that sets a cookie and self-reloads. A Session keeps the cookie; retrying
+    # after the splash's own 5s delay returns the real page.
+    # ponytail: cookie+retry beats a headless browser; upgrade to Playwright only if the splash starts requiring JS.
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    text = ""
+    for attempt in range(4):
+        if attempt:
+            time.sleep(6)
+        r = s.get(GOIL_URL, timeout=25)
+        r.raise_for_status()
+        # crude tag strip so the regexes see clean text
+        text = re.sub(r"<[^>]+>", " ", r.text)
+        if "diesel" in text.lower():
+            return text
+        print(f"DEBUG: attempt {attempt + 1} got splash/interstitial, retrying…", file=sys.stderr)
+    return text  # let main()'s debug path report what we last saw
 
 
 def parse_price(text: str) -> float | None:

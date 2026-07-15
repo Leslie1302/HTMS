@@ -86,7 +86,7 @@ export default function Settings() {
           await supabase.auth.mfa.unenroll({ factorId: f.id });
         }
       }
-      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator App' });
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator App', issuer: 'HTMS — Ministry of Energy' });
       if (error) throw new Error(error.message);
       setQrSvg(data.totp.qr_code);
       setMfaChallengeId(null);
