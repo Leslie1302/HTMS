@@ -243,7 +243,7 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   });
 
   // Total + footer.
-  let afterTable = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 22;
+  const afterTable = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 22;
   doc.setFont('helvetica', 'bold').setFontSize(13).setTextColor(...NAVY);
   doc.text(`Total Amount Due: GHS ${num(inv.total_cost)}`, W - M, afterTable, { align: 'right' });
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
