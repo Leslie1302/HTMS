@@ -15,6 +15,34 @@ const SCAN_LABELS: Record<string, string> = {
   contract_agreement: 'Contract agreement',
 };
 
+/** Signature rows + signer names + signature images (as data URLs) for PDF rendering. */
+async function fetchSignatures(invoiceId: string): Promise<{ slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[]> {
+  const { data: sigRows } = await supabase.from('invoice_signatures').select('slot, signed_at, user_id').eq('invoice_id', invoiceId);
+  const sigData: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[] = [];
+  if (!sigRows || sigRows.length === 0) return sigData;
+  const userIds = [...new Set(sigRows.map((s: { user_id: string }) => s.user_id))];
+  const { data: users } = await supabase.from('app_users').select('id, full_name, signature_path').in('id', userIds);
+  const userMap = new Map((users ?? []).map((u: { id: string; full_name: string | null; signature_path: string | null }) => [u.id, u]));
+  for (const s of sigRows) {
+    const u = userMap.get(s.user_id);
+    let sigDataUrl: string | null = null;
+    if (u?.signature_path) {
+      const { data: signedUrl } = await supabase.storage.from('documents').createSignedUrl(u.signature_path, 3600);
+      if (signedUrl?.signedUrl) {
+        const resp = await fetch(signedUrl.signedUrl);
+        const blob = await resp.blob();
+        sigDataUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+    }
+    sigData.push({ slot: s.slot, signed_at: s.signed_at, name: u?.full_name ?? '', sigDataUrl });
+  }
+  return sigData;
+}
+
 const ghs = (n: number) =>
   '₵' + Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -347,31 +375,7 @@ export default function Invoices() {
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
 
-      // Fetch signatures for PDF rendering
-      const { data: sigRows } = await supabase.from('invoice_signatures').select('slot, signed_at, user_id').eq('invoice_id', id);
-      const sigData: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[] = [];
-      if (sigRows && sigRows.length > 0) {
-        const userIds = [...new Set(sigRows.map((s: { user_id: string }) => s.user_id))];
-        const { data: users } = await supabase.from('app_users').select('id, full_name, signature_path').in('id', userIds);
-        const userMap = new Map((users ?? []).map((u: { id: string; full_name: string | null; signature_path: string | null }) => [u.id, u]));
-        for (const s of sigRows) {
-          const u = userMap.get(s.user_id);
-          let sigDataUrl: string | null = null;
-          if (u?.signature_path) {
-            const { data: signedUrl } = await supabase.storage.from('documents').createSignedUrl(u.signature_path, 3600);
-            if (signedUrl?.signedUrl) {
-              const resp = await fetch(signedUrl.signedUrl);
-              const blob = await resp.blob();
-              sigDataUrl = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(blob);
-              });
-            }
-          }
-          sigData.push({ slot: s.slot, signed_at: s.signed_at, name: u?.full_name ?? '', sigDataUrl });
-        }
-      }
+      const sigData = await fetchSignatures(id);
 
       const docInv = inv as InvoiceDoc;
       (docInv as InvoiceDoc & { signatures?: typeof sigData }).signatures = sigData;
@@ -447,6 +451,7 @@ export default function Invoices() {
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
+      (inv as InvoiceDoc).signatures = await fetchSignatures(id);
 
       const logo = await loadLogo();
 
