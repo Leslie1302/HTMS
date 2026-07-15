@@ -252,16 +252,16 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
   doc.text('Thank you for your business. Payment is due within 30 days.', W / 2, afterTable + 28, { align: 'center' });
 
-  // Signature block (left). If transporter signed, draw the image above their name.
+  // Signature block (left). If transporter signed, the image sits ON the signature line.
   const transSig = inv.signatures?.find((s) => s.slot === 'transporter');
-  if (transSig?.sigDataUrl) {
-    try { doc.addImage(transSig.sigDataUrl, 'PNG', M, afterTable + 60, 110, 40); } catch { /* skip unreadable */ }
-    doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
-    doc.text(short(transSig.signed_at), M, afterTable + 105);
-    afterTable += 20;
-  }
   doc.setFontSize(10).setTextColor(17).setFont('helvetica', 'bold').text('For and on behalf of the company:', M, afterTable + 60);
-  signatureBlock(doc, inv, M, afterTable + 92);
+  const lineY = afterTable + (transSig?.sigDataUrl ? 112 : 92); // extra headroom for the image
+  if (transSig?.sigDataUrl) {
+    try { doc.addImage(transSig.sigDataUrl, 'PNG', M + 20, lineY - 36, 94, 34); } catch { /* skip unreadable */ }
+    doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
+    doc.text(short(transSig.signed_at), M + 190, lineY - 4, { align: 'right' });
+  }
+  signatureBlock(doc, inv, M, lineY);
 
   waveFooter(doc);
   return doc;
@@ -336,12 +336,12 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   para('Should you require any additional information, supporting documentation, or clarification regarding this invoice, please do not hesitate to contact me.', { align: 'justify' });
   para('Thank you for your attention to this matter. I look forward to your prompt response.', { align: 'justify' });
   para('Yours faithfully,', { gap: 36 });
-  // Transporter signature on letter if signed.
+  // Transporter signature on letter if signed — image sits ON the signature line.
   const transSig = inv.signatures?.find((s) => s.slot === 'transporter');
   if (transSig?.sigDataUrl) {
-    try { doc.addImage(transSig.sigDataUrl, 'PNG', M, y - 32, 110, 40); } catch { /* skip */ }
+    try { doc.addImage(transSig.sigDataUrl, 'PNG', M + 20, y - 34, 94, 32); } catch { /* skip */ }
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
-    doc.text(short(transSig.signed_at), M, y - 28);
+    doc.text(short(transSig.signed_at), M + 190, y - 4, { align: 'right' });
   }
   signatureBlock(doc, inv, M, y);
 
@@ -514,9 +514,9 @@ export function buildMemo(inv: InvoiceDoc, opts: MemoOpts, logo?: string | null)
   // If Director approved, draw their signature and default name.
   const dirSig = inv.signatures?.find((s) => s.slot === 'approved');
   if (dirSig?.sigDataUrl) {
-    try { doc.addImage(dirSig.sigDataUrl, 'PNG', M, y - 50, 110, 40); } catch { /* skip */ }
+    try { doc.addImage(dirSig.sigDataUrl, 'PNG', M, y - 54, 100, 36); } catch { /* skip */ }
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
-    doc.text(short(dirSig.signed_at), M, y - 12);
+    doc.text(short(dirSig.signed_at), M, y - 14);
   }
   const signatoryName = dirSig?.name || opts.signatoryName;
   doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(17);
@@ -592,17 +592,14 @@ export function buildSignatory(inv: InvoiceDoc, logo?: string | null): jsPDF {
     }
     const slot = slotMap[role];
     const sig = slot ? inv.signatures?.find((s) => s.slot === slot) : undefined;
+    doc.setFont('helvetica', 'normal').setFontSize(11).setTextColor(17);
+    doc.text(`${role} ____________________________`, M, sy);
+    doc.text(sig ? `Name: ${sig.name || ''}` : 'Name: ____________________________', col2, sy);
+    doc.text(sig ? `Date: ${short(sig.signed_at)}` : 'Date: ________________', col3, sy);
     if (sig?.sigDataUrl) {
-      try { doc.addImage(sig.sigDataUrl, 'PNG', M, sy - 10, 110, 40); } catch { /* skip */ }
-      doc.setFont('helvetica', 'normal').setFontSize(11).setTextColor(17);
-      doc.text(`${role} ____________________________`, M, sy + 20);
-      doc.text(`Name: ${sig.name}`, col2, sy + 20);
-      doc.text(`Date: ${short(sig.signed_at)}`, col3, sy + 20);
-    } else {
-      doc.setFont('helvetica', 'normal').setFontSize(11).setTextColor(17);
-      doc.text(`${role} ____________________________`, M, sy);
-      doc.text('Name: ____________________________', col2, sy);
-      doc.text('Date: ________________', col3, sy);
+      // Centre the signature image over the blank line, bottom edge resting on it.
+      const lineX = M + doc.getTextWidth(`${role} `);
+      try { doc.addImage(sig.sigDataUrl, 'PNG', lineX + 30, sy - 38, 100, 36); } catch { /* skip */ }
     }
     sy += 70;
   }
