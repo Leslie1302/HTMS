@@ -124,41 +124,30 @@ function pageWidth(doc: jsPDF) {
   return doc.internal.pageSize.getWidth();
 }
 
-/** Initials badge used as a makeshift logo (no external image). */
-function monogram(name: string): string {
-  const stop = new Set(['ENTERPRISES', 'ENTERPRISE', 'LIMITED', 'LTD', 'COMPANY', 'CO', 'GHANA', 'AND', '&', 'THE']);
-  const words = name.toUpperCase().split(/[\s-]+/).filter((w) => w && !stop.has(w));
-  if (words.length >= 2) return (words[0][0] + words[1][0]).slice(0, 2);
-  if (words.length === 1) return words[0].slice(0, 2);
-  return name.slice(0, 2).toUpperCase();
-}
-
 /**
- * Makeshift letterhead built from the transporter's registration details
- * (name, address, email, phone, GPS). Monogram badge left, company block right,
- * accent rule beneath — no external logo. Returns the y below it.
+ * Plain letterhead from the transporter's registration details (name, address,
+ * email, phone, GPS) — no logo or monogram badge: these documents are issued on
+ * behalf of many different companies and must not share a visual identity.
+ * Company name left, contact stack right, accent rule beneath. Returns the y below it.
  */
 function letterhead(doc: jsPDF, inv: InvoiceDoc, y: number): number {
   const W = pageWidth(doc);
   const t = inv.transporters ?? {};
   const name = t.display_name ?? 'Transporter';
 
-  // Left: monogram badge as makeshift logo.
-  doc.setFillColor(...NAVY).roundedRect(M, y, 46, 46, 7, 7, 'F');
-  doc.setFont('helvetica', 'bold').setFontSize(20).setTextColor(255, 255, 255);
-  doc.text(monogram(name), M + 23, y + 30, { align: 'center' });
-
-  // Right: company name + contact stack, right-aligned.
+  // Left: company name.
   doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(...NAVY);
-  doc.text(name.toUpperCase(), W - M, y + 14, { align: 'right' });
+  doc.text(name.toUpperCase(), M, y + 14);
+
+  // Right: contact stack, right-aligned.
   doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(110);
-  let ry = y + 27;
+  let ry = y + 8;
   for (const l of [t.address, t.email, t.phone, t.gps_address ? `GPS ${t.gps_address}` : ''].filter(Boolean)) {
     doc.text(l as string, W - M, ry, { align: 'right' });
     ry += 11;
   }
 
-  const bottom = Math.max(y + 52, ry + 2);
+  const bottom = Math.max(y + 30, ry + 2);
   doc.setDrawColor(...BLUE).setLineWidth(1.8).line(M, bottom, W - M, bottom);
   return bottom + 24;
 }

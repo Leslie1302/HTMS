@@ -50,6 +50,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(u),
   }),
+  resetPassword: (id: string) => call<{ tempPassword: string }>('/api/admin-users', {
+    method: 'PATCH',
+    body: JSON.stringify({ id }),
+  }),
   adminDelete: (body: { action: 'delete_transporter' | 'delete_invoice' | 'reset_pilot'; id?: string }) =>
     call<{ ok: true }>('/api/admin-delete', { method: 'POST', body: JSON.stringify(body) }),
   resolveFlag: (body: { scanId: string; storagePath: string; mime: string; size: number }) =>

@@ -487,6 +487,20 @@ function UserManagement() {
     setUsers((list) => list.map((u) => (u.id === id ? { ...u, ...patch } : u)));
   }
 
+  async function resetPassword(u: AppUserRow) {
+    if (!window.confirm(`Reset the password for ${u.full_name ?? u.id.slice(0, 8)}? Their current password stops working immediately.`)) return;
+    setErr(null); setMsg(null);
+    setSavingId(u.id);
+    try {
+      const res = await api.resetPassword(u.id);
+      setTempPw({ email: u.full_name ?? u.id.slice(0, 8), password: res.tempPassword });
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   async function save(u: AppUserRow) {
     setErr(null); setMsg(null);
     if (u.role === 'transporter' && !u.transporter_id) return setErr('A transporter user must be assigned a company.');
@@ -619,8 +633,11 @@ function UserManagement() {
                 <td className="px-4 py-3">
                   <input value={u.phone ?? ''} onChange={(e) => edit(u.id, { phone: e.target.value })} placeholder="024… / +233…" className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm outline-none focus:border-[#0d631b] w-32" />
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => save(u)} disabled={savingId === u.id} className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50">
+                <td className="px-4 py-3 text-right whitespace-nowrap">
+                  <button onClick={() => resetPassword(u)} disabled={savingId === u.id} title="Reset password" className="border border-outline-variant hover:bg-surface-container-low rounded-lg px-2.5 py-1.5 text-xs font-medium disabled:opacity-50 mr-2 align-middle">
+                    <span className="material-symbols-outlined text-[16px] align-middle">key</span>
+                  </button>
+                  <button onClick={() => save(u)} disabled={savingId === u.id} className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50 align-middle">
                     {savingId === u.id ? 'Saving…' : 'Save'}
                   </button>
                 </td>
@@ -651,8 +668,8 @@ function UserManagement() {
 
       {tempPw && (
         <div className="mt-4 rounded-xl border border-[#0d631b]/40 bg-[#e8f5e9] p-4">
-          <div className="font-semibold text-[#0c5216] flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px]">key</span> User created — share these credentials once</div>
-          <div className="text-sm mt-1">Email: <span className="font-mono">{tempPw.email}</span></div>
+          <div className="font-semibold text-[#0c5216] flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px]">key</span> Share these credentials once</div>
+          <div className="text-sm mt-1">User: <span className="font-mono">{tempPw.email}</span></div>
           <div className="text-sm">Temporary password: <span className="font-mono font-bold">{tempPw.password}</span></div>
           <p className="text-xs text-on-surface-variant mt-1">The user should sign in and change this password. This is shown only once.</p>
           <button onClick={() => setTempPw(null)} className="mt-2 text-xs text-[#0d631b] hover:underline">Dismiss</button>

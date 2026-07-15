@@ -9,7 +9,7 @@
 import crypto from 'node:crypto';
 import type { Config } from '@netlify/functions';
 import { z } from 'zod';
-import { guard, json, parseBody, serviceDb } from './_lib';
+import { audit, guard, json, parseBody, serviceDb } from './_lib';
 
 const schema = z.object({
   email: z.string().email(),
@@ -19,7 +19,20 @@ const schema = z.object({
   phone: z.string().trim().optional(),
 });
 
-export default guard({ roles: ['admin'] }, async (req) => {
+const resetSchema = z.object({ id: z.string().uuid() });
+
+export default guard({ roles: ['admin'] }, async (req, ctx) => {
+  // ── PATCH: reset a user's password to a fresh one-time temp password ──
+  if (req.method === 'PATCH') {
+    const { id } = await parseBody(req, resetSchema);
+    const svc = serviceDb();
+    const tempPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 12) + 'Aa1!';
+    const { error } = await svc.auth.admin.updateUserById(id, { password: tempPassword });
+    if (error) return json(400, { error: error.message });
+    await audit(ctx.userId, 'user.password_reset', 'app_users', id, null, null);
+    return json(200, { tempPassword });
+  }
+
   if (req.method !== 'POST') return json(405, { error: 'Method not allowed' });
   const body = await parseBody(req, schema);
   if (body.role === 'transporter' && !body.transporter_id) {
