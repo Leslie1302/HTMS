@@ -56,8 +56,9 @@ export default function Settings() {
       const path = `signatures/${uid}.png`;
       const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { contentType: 'image/png', upsert: true });
       if (upErr) throw new Error(upErr.message);
-      const { error: dbErr } = await supabase.from('app_users').update({ signature_path: path }).eq('id', uid);
-      if (dbErr) throw new Error(dbErr.message);
+      // .select().single() forces an error if RLS silently matched zero rows.
+      const { data: saved, error: dbErr } = await supabase.from('app_users').update({ signature_path: path }).eq('id', uid).select('signature_path').single();
+      if (dbErr || !saved) throw new Error(dbErr?.message ?? 'Your signature file was stored but could not be saved to your profile. Contact an admin.');
       setSigPath(path);
       const { data: signed } = await supabase.storage.from('documents').createSignedUrl(path, 3600);
       if (signed?.signedUrl) setSigUrl(signed.signedUrl);
