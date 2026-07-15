@@ -495,6 +495,7 @@ function UserManagement() {
       role: u.role,
       transporter_id: u.role === 'transporter' ? u.transporter_id : null,
       phone: u.phone?.trim() || null,
+      full_name: u.full_name?.trim() || null,
     }).eq('id', u.id);
     setSavingId(null);
     if (error) return setErr(error.message);
@@ -590,8 +591,13 @@ function UserManagement() {
                   <div className="flex items-center gap-2.5">
                     <span className={`w-9 h-9 rounded-full grid place-items-center text-xs font-bold text-white ${avatarColor(u.full_name ?? u.id)}`}>{initials(u.full_name)}</span>
                     <div className="leading-tight">
-                      <div className="font-medium text-on-surface">{u.full_name ?? 'Unnamed user'}</div>
-                      <div className="text-[11px] text-outline font-mono">{u.id.slice(0, 8)}</div>
+                      <input
+                        value={u.full_name ?? ''}
+                        onChange={(e) => edit(u.id, { full_name: e.target.value })}
+                        placeholder="Unnamed user"
+                        className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm font-medium outline-none focus:border-[#0d631b] w-44"
+                      />
+                      <div className="text-[11px] text-outline font-mono mt-0.5">{u.id.slice(0, 8)}</div>
                     </div>
                   </div>
                 </td>
