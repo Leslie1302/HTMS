@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 
 export default function Settings() {
-  const { profile } = useAuth();
+  const { session } = useAuth();
   const [sigUrl, setSigUrl] = useState<string | null>(null);
   const [sigPath, setSigPath] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,25 +17,21 @@ export default function Settings() {
   const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
   const [mfaBusy, setMfaBusy] = useState(false);
 
-  // Load signature
+  // Load signature — keyed on the session user id so an MFA step-up (which
+  // refreshes the session and remounts the page) reliably reloads it.
+  const uid = session?.user?.id ?? null;
+  async function loadSignature(userId: string) {
+    const { data } = await supabase.from('app_users').select('signature_path').eq('id', userId).single();
+    if (data?.signature_path) {
+      setSigPath(data.signature_path);
+      const { data: signed } = await supabase.storage.from('documents').createSignedUrl(data.signature_path, 3600);
+      if (signed?.signedUrl) setSigUrl(signed.signedUrl);
+    }
+  }
   useEffect(() => {
-    if (!profile) return;
-    supabase
-      .from('app_users')
-      .select('signature_path')
-      .eq('id', profile.transporter_id ? '0' : '0') // just to trigger auth; actual query below
-      .then(() => {}); // noop
-    // Direct query — we need our own row.
-    const load = async () => {
-      const { data } = await supabase.from('app_users').select('signature_path').eq('id', (await supabase.auth.getUser()).data.user?.id ?? '').single();
-      if (data?.signature_path) {
-        setSigPath(data.signature_path);
-        const { data: signed } = await supabase.storage.from('documents').createSignedUrl(data.signature_path, 3600);
-        if (signed?.signedUrl) setSigUrl(signed.signedUrl);
-      }
-    };
-    load();
-  }, [profile]);
+    if (uid) loadSignature(uid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid]);
 
   // Load MFA factors
   useEffect(() => {
@@ -112,6 +108,7 @@ export default function Settings() {
       setMfaVerifyCode('');
       setEnrollFactorId(null);
       loadFactors();
+      if (uid) loadSignature(uid); // session was refreshed by the verify — re-confirm the signature display
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -144,6 +141,14 @@ export default function Settings() {
 
       {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg flex items-center gap-2">{err}</div>}
       {msg && <div className="mb-4 text-sm text-[#0d631b] bg-[#e8f5e9] p-3 rounded-lg flex items-center gap-2">{msg}</div>}
+
+      {/* Signing readiness */}
+      {sigPath && mfaFactors.length > 0 && (
+        <div className="mb-4 text-sm text-[#0c5216] bg-[#e8f5e9] border border-[#0d631b]/30 p-3 rounded-lg flex items-center gap-2">
+          <span className="material-symbols-outlined text-[18px]">verified</span>
+          Signature and MFA are set up — you can sign documents.
+        </div>
+      )}
 
       {/* Signature card */}
       <div className="bg-white rounded-xl border border-outline-variant p-5 mb-5">
