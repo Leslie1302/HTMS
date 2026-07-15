@@ -3,9 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 
 export default function Settings() {
-  const { profile } = useAuth();
+  const { profile, session, refreshProfile } = useAuth();
   const [sigUrl, setSigUrl] = useState<string | null>(null);
-  const [sigPath, setSigPath] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -17,25 +16,23 @@ export default function Settings() {
   const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
   const [mfaBusy, setMfaBusy] = useState(false);
 
-  // Load signature
+  // Generate signed URL whenever signature_path changes (profile comes from AuthProvider — no extra DB query).
+  const sigPath = profile?.signature_path ?? null;
   useEffect(() => {
-    if (!profile) return;
-    supabase
-      .from('app_users')
-      .select('signature_path')
-      .eq('id', profile.transporter_id ? '0' : '0') // just to trigger auth; actual query below
-      .then(() => {}); // noop
-    // Direct query — we need our own row.
-    const load = async () => {
-      const { data } = await supabase.from('app_users').select('signature_path').eq('id', (await supabase.auth.getUser()).data.user?.id ?? '').single();
-      if (data?.signature_path) {
-        setSigPath(data.signature_path);
-        const { data: signed } = await supabase.storage.from('documents').createSignedUrl(data.signature_path, 3600);
-        if (signed?.signedUrl) setSigUrl(signed.signedUrl);
-      }
-    };
-    load();
-  }, [profile]);
+    let cancelled = false;
+    console.log('[Settings] createSignedUrl effect — sigPath:', sigPath);
+    if (sigPath) {
+      supabase.storage.from('documents').createSignedUrl(sigPath, 3600).then(({ data, error }) => {
+        console.log('[Settings] createSignedUrl result:', { url: data?.signedUrl, error, cancelled });
+        if (!cancelled && data?.signedUrl) setSigUrl(data.signedUrl);
+        else if (error) console.error('[Settings] createSignedUrl error:', error);
+      }).catch(e => console.error('[Settings] createSignedUrl exception:', e));
+    } else {
+      console.log('[Settings] sigPath is null — clearing sigUrl');
+      setSigUrl(null);
+    }
+    return () => { cancelled = true; };
+  }, [sigPath]);
 
   // Load MFA factors
   useEffect(() => {
@@ -55,14 +52,16 @@ export default function Settings() {
     if (file.size > 2 * 1024 * 1024) { setErr('Signature image must be under 2 MB.'); return; }
     setBusy(true); setErr(null); setMsg(null);
     try {
-      const uid = (await supabase.auth.getUser()).data.user?.id;
+      const uid = session?.user?.id;
       if (!uid) throw new Error('Not authenticated');
       const path = `signatures/${uid}.png`;
       const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { contentType: 'image/png', upsert: true });
       if (upErr) throw new Error(upErr.message);
       const { error: dbErr } = await supabase.from('app_users').update({ signature_path: path }).eq('id', uid);
       if (dbErr) throw new Error(dbErr.message);
-      setSigPath(path);
+      console.log('[Settings] uploadSignature — DB updated, calling refreshProfile()');
+      await refreshProfile();
+      console.log('[Settings] uploadSignature — refreshProfile() done, profile.signature_path:', profile?.signature_path);
       const { data: signed } = await supabase.storage.from('documents').createSignedUrl(path, 3600);
       if (signed?.signedUrl) setSigUrl(signed.signedUrl);
       setMsg('Signature uploaded successfully.');
