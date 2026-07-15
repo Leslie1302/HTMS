@@ -135,25 +135,57 @@ export default function InvoiceStatus() {
 
   const mfaReadyForSign = hasSignature && hasMfa;
 
+  // Whether the selected invoice already carries the transporter signature.
+  const [signedByMe, setSignedByMe] = useState(false);
+  useEffect(() => {
+    if (!selectedId) { setSignedByMe(false); return; }
+    supabase
+      .from('invoice_signatures')
+      .select('slot')
+      .eq('invoice_id', selectedId)
+      .eq('slot', 'transporter')
+      .then(({ data }) => setSignedByMe((data ?? []).length > 0));
+  }, [selectedId]);
+
+  /** MFA step-up (if needed) + apply signature. Returns false if the user cancelled the code prompt. */
+  async function stepUpAndSign(id: string): Promise<boolean> {
+    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalData?.currentLevel !== 'aal2') {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const totp = factors?.totp?.[0];
+      if (!totp) throw new Error('No MFA factor enrolled. Please set up MFA in Settings first.');
+      const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+      if (chErr) throw new Error(chErr.message);
+      const code = window.prompt('Enter your 6-digit MFA code to authorize signing:');
+      if (!code) return false;
+      const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
+      if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
+    }
+    await api.signInvoice(id);
+    setSignedByMe(true);
+    return true;
+  }
+
+  /** Backfill: sign an already-submitted invoice so future PDFs carry the signature. */
+  async function signOnly() {
+    if (!selectedId) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await stepUpAndSign(selectedId);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function signAndSubmit() {
     if (!selectedId) return;
     setBusy(true);
     setErr(null);
     try {
-      // Step-up to AAL2
-      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (aalData?.currentLevel !== 'aal2') {
-        const { data: factors } = await supabase.auth.mfa.listFactors();
-        const totp = factors?.totp?.[0];
-        if (!totp) { setErr('No MFA factor enrolled. Please set up MFA in Settings first.'); setBusy(false); return; }
-        const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
-        if (chErr) throw new Error(chErr.message);
-        const code = window.prompt('Enter your 6-digit MFA code to authorize signing:');
-        if (!code) { setBusy(false); return; }
-        const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
-        if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
-      }
-      await api.signInvoice(selectedId);
+      if (!signedByMe && !(await stepUpAndSign(selectedId))) { setBusy(false); return; }
       // Now submit
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       const res = await fetch('/api/invoice-stage', {
@@ -305,6 +337,23 @@ export default function InvoiceStatus() {
                   <Link to="/settings" className="underline font-semibold">upload your signature</Link> first.
                 </p>
               </div>
+            )}
+            {/* Backfill: submitted before e-signatures existed — sign without re-submitting. */}
+            {selected.stage !== 'generated' && !signedByMe && mfaReadyForSign && (
+              <button
+                onClick={signOnly}
+                disabled={busy}
+                className="w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm bg-[#2e7d32] text-white hover:opacity-90 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-lg">draw</span>
+                {busy ? 'Signing…' : 'Add my signature'}
+              </button>
+            )}
+            {selected.stage !== 'generated' && !signedByMe && !mfaReadyForSign && (
+              <p className="mt-3 text-xs text-outline">
+                This invoice was submitted without an e-signature.{' '}
+                <Link to="/settings" className="underline">Upload your signature and set up MFA</Link> to add it.
+              </p>
             )}
           </div>
 

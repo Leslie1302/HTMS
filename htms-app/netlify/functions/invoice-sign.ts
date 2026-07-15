@@ -54,18 +54,20 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
     if (invoice.transporter_id !== ctx.transporterId) {
       return json(403, { error: 'You can only sign your own invoice' });
     }
-    // Must be at generated stage (submission-ready gate).
-    if (invoice.stage !== 'generated') {
-      return json(422, { error: 'Invoice must be at the Generated stage to apply the transporter signature' });
-    }
-    // Checklist + review must be complete.
-    const checklist = (invoice.checklist ?? {}) as Record<string, boolean>;
-    const missing = ['original_waybills', 'original_acknowledgement_forms', 'release_letters', 'contract_agreement_copy'].filter((k) => !checklist[k]);
-    if (missing.length > 0) {
-      return json(422, { error: `Cannot sign: checklist items incomplete: ${missing.join(', ')}` });
-    }
-    if (invoice.review_status !== 'approved') {
-      return json(422, { error: 'Cannot sign: checklist must be approved by an officer first' });
+    // At the generated stage the full submission gate applies. Past it, signing
+    // is a BACKFILL for invoices submitted before e-signatures existed — the
+    // submission gates were already satisfied when it advanced, so only the
+    // own-invoice and slot-empty checks apply.
+    // ponytail: backfill window is any post-generated stage; narrow to specific stages if the Ministry asks
+    if (invoice.stage === 'generated') {
+      const checklist = (invoice.checklist ?? {}) as Record<string, boolean>;
+      const missing = ['original_waybills', 'original_acknowledgement_forms', 'release_letters', 'contract_agreement_copy'].filter((k) => !checklist[k]);
+      if (missing.length > 0) {
+        return json(422, { error: `Cannot sign: checklist items incomplete: ${missing.join(', ')}` });
+      }
+      if (invoice.review_status !== 'approved') {
+        return json(422, { error: 'Cannot sign: checklist must be approved by an officer first' });
+      }
     }
   }
 
