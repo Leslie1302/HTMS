@@ -14,7 +14,7 @@ export default function Settings() {
   const [mfaFactors, setMfaFactors] = useState<{ id: string; friendly_name: string | null; factor_type: string }[]>([]);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
   const [mfaVerifyCode, setMfaVerifyCode] = useState('');
-  const [mfaChallengeId, setMfaChallengeId] = useState<string | null>(null);
+  const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
   const [mfaBusy, setMfaBusy] = useState(false);
 
   // Load signature
@@ -88,8 +88,8 @@ export default function Settings() {
       }
       const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator App', issuer: 'HTMS — Ministry of Energy' });
       if (error) throw new Error(error.message);
+      setEnrollFactorId(data.id); // listFactors() only returns VERIFIED factors — keep the id from enroll
       setQrSvg(data.totp.qr_code);
-      setMfaChallengeId(null);
       setMfaVerifyCode('');
     } catch (e) {
       setErr((e as Error).message);
@@ -98,40 +98,19 @@ export default function Settings() {
     }
   }
 
-  // ── MFA: challenge + verify ──
+  // ── MFA: challenge + verify (one step) ──
   async function verifyMfa(factorId: string) {
+    if (mfaVerifyCode.length !== 6) return;
     setMfaBusy(true); setErr(null);
     try {
       const { data: challengeData, error: chErr } = await supabase.auth.mfa.challenge({ factorId });
       if (chErr) throw new Error(chErr.message);
-      setMfaChallengeId(challengeData.id);
-      // If user entered a code, verify immediately
-      if (mfaVerifyCode.length === 6) {
-        const { error: vErr } = await supabase.auth.mfa.verify({ factorId, challengeId: challengeData.id, code: mfaVerifyCode });
-        if (vErr) throw new Error(vErr.message);
-        setMsg('MFA factor verified and enrolled.');
-        setQrSvg(null);
-        setMfaVerifyCode('');
-        loadFactors();
-      }
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setMfaBusy(false);
-    }
-  }
-
-  // ── MFA: verify after challenge (when code is entered after challenge) ──
-  async function verifyAfterChallenge(factorId: string) {
-    if (!mfaChallengeId || mfaVerifyCode.length !== 6) return;
-    setMfaBusy(true); setErr(null);
-    try {
-      const { error } = await supabase.auth.mfa.verify({ factorId, challengeId: mfaChallengeId, code: mfaVerifyCode });
-      if (error) throw new Error(error.message);
+      const { error: vErr } = await supabase.auth.mfa.verify({ factorId, challengeId: challengeData.id, code: mfaVerifyCode });
+      if (vErr) throw new Error(vErr.message);
       setMsg('MFA factor verified and enrolled.');
       setQrSvg(null);
       setMfaVerifyCode('');
-      setMfaChallengeId(null);
+      setEnrollFactorId(null);
       loadFactors();
     } catch (e) {
       setErr((e as Error).message);
@@ -248,39 +227,15 @@ export default function Settings() {
                 className="border border-outline-variant rounded-lg px-3 py-2 text-sm font-mono w-32 outline-none focus:border-[#0d631b]"
                 maxLength={6}
               />
-              {mfaChallengeId ? (
-                <button
-                  onClick={() => {
-                    // Find the just-enrolled factor (the one without an ID yet — but we need the factor ID).
-                    // Since we just enrolled, we need to re-list factors to get the ID.
-                    // Actually, the enrollment returns the factor; we should store it.
-                    // For simplicity, re-list and use the latest.
-                    supabase.auth.mfa.listFactors().then(({ data }) => {
-                      const latest = data?.totp?.[data.totp.length - 1];
-                      if (latest) verifyAfterChallenge(latest.id);
-                    });
-                  }}
-                  disabled={mfaBusy || mfaVerifyCode.length !== 6}
-                  className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-                >
-                  {mfaBusy ? 'Verifying…' : 'Verify & Activate'}
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    supabase.auth.mfa.listFactors().then(({ data }) => {
-                      const latest = data?.totp?.[data.totp.length - 1];
-                      if (latest) verifyMfa(latest.id);
-                    });
-                  }}
-                  disabled={mfaBusy || mfaVerifyCode.length !== 6}
-                  className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-                >
-                  {mfaBusy ? 'Verifying…' : 'Get Challenge & Verify'}
-                </button>
-              )}
+              <button
+                onClick={() => { if (enrollFactorId) verifyMfa(enrollFactorId); }}
+                disabled={mfaBusy || mfaVerifyCode.length !== 6 || !enrollFactorId}
+                className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                {mfaBusy ? 'Verifying…' : 'Verify & Activate'}
+              </button>
             </div>
-            <button onClick={() => { setQrSvg(null); setMfaChallengeId(null); setMfaVerifyCode(''); }} className="mt-3 text-xs text-outline hover:underline">
+            <button onClick={() => { setQrSvg(null); setEnrollFactorId(null); setMfaVerifyCode(''); }} className="mt-3 text-xs text-outline hover:underline">
               Cancel
             </button>
           </div>
