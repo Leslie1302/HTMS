@@ -403,6 +403,7 @@ export default function Invoices() {
         const bIdx = bi === -1 ? scanOrder.length : bi;
         return aIdx - bIdx;
       });
+      let skipped = 0;
       for (const s of sortedScans) {
         const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
         if (blob) {
@@ -411,8 +412,11 @@ export default function Invoices() {
             mime: s.mime_type || blob.type,
             label: SCAN_LABELS[s.scan_type] ?? 'Supporting scan',
           });
+        } else {
+          skipped++;
         }
       }
+      if (skipped > 0) setErr(`${skipped} scan(s) could not be included in the document — check storage access.`);
 
       const mergedBytes = await merged.save();
       const finalBytes = allScans.length > 0
