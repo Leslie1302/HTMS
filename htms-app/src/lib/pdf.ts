@@ -173,15 +173,23 @@ function waveFooter(doc: jsPDF): void {
 }
 
 /** Signature line + manager's name (falls back to the company name) + company. */
-function signatureBlock(doc: jsPDF, inv: InvoiceDoc, x: number, y: number): void {
+function signatureBlock(doc: jsPDF, inv: InvoiceDoc, x: number, y: number, forPrefix = false): void {
   const t = inv.transporters ?? {};
   const name = t.display_name ?? 'Transporter';
   const manager = t.manager_name?.trim() || name;
   doc.setDrawColor(120).setLineWidth(0.6).line(x, y, x + 190, y);
-  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(17).text(manager, x, y + 15);
+  // "For: <manager>" when someone signs on the manager's behalf.
+  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(17).text(`${forPrefix ? 'For: ' : ''}${manager}`, x, y + 15);
   if (manager !== name) {
     doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(90).text(name, x, y + 28);
   }
+}
+
+/** True when the signed-in signer's name differs from the registered manager — the printed name then gets a "For:" prefix. */
+function signedForAnother(inv: InvoiceDoc, sig?: { name: string }): boolean {
+  const t = inv.transporters ?? {};
+  const manager = (t.manager_name?.trim() || t.display_name || '').toLowerCase();
+  return !!sig && !!sig.name.trim() && sig.name.trim().toLowerCase() !== manager;
 }
 
 // ── Invoice PDF ──────────────────────────────────────────────────────────────
@@ -250,7 +258,7 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
     doc.text(short(transSig.signed_at), M + 190, lineY - 4, { align: 'right' });
   }
-  signatureBlock(doc, inv, M, lineY);
+  signatureBlock(doc, inv, M, lineY, signedForAnother(inv, transSig));
 
   waveFooter(doc);
   return doc;
@@ -332,7 +340,7 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
     doc.text(short(transSig.signed_at), M + 190, y - 4, { align: 'right' });
   }
-  signatureBlock(doc, inv, M, y);
+  signatureBlock(doc, inv, M, y, signedForAnother(inv, transSig));
 
   waveFooter(doc);
   return doc;

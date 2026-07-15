@@ -3,7 +3,7 @@ import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
-import { appendScansToPdf, downloadBytes, type ScanInput } from '../lib/mergeScans';
+import { appendScansToPdf, type ScanInput } from '../lib/mergeScans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, type SignSlot } from '../../shared/signing';
@@ -481,36 +481,9 @@ export default function Invoices() {
         return;
       }
 
-      const baseBytes = buildInvoice(inv as InvoiceDoc).output('arraybuffer') as ArrayBuffer;
-
-      const scans: ScanInput[] = [];
-      for (const line of (inv as any).invoice_lines ?? []) {
-        for (const s of line.waybills?.scans ?? []) {
-          const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
-          if (blob) {
-            scans.push({
-              bytes: await blob.arrayBuffer(),
-              mime: s.mime_type || blob.type,
-              label: SCAN_LABELS[s.scan_type] ?? 'Supporting scan',
-            });
-          }
-        }
-      }
-
-      const tp = (inv as any).transporters;
-      if (tp?.contract_path) {
-        const { data: contractBlob } = await supabase.storage.from('documents').download(tp.contract_path);
-        if (contractBlob) {
-          scans.push({
-            bytes: await contractBlob.arrayBuffer(),
-            mime: contractBlob.type || 'application/pdf',
-            label: 'Contract agreement',
-          });
-        }
-      }
-
-      const merged = await appendScansToPdf(baseBytes, scans);
-      downloadBytes(merged, `Invoice_${invoiceRef(inv as InvoiceDoc)}.pdf`);
+      // Invoice is standalone too — the merged package (invoice + scans) is the
+      // reviewers' "Payment request documentation" button only.
+      buildInvoice(inv as InvoiceDoc).save(`Invoice_${invoiceRef(inv as InvoiceDoc)}.pdf`);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
