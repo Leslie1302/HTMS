@@ -366,10 +366,12 @@ export default function Invoices() {
     setBusy(true);
     setErr(null);
     try {
+      // 1. Fetch invoice + waybill + scan data via nested join (same proven
+      //    path as loadDetail — scans are scoped to THIS request's waybills).
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id,storage_path,mime_type,scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated), invoice_lines(computed_cost, category, distance_km, rate_snapshot, waybills(id, waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id, storage_path, mime_type, scan_type)))',
         )
         .eq('id', id)
         .single();
@@ -380,11 +382,10 @@ export default function Invoices() {
       const docInv = inv as InvoiceDoc;
       (docInv as InvoiceDoc & { signatures?: typeof sigData }).signatures = sigData;
 
-      // 1. Letter + Invoice (with signatures)
+      // 2. Build Letter + Invoice PDFs (with signatures embedded).
       const letterBytes = buildLetter(docInv).output('arraybuffer') as ArrayBuffer;
       const invoiceBytes = buildInvoice(docInv).output('arraybuffer') as ArrayBuffer;
 
-      // Merge letter + invoice
       const { PDFDocument } = await import('pdf-lib');
       const merged = await PDFDocument.create();
       const letterDoc = await PDFDocument.load(letterBytes);
@@ -394,21 +395,18 @@ export default function Invoices() {
       const invoicePages = await merged.copyPages(invoiceDoc, invoiceDoc.getPageIndices());
       invoicePages.forEach((p) => merged.addPage(p));
 
-      // 2. Append scans in order: acknowledgement → waybill → release_letter
+      // 2. Extract scans from the nested join — already scoped to this
+      //    invoice's waybills by the Supabase relationship chain.
       const scanOrder = ['acknowledgement', 'waybill', 'release_letter'];
+      const allLines = ((inv as any).invoice_lines ?? []) as { waybills?: { scans?: { id: string; storage_path: string; mime_type: string; scan_type: string }[] } }[];
+      const scopedScans = allLines
+        .flatMap((l) => l.waybills?.scans ?? [])
+        .filter((s) => scanOrder.includes(s.scan_type))
+        .sort((a, b) => scanOrder.indexOf(a.scan_type) - scanOrder.indexOf(b.scan_type));
+
       const allScans: ScanInput[] = [];
-      const lines = (inv as any).invoice_lines ?? [];
-      const scans = lines.flatMap((l: any) => l.waybills?.scans ?? []);
-      // Sort scans by type order, then by created_at
-      const sortedScans = [...scans].sort((a: any, b: any) => {
-        const ai = scanOrder.indexOf(a.scan_type);
-        const bi = scanOrder.indexOf(b.scan_type);
-        const aIdx = ai === -1 ? scanOrder.length : ai;
-        const bIdx = bi === -1 ? scanOrder.length : bi;
-        return aIdx - bIdx;
-      });
       let skipped = 0;
-      for (const s of sortedScans) {
+      for (const s of scopedScans) {
         const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
         if (blob) {
           allScans.push({
