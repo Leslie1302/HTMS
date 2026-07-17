@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 import { ALL_STAGES, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { Link } from 'react-router-dom';
+import MfaStepUpModal from '../components/MfaStepUpModal';
 
 const ghs = (n: number) =>
   '₵' + Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -39,6 +40,20 @@ export default function InvoiceStatus() {
   const [busy, setBusy] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
   const [hasMfa, setHasMfa] = useState(false);
+
+  // ── MFA step-up modal ──
+  const [mfaModalOpen, setMfaModalOpen] = useState(false);
+  const [mfaModalBusy, setMfaModalBusy] = useState(false);
+  const [mfaModalError, setMfaModalError] = useState<string | null>(null);
+  const mfaResolveRef = useRef<((code: string | null) => void) | null>(null);
+
+  function requestMfaCode(): Promise<string | null> {
+    return new Promise((resolve) => {
+      mfaResolveRef.current = resolve;
+      setMfaModalError(null);
+      setMfaModalOpen(true);
+    });
+  }
 
   const SCAN_LABELS: Record<string, string> = {
     acknowledgement: 'Acknowledgement form',
@@ -156,11 +171,14 @@ export default function InvoiceStatus() {
       if (!totp) throw new Error('No MFA factor enrolled. Please set up MFA in Settings first.');
       const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
       if (chErr) throw new Error(chErr.message);
-      const code = window.prompt('Enter your 6-digit MFA code to authorize signing:');
+      const code = await requestMfaCode();
       if (!code) return false;
+      setMfaModalBusy(true);
       const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
+      setMfaModalBusy(false);
       if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
     }
+    setMfaModalOpen(false);
     await api.signInvoice(id);
     setSignedByMe(true);
     return true;
@@ -177,6 +195,7 @@ export default function InvoiceStatus() {
       setErr((e as Error).message);
     } finally {
       setBusy(false);
+      setMfaModalOpen(false);
     }
   }
 
@@ -201,6 +220,7 @@ export default function InvoiceStatus() {
       setErr((e as Error).message);
     } finally {
       setBusy(false);
+      setMfaModalOpen(false);
     }
   }
 
@@ -330,14 +350,6 @@ export default function InvoiceStatus() {
                 </p>
               </div>
             )}
-            {selected.stage === 'generated' && mfaReadyForSign && !hasSignature && (
-              <div className="mt-3 p-3 bg-error-container border border-error rounded-xl">
-                <p className="text-sm text-error">
-                  <span className="font-bold">Cannot submit yet.</span> Please{' '}
-                  <Link to="/settings" className="underline font-semibold">upload your signature</Link> first.
-                </p>
-              </div>
-            )}
             {/* Backfill: submitted before e-signatures existed — sign without re-submitting. */}
             {selected.stage !== 'generated' && !signedByMe && mfaReadyForSign && (
               <button
@@ -454,6 +466,14 @@ export default function InvoiceStatus() {
           <p>No invoices found for your account.</p>
         </div>
       )}
+      {/* MFA step-up modal */}
+      <MfaStepUpModal
+        open={mfaModalOpen}
+        busy={mfaModalBusy}
+        error={mfaModalError}
+        onVerify={(code) => { mfaResolveRef.current?.(code); mfaResolveRef.current = null; }}
+        onCancel={() => { mfaResolveRef.current?.(null); mfaResolveRef.current = null; setMfaModalOpen(false); }}
+      />
     </div>
   );
 }

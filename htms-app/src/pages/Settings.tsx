@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
+import MfaStepUpModal from '../components/MfaStepUpModal';
 
 export default function Settings() {
   const { session } = useAuth();
@@ -9,6 +10,8 @@ export default function Settings() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sigLoading, setSigLoading] = useState(true);
+  const [mfaLoading, setMfaLoading] = useState(true);
 
   // ── MFA state ──
   const [mfaFactors, setMfaFactors] = useState<{ id: string; friendly_name: string | null; factor_type: string }[]>([]);
@@ -17,19 +20,38 @@ export default function Settings() {
   const [enrollFactorId, setEnrollFactorId] = useState<string | null>(null);
   const [mfaBusy, setMfaBusy] = useState(false);
 
+  // ── MFA step-up modal (for unenroll) ──
+  const [mfaModalOpen, setMfaModalOpen] = useState(false);
+  const [mfaModalBusy, setMfaModalBusy] = useState(false);
+  const [mfaModalError, setMfaModalError] = useState<string | null>(null);
+  const mfaResolveRef = useRef<((code: string | null) => void) | null>(null);
+
+  function requestMfaCode(): Promise<string | null> {
+    return new Promise((resolve) => {
+      mfaResolveRef.current = resolve;
+      setMfaModalError(null);
+      setMfaModalOpen(true);
+    });
+  }
+
   // Load signature — keyed on the session user id so an MFA step-up (which
   // refreshes the session and remounts the page) reliably reloads it.
   const uid = session?.user?.id ?? null;
   async function loadSignature(userId: string) {
-    const { data } = await supabase.from('app_users').select('signature_path').eq('id', userId).single();
-    if (data?.signature_path) {
-      setSigPath(data.signature_path);
-      const { data: signed } = await supabase.storage.from('documents').createSignedUrl(data.signature_path, 3600);
-      if (signed?.signedUrl) setSigUrl(signed.signedUrl);
+    try {
+      const { data } = await supabase.from('app_users').select('signature_path').eq('id', userId).single();
+      if (data?.signature_path) {
+        setSigPath(data.signature_path);
+        const { data: signed } = await supabase.storage.from('documents').createSignedUrl(data.signature_path, 3600);
+        if (signed?.signedUrl) setSigUrl(signed.signedUrl);
+      }
+    } finally {
+      setSigLoading(false);
     }
   }
   useEffect(() => {
     if (uid) loadSignature(uid);
+    else setSigLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
 
@@ -39,9 +61,13 @@ export default function Settings() {
   }, []);
 
   async function loadFactors() {
-    const { data } = await supabase.auth.mfa.listFactors();
-    const totps = (data?.totp ?? []).map((f) => ({ id: f.id, friendly_name: f.friendly_name ?? null, factor_type: f.factor_type }));
-    setMfaFactors(totps);
+    try {
+      const { data } = await supabase.auth.mfa.listFactors();
+      const totps = (data?.totp ?? []).map((f) => ({ id: f.id, friendly_name: f.friendly_name ?? null, factor_type: f.factor_type }));
+      setMfaFactors(totps);
+    } finally {
+      setMfaLoading(false);
+    }
   }
 
   // ── Signature upload ──
@@ -53,8 +79,9 @@ export default function Settings() {
     try {
       const uid = (await supabase.auth.getUser()).data.user?.id;
       if (!uid) throw new Error('Not authenticated');
-      const path = `signatures/${uid}.png`;
-      const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { contentType: 'image/png', upsert: true });
+      const ext = file.type === 'image/jpeg' || file.type === 'image/jpg' ? 'jpg' : 'png';
+      const path = `signatures/${uid}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type || 'image/png', upsert: true });
       if (upErr) throw new Error(upErr.message);
       // .select().single() forces an error if RLS silently matched zero rows.
       const { data: saved, error: dbErr } = await supabase.from('app_users').update({ signature_path: path }).eq('id', uid).select('signature_path').single();
@@ -122,6 +149,22 @@ export default function Settings() {
     if (!window.confirm('Remove this authenticator factor? You will need to re-enroll to sign documents.')) return;
     setMfaBusy(true); setErr(null);
     try {
+      // Supabase requires AAL2 to unenroll a verified factor.
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.currentLevel !== 'aal2') {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totp = factors?.totp?.[0];
+        if (!totp) throw new Error('No MFA factor to verify against.');
+        const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+        if (chErr) throw new Error(chErr.message);
+        const code = await requestMfaCode();
+        if (!code) { setMfaBusy(false); return; }
+        setMfaModalBusy(true);
+        const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
+        setMfaModalBusy(false);
+        if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
+      }
+      setMfaModalOpen(false);
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
       if (error) throw new Error(error.message);
       setMsg('Factor removed.');
@@ -129,6 +172,7 @@ export default function Settings() {
     } catch (e) {
       setErr((e as Error).message);
     } finally {
+      setMfaModalOpen(false);
       setMfaBusy(false);
     }
   }
@@ -161,7 +205,15 @@ export default function Settings() {
           Upload a PNG/JPEG of your handwritten signature. This will be applied to documents you sign electronically.
         </p>
 
-        {sigUrl ? (
+        {sigLoading ? (
+          <div className="flex items-center gap-4">
+            <div className="w-32 h-16 bg-surface rounded-lg animate-pulse" />
+            <div className="space-y-2">
+              <div className="w-24 h-3 bg-surface rounded animate-pulse" />
+              <div className="w-16 h-3 bg-surface rounded animate-pulse" />
+            </div>
+          </div>
+        ) : sigUrl ? (
           <div className="flex items-center gap-4 mb-4">
             <div className="border border-outline-variant rounded-lg p-3 bg-surface">
               <img src={sigUrl} alt="Your signature" className="h-16 object-contain" />
@@ -197,7 +249,15 @@ export default function Settings() {
           MFA is required to sign documents. Enroll an authenticator app (Google Authenticator, Authy, etc.) using TOTP.
         </p>
 
-        {mfaFactors.length > 0 && (
+        {mfaLoading ? (
+          <div className="space-y-3">
+            <div className="w-32 h-3 bg-surface rounded animate-pulse" />
+            <div className="flex gap-3">
+              <div className="flex-1 h-12 bg-surface rounded-lg animate-pulse" />
+              <div className="flex-1 h-12 bg-surface rounded-lg animate-pulse" />
+            </div>
+          </div>
+        ) : mfaFactors.length > 0 ? (
           <div className="mb-4 space-y-2">
             <p className="text-sm font-medium text-on-surface">Enrolled factors:</p>
             {mfaFactors.map((f) => (
@@ -216,9 +276,9 @@ export default function Settings() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {qrSvg ? (
+        {!mfaLoading && (qrSvg ? (
           <div className="mt-4 p-4 border border-outline-variant rounded-xl">
             <p className="text-sm font-medium mb-2">Scan this QR code with your authenticator app:</p>
             <div className="flex justify-center mb-4">
@@ -254,7 +314,7 @@ export default function Settings() {
             <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
             {mfaBusy ? 'Working…' : hasMfa ? 'Enroll Another Factor' : 'Enroll Authenticator App'}
           </button>
-        )}
+        ))}
 
         {!hasSig && (
           <p className="mt-3 text-xs text-error">
@@ -267,6 +327,15 @@ export default function Settings() {
           </p>
         )}
       </div>
+
+      {/* MFA step-up modal (for unenroll confirmation) */}
+      <MfaStepUpModal
+        open={mfaModalOpen}
+        busy={mfaModalBusy}
+        error={mfaModalError}
+        onVerify={(code) => { mfaResolveRef.current?.(code); mfaResolveRef.current = null; }}
+        onCancel={() => { mfaResolveRef.current?.(null); mfaResolveRef.current = null; setMfaModalOpen(false); }}
+      />
     </div>
   );
 }

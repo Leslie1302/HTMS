@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
 import { appendScansToPdf, type ScanInput } from '../lib/mergeScans';
+import { extractScopedScans } from '../../shared/scans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, type SignSlot } from '../../shared/signing';
+import MfaStepUpModal from '../components/MfaStepUpModal';
 
 const SCAN_LABELS: Record<string, string> = {
   acknowledgement: 'Acknowledgement form',
@@ -102,6 +104,21 @@ export default function Invoices() {
   const [contractOk, setContractOk] = useState(false);
   const [signatures, setSignatures] = useState<{ slot: string; signed_at: string; user_id: string; full_name: string | null }[]>([]);
   const [sigBusy, setSigBusy] = useState(false);
+
+  // ── MFA step-up modal ──
+  const [mfaModalOpen, setMfaModalOpen] = useState(false);
+  const [mfaModalBusy, setMfaModalBusy] = useState(false);
+  const [mfaModalError, setMfaModalError] = useState<string | null>(null);
+  const mfaResolveRef = useRef<((code: string | null) => void) | null>(null);
+
+  /** Shows the MFA modal and resolves with the entered code (or null on cancel). */
+  function requestMfaCode(): Promise<string | null> {
+    return new Promise((resolve) => {
+      mfaResolveRef.current = resolve;
+      setMfaModalError(null);
+      setMfaModalOpen(true);
+    });
+  }
 
   function load() {
     api
@@ -345,11 +362,14 @@ export default function Invoices() {
         }
         const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
         if (chErr) throw new Error(chErr.message);
-        const code = window.prompt('Enter your 6-digit MFA code:');
+        const code = await requestMfaCode();
         if (!code) { setSigBusy(false); return; }
+        setMfaModalBusy(true);
         const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
+        setMfaModalBusy(false);
         if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
       }
+      setMfaModalOpen(false);
       await api.signInvoice(invoiceId);
       setMsg('Signature applied successfully.');
       load();
@@ -357,6 +377,7 @@ export default function Invoices() {
     } catch (e) {
       setErr((e as Error).message);
     } finally {
+      setMfaModalOpen(false);
       setSigBusy(false);
     }
   }
@@ -397,12 +418,7 @@ export default function Invoices() {
 
       // 2. Extract scans from the nested join — already scoped to this
       //    invoice's waybills by the Supabase relationship chain.
-      const scanOrder = ['acknowledgement', 'waybill', 'release_letter'];
-      const allLines = ((inv as any).invoice_lines ?? []) as { waybills?: { scans?: { id: string; storage_path: string; mime_type: string; scan_type: string }[] } }[];
-      const scopedScans = allLines
-        .flatMap((l) => l.waybills?.scans ?? [])
-        .filter((s) => scanOrder.includes(s.scan_type))
-        .sort((a, b) => scanOrder.indexOf(a.scan_type) - scanOrder.indexOf(b.scan_type));
+      const scopedScans = extractScopedScans((inv as any).invoice_lines ?? []);
 
       const allScans: ScanInput[] = [];
       let skipped = 0;
@@ -1000,6 +1016,14 @@ export default function Invoices() {
           </tbody>
         </table>
       </div>
+      {/* MFA step-up modal */}
+      <MfaStepUpModal
+        open={mfaModalOpen}
+        busy={mfaModalBusy}
+        error={mfaModalError}
+        onVerify={(code) => { mfaResolveRef.current?.(code); mfaResolveRef.current = null; }}
+        onCancel={() => { mfaResolveRef.current?.(null); mfaResolveRef.current = null; setMfaModalOpen(false); }}
+      />
     </div>
   );
 }
