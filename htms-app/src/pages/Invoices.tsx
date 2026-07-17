@@ -18,31 +18,40 @@ const SCAN_LABELS: Record<string, string> = {
 };
 
 /** Signature rows + signer names + signature images (as data URLs) for PDF rendering. */
-async function fetchSignatures(invoiceId: string): Promise<{ slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[]> {
+async function fetchSignatures(invoiceId: string): Promise<{ sigs: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[]; imageErrors: number }> {
   const { data: sigRows } = await supabase.from('invoice_signatures').select('slot, signed_at, user_id').eq('invoice_id', invoiceId);
-  const sigData: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[] = [];
-  if (!sigRows || sigRows.length === 0) return sigData;
+  if (!sigRows || sigRows.length === 0) return { sigs: [], imageErrors: 0 };
   const userIds = [...new Set(sigRows.map((s: { user_id: string }) => s.user_id))];
   const { data: users } = await supabase.from('app_users').select('id, full_name, signature_path').in('id', userIds);
   const userMap = new Map((users ?? []).map((u: { id: string; full_name: string | null; signature_path: string | null }) => [u.id, u]));
-  for (const s of sigRows) {
+
+  let imageErrors = 0;
+  const sigs = await Promise.all(sigRows.map(async (s: { slot: string; signed_at: string; user_id: string }) => {
     const u = userMap.get(s.user_id);
     let sigDataUrl: string | null = null;
     if (u?.signature_path) {
-      const { data: signedUrl } = await supabase.storage.from('documents').createSignedUrl(u.signature_path, 3600);
-      if (signedUrl?.signedUrl) {
-        const resp = await fetch(signedUrl.signedUrl);
-        const blob = await resp.blob();
-        sigDataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
+      try {
+        const { data: signedUrl } = await supabase.storage.from('documents').createSignedUrl(u.signature_path, 3600);
+        if (signedUrl?.signedUrl) {
+          const resp = await fetch(signedUrl.signedUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          sigDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('FileReader failed'));
+            reader.readAsDataURL(blob);
+          });
+        }
+      } catch (e) {
+        console.warn(`Failed to load signature image for slot "${s.slot}":`, e);
+        imageErrors++;
       }
     }
-    sigData.push({ slot: s.slot, signed_at: s.signed_at, name: u?.full_name ?? '', sigDataUrl });
-  }
-  return sigData;
+    return { slot: s.slot, signed_at: s.signed_at, name: u?.full_name ?? '', sigDataUrl };
+  }));
+
+  return { sigs, imageErrors };
 }
 
 const ghs = (n: number) =>
@@ -398,10 +407,12 @@ export default function Invoices() {
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
 
-      const sigData = await fetchSignatures(id);
+      const { sigs: sigData, imageErrors: sigImageErrors } = await fetchSignatures(id);
 
       const docInv = inv as InvoiceDoc;
       (docInv as InvoiceDoc & { signatures?: typeof sigData }).signatures = sigData;
+
+      if (sigImageErrors > 0) setErr(`${sigImageErrors} signature image(s) could not be loaded — they will appear blank in the document.`);
 
       // 2. Build Letter + Invoice PDFs (with signatures embedded).
       const letterBytes = buildLetter(docInv).output('arraybuffer') as ArrayBuffer;
@@ -465,9 +476,9 @@ export default function Invoices() {
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
-      (inv as InvoiceDoc).signatures = await fetchSignatures(id);
-
-      const logo = await loadLogo();
+      const [sigResult, logo] = await Promise.all([fetchSignatures(id), loadLogo()]);
+      (inv as InvoiceDoc).signatures = sigResult.sigs;
+      if (sigResult.imageErrors > 0) setErr(`${sigResult.imageErrors} signature image(s) could not be loaded — they will appear blank in the document.`);
 
       // Memo & signatory: no appended scans — build and save directly.
       if (type === 'memo') {
