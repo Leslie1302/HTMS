@@ -43,6 +43,26 @@ async function fetchSignatures(invoiceId: string): Promise<{ slot: string; signe
   return sigData;
 }
 
+/** Fetch a private-bucket image as a data URL (for embedding in PDFs). */
+export async function bucketImageDataUrl(bucket: string, path: string): Promise<string | null> {
+  const { data: signed } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
+  if (!signed?.signedUrl) return null;
+  const blob = await (await fetch(signed.signedUrl)).blob();
+  return new Promise<string>((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Attach the transporter's scanned letterhead (if any) so the PDF builders use it. */
+async function attachLetterhead(inv: InvoiceDoc & { transporters?: { letterhead_path?: string | null; letterhead_insets?: { top: number; bottom: number } | null } }): Promise<void> {
+  const path = inv.transporters?.letterhead_path;
+  if (!path) return;
+  inv.letterheadDataUrl = await bucketImageDataUrl('documents', path);
+  inv.letterheadInsets = inv.transporters?.letterhead_insets ?? null;
+}
+
 const ghs = (n: number) =>
   '₵' + Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -369,13 +389,14 @@ export default function Invoices() {
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id,storage_path,mime_type,scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated,letterhead_path,letterhead_insets), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id,storage_path,mime_type,scan_type)))',
         )
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
 
       const sigData = await fetchSignatures(id);
+      await attachLetterhead(inv as InvoiceDoc);
 
       const docInv = inv as InvoiceDoc;
       (docInv as InvoiceDoc & { signatures?: typeof sigData }).signatures = sigData;
@@ -446,12 +467,13 @@ export default function Invoices() {
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated,letterhead_path,letterhead_insets), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(storage_path,mime_type,scan_type)))',
         )
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
       (inv as InvoiceDoc).signatures = await fetchSignatures(id);
+      await attachLetterhead(inv as InvoiceDoc);
 
       const logo = await loadLogo();
 

@@ -67,6 +67,10 @@ export interface InvoiceDoc {
     gps_address?: string | null;
     manager_name?: string | null;
   };
+  /** Scanned company letterhead as a data URL — drawn full-page behind the content. */
+  letterheadDataUrl?: string | null;
+  /** Printable insets (pt) inside the scanned letterhead: content starts below the header band and ends above the footer band. */
+  letterheadInsets?: { top: number; bottom: number } | null;
   invoice_lines?: Line[];
   signatures?: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[];
 }
@@ -130,6 +134,33 @@ function pageWidth(doc: jsPDF) {
  * behalf of many different companies and must not share a visual identity.
  * Company name left, contact stack right, accent rule beneath. Returns the y below it.
  */
+/** Default printable insets when a scanned letterhead is used but not calibrated. */
+const LH_INSET = { top: 110, bottom: 90 };
+
+/**
+ * Draw the transporter's scanned letterhead as a full-page background on the
+ * CURRENT page and return the y where content may start. Returns null when the
+ * transporter has no letterhead on file (caller falls back to `letterhead()`).
+ */
+function letterheadScan(doc: jsPDF, inv: InvoiceDoc): number | null {
+  if (!inv.letterheadDataUrl) return null;
+  const W = pageWidth(doc);
+  const H = doc.internal.pageSize.getHeight();
+  try {
+    doc.addImage(inv.letterheadDataUrl, 'PNG', 0, 0, W, H);
+  } catch {
+    return null; // unreadable image — fall back to the generated letterhead
+  }
+  return (inv.letterheadInsets?.top ?? LH_INSET.top);
+}
+
+/** Bottom limit for content: above the scanned letterhead's footer band, else the normal margin. */
+function contentBottom(doc: jsPDF, inv: InvoiceDoc): number {
+  const H = doc.internal.pageSize.getHeight();
+  if (!inv.letterheadDataUrl) return H - M;
+  return H - (inv.letterheadInsets?.bottom ?? LH_INSET.bottom);
+}
+
 function letterhead(doc: jsPDF, inv: InvoiceDoc, y: number): number {
   const W = pageWidth(doc);
   const t = inv.transporters ?? {};
@@ -197,7 +228,8 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   const doc = newDoc();
   const W = pageWidth(doc);
   const s = summary(inv);
-  let y = letterhead(doc, inv, M);
+  // Scanned company letterhead wins; otherwise the generated one.
+  let y = letterheadScan(doc, inv) ?? letterhead(doc, inv, M);
 
   // Invoice no (right) + date.
   doc.setTextColor(17);
@@ -224,7 +256,9 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   // Table.
   autoTable(doc, {
     startY: y,
-    margin: { left: M, right: M },
+    // Keep rows inside the scanned letterhead's printable area on every page.
+    margin: { left: M, right: M, top: inv.letterheadDataUrl ? (inv.letterheadInsets?.top ?? LH_INSET.top) : M, bottom: inv.letterheadDataUrl ? (inv.letterheadInsets?.bottom ?? LH_INSET.bottom) : M },
+    didDrawPage: () => { letterheadScan(doc, inv); },
     head: [['Date', 'Waybill(s)', 'Vehicle Reg.', 'From', 'To', 'Amount (GHS)']],
     body: (inv.invoice_lines ?? []).map((l) => {
       const w = l.waybills ?? {};
@@ -260,7 +294,7 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   }
   signatureBlock(doc, inv, M, lineY, signedForAnother(inv, transSig));
 
-  waveFooter(doc);
+  if (!inv.letterheadDataUrl) waveFooter(doc); // scanned letterhead brings its own footer
   return doc;
 }
 
@@ -274,16 +308,16 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   const route = `${s.origin} to ${s.dest}`;
   const period = `${long(s.ps)} - ${long(s.pe)}`;
 
-  // Makeshift letterhead from the transporter's registration details.
-  let y = letterhead(doc, inv, M);
+  // Scanned company letterhead wins; otherwise the generated one.
+  let y = letterheadScan(doc, inv) ?? letterhead(doc, inv, M);
 
   const para = (text: string, opts: { bold?: boolean; gap?: number; align?: 'left' | 'justify' } = {}) => {
     doc.setFont('helvetica', opts.bold ? 'bold' : 'normal').setFontSize(12).setTextColor(17);
     const lines = doc.splitTextToSize(text, contentW) as string[];
-    // page-break guard
-    if (y + lines.length * 15 > H - M) {
+    // page-break guard — stays clear of the scanned letterhead's footer band.
+    if (y + lines.length * 15 > contentBottom(doc, inv)) {
       doc.addPage();
-      y = M;
+      y = letterheadScan(doc, inv) ?? M;
     }
     doc.text(lines, M, y, { align: opts.align ?? 'left', maxWidth: contentW });
     y += lines.length * 15 + (opts.gap ?? 8);
@@ -342,7 +376,7 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   }
   signatureBlock(doc, inv, M, y, signedForAnother(inv, transSig));
 
-  waveFooter(doc);
+  if (!inv.letterheadDataUrl) waveFooter(doc); // scanned letterhead brings its own footer
   return doc;
 }
 

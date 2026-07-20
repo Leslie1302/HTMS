@@ -3,7 +3,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 
 export default function Settings() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  const transporterId = profile?.transporter_id ?? null;
+  const [lhUrl, setLhUrl] = useState<string | null>(null);
+  const [lhTop, setLhTop] = useState(110);
+  const [lhBottom, setLhBottom] = useState(90);
   const [sigUrl, setSigUrl] = useState<string | null>(null);
   const [sigPath, setSigPath] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,6 +36,57 @@ export default function Settings() {
     if (uid) loadSignature(uid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
+
+  // ── Letterhead (transporters only) ──
+  async function loadLetterhead(tid: string) {
+    const { data } = await supabase.from('transporters').select('letterhead_path, letterhead_insets').eq('id', tid).single();
+    if (data?.letterhead_path) {
+      const { data: signed } = await supabase.storage.from('documents').createSignedUrl(data.letterhead_path, 3600);
+      if (signed?.signedUrl) setLhUrl(signed.signedUrl);
+    }
+    const ins = data?.letterhead_insets as { top?: number; bottom?: number } | null;
+    if (ins?.top != null) setLhTop(ins.top);
+    if (ins?.bottom != null) setLhBottom(ins.bottom);
+  }
+  useEffect(() => {
+    if (transporterId) loadLetterhead(transporterId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transporterId]);
+
+  async function uploadLetterhead(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !transporterId) return;
+    if (file.size > 4 * 1024 * 1024) { setErr('Letterhead image must be under 4 MB.'); return; }
+    setBusy(true); setErr(null); setMsg(null);
+    try {
+      const path = `letterheads/${transporterId}.png`;
+      const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { contentType: 'image/png', upsert: true });
+      if (upErr) throw new Error(upErr.message);
+      const { data: saved, error: dbErr } = await supabase.from('transporters').update({ letterhead_path: path }).eq('id', transporterId).select('letterhead_path').single();
+      if (dbErr || !saved) throw new Error(dbErr?.message ?? 'Letterhead stored but could not be saved to your company profile.');
+      await loadLetterhead(transporterId);
+      setMsg('Letterhead uploaded. Generate a letter to check the spacing, then adjust the printable area if needed.');
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+      e.target.value = '';
+    }
+  }
+
+  async function saveInsets() {
+    if (!transporterId) return;
+    setBusy(true); setErr(null); setMsg(null);
+    try {
+      const { error } = await supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom } }).eq('id', transporterId);
+      if (error) throw new Error(error.message);
+      setMsg('Printable area saved.');
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // Load MFA factors
   useEffect(() => {
@@ -186,6 +241,71 @@ export default function Settings() {
           </label>
         )}
       </div>
+
+      {/* Letterhead card — transporters only */}
+      {transporterId && (
+        <div className="bg-white rounded-xl border border-outline-variant p-5 mb-5">
+          <h2 className="text-lg font-semibold text-on-surface mb-1 flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#0d631b]">description</span>
+            Company Letterhead
+          </h2>
+          <p className="text-sm text-on-surface-variant mb-4">
+            Upload a scan of your printed letterhead (full A4 page, PNG/JPEG). Your payment request letters and
+            invoices will be produced on it. Without one, a plain header with your registered details is used.
+          </p>
+
+          {lhUrl ? (
+            <div className="flex items-center gap-4 mb-4">
+              <div className="border border-outline-variant rounded-lg p-2 bg-surface">
+                <img src={lhUrl} alt="Your letterhead" className="h-28 object-contain" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-on-surface">Letterhead on file</p>
+                <label className="mt-2 inline-flex items-center gap-1 text-sm text-[#0d631b] cursor-pointer hover:underline">
+                  <span className="material-symbols-outlined text-sm">upload</span>
+                  Replace
+                  <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={uploadLetterhead} disabled={busy} />
+                </label>
+              </div>
+            </div>
+          ) : (
+            <label className="flex items-center gap-3 p-4 border-2 border-dashed border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-colors mb-4">
+              <span className="material-symbols-outlined text-3xl text-outline">add_photo_alternate</span>
+              <div>
+                <p className="text-sm font-medium text-on-surface">Upload letterhead scan</p>
+                <p className="text-xs text-on-surface-variant">Full page PNG or JPEG, max 4 MB</p>
+              </div>
+              <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={uploadLetterhead} disabled={busy} />
+            </label>
+          )}
+
+          {lhUrl && (
+            <div className="border-t border-outline-variant pt-3">
+              <p className="text-sm font-medium text-on-surface mb-1">Printable area</p>
+              <p className="text-xs text-on-surface-variant mb-2">
+                Space to leave clear so text does not print over your header and footer. Increase a value if text
+                overlaps; A4 is 842 pt tall.
+              </p>
+              <div className="flex items-center gap-3">
+                <label className="text-sm flex items-center gap-1">
+                  Top
+                  <input type="number" min={0} max={400} value={lhTop} onChange={(e) => setLhTop(Number(e.target.value))}
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm w-20 outline-none focus:border-[#0d631b]" />
+                </label>
+                <label className="text-sm flex items-center gap-1">
+                  Bottom
+                  <input type="number" min={0} max={400} value={lhBottom} onChange={(e) => setLhBottom(Number(e.target.value))}
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm w-20 outline-none focus:border-[#0d631b]" />
+                </label>
+                <button onClick={saveInsets} disabled={busy}
+                  className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">
+                  Save
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* MFA card */}
       <div className="bg-white rounded-xl border border-outline-variant p-5">
