@@ -21,6 +21,7 @@
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.0.379",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",

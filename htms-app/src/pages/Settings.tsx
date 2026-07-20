@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import MfaStepUpModal from '../components/MfaStepUpModal';
+import { pdfFirstPageToDataUrl } from '../lib/letterhead';
 
 export default function Settings() {
   const { session, profile } = useAuth();
@@ -9,6 +10,8 @@ export default function Settings() {
   const [lhUrl, setLhUrl] = useState<string | null>(null);
   const [lhTop, setLhTop] = useState(110);
   const [lhBottom, setLhBottom] = useState(90);
+  const [lhLeft, setLhLeft] = useState(48);
+  const [lhRight, setLhRight] = useState(48);
   const [sigUrl, setSigUrl] = useState<string | null>(null);
   const [sigPath, setSigPath] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -66,9 +69,11 @@ export default function Settings() {
       const { data: signed } = await supabase.storage.from('documents').createSignedUrl(data.letterhead_path, 3600);
       if (signed?.signedUrl) setLhUrl(signed.signedUrl);
     }
-    const ins = data?.letterhead_insets as { top?: number; bottom?: number } | null;
+    const ins = data?.letterhead_insets as { top?: number; bottom?: number; left?: number; right?: number } | null;
     if (ins?.top != null) setLhTop(ins.top);
     if (ins?.bottom != null) setLhBottom(ins.bottom);
+    if (ins?.left != null) setLhLeft(ins.left);
+    if (ins?.right != null) setLhRight(ins.right);
   }
   useEffect(() => {
     if (transporterId) loadLetterhead(transporterId);
@@ -78,16 +83,28 @@ export default function Settings() {
   async function uploadLetterhead(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !transporterId) return;
-    if (file.size > 4 * 1024 * 1024) { setErr('Letterhead image must be under 4 MB.'); return; }
+    if (file.size > 10 * 1024 * 1024) { setErr('Letterhead file must be under 10 MB.'); return; }
     setBusy(true); setErr(null); setMsg(null);
     try {
+      let uploadBlob: Blob;
+
+      if (file.type === 'application/pdf') {
+        setMsg('Converting PDF…');
+        const bytes = await file.arrayBuffer();
+        const pngDataUrl = await pdfFirstPageToDataUrl(bytes);
+        const resp = await fetch(pngDataUrl);
+        uploadBlob = await resp.blob();
+      } else {
+        uploadBlob = file;
+      }
+
       const path = `letterheads/${transporterId}.png`;
-      const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { contentType: 'image/png', upsert: true });
+      const { error: upErr } = await supabase.storage.from('documents').upload(path, uploadBlob, { contentType: 'image/png', upsert: true });
       if (upErr) throw new Error(upErr.message);
       const { data: saved, error: dbErr } = await supabase.from('transporters').update({ letterhead_path: path }).eq('id', transporterId).select('letterhead_path').single();
       if (dbErr || !saved) throw new Error(dbErr?.message ?? 'Letterhead stored but could not be saved to your company profile.');
       await loadLetterhead(transporterId);
-      setMsg('Letterhead uploaded. Generate a letter to check the spacing, then adjust the printable area if needed.');
+      setMsg('Letterhead uploaded. Drag the green lines below to mark the printable area, then click Save.');
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -100,7 +117,7 @@ export default function Settings() {
     if (!transporterId) return;
     setBusy(true); setErr(null); setMsg(null);
     try {
-      const { error } = await supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom } }).eq('id', transporterId);
+      const { error } = await supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom, left: lhLeft, right: lhRight } }).eq('id', transporterId);
       if (error) throw new Error(error.message);
       setMsg('Printable area saved.');
     } catch (e) {
@@ -109,6 +126,37 @@ export default function Settings() {
       setBusy(false);
     }
   }
+
+  // ── Draggable printable-area handles ──
+  const lhBoxRef = useRef<HTMLDivElement>(null);
+  const A4_H = 841.89;
+  const A4_W = 595.28;
+  const topPct = (lhTop / A4_H) * 100;
+  const botPct = ((A4_H - lhBottom) / A4_H) * 100;
+  const leftPct = (lhLeft / A4_W) * 100;
+  const rightPct = ((A4_W - lhRight) / A4_W) * 100;
+
+  const startDrag = useCallback((which: 'top' | 'bottom' | 'left' | 'right') => (e: React.PointerEvent) => {
+    e.preventDefault();
+    const box = lhBoxRef.current;
+    if (!box) return;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    const onMove = (ev: PointerEvent) => {
+      const rect = box.getBoundingClientRect();
+      if (which === 'top' || which === 'bottom') {
+        const pct = Math.max(0, Math.min(0.98, (ev.clientY - rect.top) / rect.height));
+        if (which === 'top') setLhTop(Math.min(Math.round(pct * A4_H), A4_H - lhBottom - 30));
+        else setLhBottom(Math.min(Math.round((1 - pct) * A4_H), A4_H - lhTop - 30));
+      } else {
+        const pct = Math.max(0, Math.min(0.98, (ev.clientX - rect.left) / rect.width));
+        if (which === 'left') setLhLeft(Math.min(Math.round(pct * A4_W), A4_W - lhRight - 30));
+        else setLhRight(Math.min(Math.round((1 - pct) * A4_W), A4_W - lhLeft - 30));
+      }
+    };
+    const onUp = () => { document.removeEventListener('pointermove', onMove); document.removeEventListener('pointerup', onUp); };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+  }, [lhTop, lhBottom, lhLeft, lhRight]);
 
   // Load MFA factors
   useEffect(() => {
@@ -302,7 +350,7 @@ export default function Settings() {
             Company Letterhead
           </h2>
           <p className="text-sm text-on-surface-variant mb-4">
-            Upload a scan of your printed letterhead (full A4 page, PNG/JPEG). Your payment request letters and
+            Upload a scan of your printed letterhead (full A4 page, PDF/PNG/JPEG). Your payment request letters and
             invoices will be produced on it. Without one, a plain header with your registered details is used.
           </p>
 
@@ -316,7 +364,7 @@ export default function Settings() {
                 <label className="mt-2 inline-flex items-center gap-1 text-sm text-[#0d631b] cursor-pointer hover:underline">
                   <span className="material-symbols-outlined text-sm">upload</span>
                   Replace
-                  <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={uploadLetterhead} disabled={busy} />
+                  <input type="file" accept="application/pdf,image/png,image/jpeg" className="hidden" onChange={uploadLetterhead} disabled={busy} />
                 </label>
               </div>
             </div>
@@ -325,20 +373,78 @@ export default function Settings() {
               <span className="material-symbols-outlined text-3xl text-outline">add_photo_alternate</span>
               <div>
                 <p className="text-sm font-medium text-on-surface">Upload letterhead scan</p>
-                <p className="text-xs text-on-surface-variant">Full page PNG or JPEG, max 4 MB</p>
+                <p className="text-xs text-on-surface-variant">Full page PDF, PNG or JPEG, max 10 MB</p>
               </div>
-              <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={uploadLetterhead} disabled={busy} />
+              <input type="file" accept="application/pdf,image/png,image/jpeg" className="hidden" onChange={uploadLetterhead} disabled={busy} />
             </label>
           )}
 
           {lhUrl && (
             <div className="border-t border-outline-variant pt-3">
               <p className="text-sm font-medium text-on-surface mb-1">Printable area</p>
-              <p className="text-xs text-on-surface-variant mb-2">
-                Space to leave clear so text does not print over your header and footer. Increase a value if text
-                overlaps; A4 is 842 pt tall.
+              <p className="text-xs text-on-surface-variant mb-3">
+                Drag the green lines to mark where your header ends and footer begins. Text will only appear between them.
               </p>
-              <div className="flex items-center gap-3">
+
+              {/* Visual drag editor */}
+              <div
+                ref={lhBoxRef}
+                className="relative w-full max-w-[260px] mx-auto border border-outline-variant rounded-lg overflow-hidden select-none mb-3 bg-white"
+              >
+                <img src={lhUrl} alt="Letterhead" className="block w-full object-contain pointer-events-none" />
+
+                {/* Shade: header zone */}
+                <div className="absolute inset-x-0 top-0 bg-black/15 pointer-events-none" style={{ height: `${topPct}%` }} />
+                {/* Shade: footer zone */}
+                <div className="absolute inset-x-0 bottom-0 bg-black/15 pointer-events-none" style={{ height: `${(lhBottom / A4_H) * 100}%` }} />
+                {/* Shade: left zone (between header & footer) */}
+                <div className="absolute bg-black/15 pointer-events-none" style={{ top: `${topPct}%`, bottom: `${(lhBottom / A4_H) * 100}%`, left: 0, width: `${leftPct}%` }} />
+                {/* Shade: right zone (between header & footer) */}
+                <div className="absolute bg-black/15 pointer-events-none" style={{ top: `${topPct}%`, bottom: `${(lhBottom / A4_H) * 100}%`, right: 0, width: `${rightPct}%` }} />
+
+                {/* Top handle */}
+                <div
+                  className="absolute inset-x-0 cursor-ns-resize touch-none z-10"
+                  style={{ top: `calc(${topPct}% - 6px)` }}
+                  onPointerDown={startDrag('top')}
+                >
+                  <div className="h-[3px] bg-[#0d631b] rounded" />
+                  <span className="absolute right-1 -top-4 text-[9px] font-bold text-white bg-[#0d631b] rounded px-1 py-px leading-none">{lhTop} pt</span>
+                </div>
+
+                {/* Bottom handle */}
+                <div
+                  className="absolute inset-x-0 cursor-ns-resize touch-none z-10"
+                  style={{ top: `calc(${botPct}% - 6px)` }}
+                  onPointerDown={startDrag('bottom')}
+                >
+                  <div className="h-[3px] bg-[#0d631b] rounded" />
+                  <span className="absolute right-1 -top-4 text-[9px] font-bold text-white bg-[#0d631b] rounded px-1 py-px leading-none">{lhBottom} pt</span>
+                </div>
+
+                {/* Left handle */}
+                <div
+                  className="absolute inset-y-0 cursor-ew-resize touch-none z-10"
+                  style={{ left: `calc(${leftPct}% - 6px)` }}
+                  onPointerDown={startDrag('left')}
+                >
+                  <div className="w-[3px] h-full bg-[#0d631b] rounded" />
+                  <span className="absolute -left-1 bottom-1 text-[9px] font-bold text-white bg-[#0d631b] rounded px-1 py-px leading-none">{lhLeft} pt</span>
+                </div>
+
+                {/* Right handle */}
+                <div
+                  className="absolute inset-y-0 cursor-ew-resize touch-none z-10"
+                  style={{ left: `calc(${rightPct}% - 6px)` }}
+                  onPointerDown={startDrag('right')}
+                >
+                  <div className="w-[3px] h-full bg-[#0d631b] rounded" />
+                  <span className="absolute -left-1 bottom-1 text-[9px] font-bold text-white bg-[#0d631b] rounded px-1 py-px leading-none">{lhRight} pt</span>
+                </div>
+              </div>
+
+              {/* Fine-tune inputs */}
+              <div className="flex items-center gap-3 flex-wrap">
                 <label className="text-sm flex items-center gap-1">
                   Top
                   <input type="number" min={0} max={400} value={lhTop} onChange={(e) => setLhTop(Number(e.target.value))}
@@ -347,6 +453,16 @@ export default function Settings() {
                 <label className="text-sm flex items-center gap-1">
                   Bottom
                   <input type="number" min={0} max={400} value={lhBottom} onChange={(e) => setLhBottom(Number(e.target.value))}
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm w-20 outline-none focus:border-[#0d631b]" />
+                </label>
+                <label className="text-sm flex items-center gap-1">
+                  Left
+                  <input type="number" min={0} max={300} value={lhLeft} onChange={(e) => setLhLeft(Number(e.target.value))}
+                    className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm w-20 outline-none focus:border-[#0d631b]" />
+                </label>
+                <label className="text-sm flex items-center gap-1">
+                  Right
+                  <input type="number" min={0} max={300} value={lhRight} onChange={(e) => setLhRight(Number(e.target.value))}
                     className="border border-outline-variant rounded-lg px-2 py-1.5 text-sm w-20 outline-none focus:border-[#0d631b]" />
                 </label>
                 <button onClick={saveInsets} disabled={busy}

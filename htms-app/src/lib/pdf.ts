@@ -70,7 +70,7 @@ export interface InvoiceDoc {
   /** Scanned company letterhead as a data URL — drawn full-page behind the content. */
   letterheadDataUrl?: string | null;
   /** Printable insets (pt) inside the scanned letterhead: content starts below the header band and ends above the footer band. */
-  letterheadInsets?: { top: number; bottom: number } | null;
+  letterheadInsets?: { top: number; bottom: number; left?: number; right?: number } | null;
   invoice_lines?: Line[];
   signatures?: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[];
 }
@@ -161,6 +161,18 @@ function contentBottom(doc: jsPDF, inv: InvoiceDoc): number {
   return H - (inv.letterheadInsets?.bottom ?? LH_INSET.bottom);
 }
 
+/** Left margin: scanned letterhead inset, or default M when no letterhead. */
+function lhL(inv: InvoiceDoc): number {
+  if (!inv.letterheadDataUrl) return M;
+  return inv.letterheadInsets?.left ?? M;
+}
+
+/** Right margin: scanned letterhead inset, or default M when no letterhead. */
+function lhR(inv: InvoiceDoc): number {
+  if (!inv.letterheadDataUrl) return M;
+  return inv.letterheadInsets?.right ?? M;
+}
+
 function letterhead(doc: jsPDF, inv: InvoiceDoc, y: number): number {
   const W = pageWidth(doc);
   const t = inv.transporters ?? {};
@@ -228,36 +240,38 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   const doc = newDoc();
   const W = pageWidth(doc);
   const s = summary(inv);
+  const L = lhL(inv);
+  const R = lhR(inv);
   // Scanned company letterhead wins; otherwise the generated one.
   let y = letterheadScan(doc, inv) ?? letterhead(doc, inv, M);
 
   // Invoice no (right) + date.
   doc.setTextColor(17);
   doc.setFont('helvetica', 'bold').setFontSize(11);
-  doc.text(`Invoice No: ${ref(inv)}`, W - M, y, { align: 'right' });
+  doc.text(`Invoice No: ${ref(inv)}`, W - R, y, { align: 'right' });
   y += 16;
   doc.setFont('helvetica', 'normal');
-  doc.text(`Date: ${long(inv.created_at)}`, M, y);
+  doc.text(`Date: ${long(inv.created_at)}`, L, y);
   y += 22;
 
   // Bill To.
-  doc.setFont('helvetica', 'bold').text('Bill To:', M, y);
+  doc.setFont('helvetica', 'bold').text('Bill To:', L, y);
   y += 15;
   doc.setFont('helvetica', 'normal');
   for (const lineTxt of RECIPIENT) {
-    doc.text(lineTxt, M, y);
+    doc.text(lineTxt, L, y);
     y += 13;
   }
   y += 8;
   doc.setFont('helvetica', 'bold');
-  doc.text(`Haulage of Electrical Poles & Materials - ${s.origin} to ${s.dest}`, M, y);
+  doc.text(`Haulage of Electrical Poles & Materials - ${s.origin} to ${s.dest}`, L, y);
   y += 10;
 
   // Table.
   autoTable(doc, {
     startY: y,
     // Keep rows inside the scanned letterhead's printable area on every page.
-    margin: { left: M, right: M, top: inv.letterheadDataUrl ? (inv.letterheadInsets?.top ?? LH_INSET.top) : M, bottom: inv.letterheadDataUrl ? (inv.letterheadInsets?.bottom ?? LH_INSET.bottom) : M },
+    margin: { left: L, right: R, top: inv.letterheadDataUrl ? (inv.letterheadInsets?.top ?? LH_INSET.top) : M, bottom: inv.letterheadDataUrl ? (inv.letterheadInsets?.bottom ?? LH_INSET.bottom) : M },
     didDrawPage: () => { letterheadScan(doc, inv); },
     head: [['Date', 'Waybill(s)', 'Vehicle Reg.', 'From', 'To', 'Amount (GHS)']],
     body: (inv.invoice_lines ?? []).map((l) => {
@@ -279,20 +293,20 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   // Total + footer.
   const afterTable = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 22;
   doc.setFont('helvetica', 'bold').setFontSize(13).setTextColor(...NAVY);
-  doc.text(`Total Amount Due: GHS ${num(inv.total_cost)}`, W - M, afterTable, { align: 'right' });
+  doc.text(`Total Amount Due: GHS ${num(inv.total_cost)}`, W - R, afterTable, { align: 'right' });
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(90);
   doc.text('Thank you for your business. Payment is due within 30 days.', W / 2, afterTable + 28, { align: 'center' });
 
   // Signature block (left). If transporter signed, the image sits ON the signature line.
   const transSig = inv.signatures?.find((s) => s.slot === 'transporter');
-  doc.setFontSize(10).setTextColor(17).setFont('helvetica', 'bold').text('For and on behalf of the company:', M, afterTable + 60);
+  doc.setFontSize(10).setTextColor(17).setFont('helvetica', 'bold').text('For and on behalf of the company:', L, afterTable + 60);
   const lineY = afterTable + (transSig?.sigDataUrl ? 112 : 92); // extra headroom for the image
   if (transSig?.sigDataUrl) {
-    try { doc.addImage(transSig.sigDataUrl, 'PNG', M + 20, lineY - 36, 94, 34); } catch { /* skip unreadable */ }
+    try { doc.addImage(transSig.sigDataUrl, 'PNG', L + 20, lineY - 36, 94, 34); } catch { /* skip unreadable */ }
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
-    doc.text(short(transSig.signed_at), M + 190, lineY - 4, { align: 'right' });
+    doc.text(short(transSig.signed_at), L + 190, lineY - 4, { align: 'right' });
   }
-  signatureBlock(doc, inv, M, lineY, signedForAnother(inv, transSig));
+  signatureBlock(doc, inv, L, lineY, signedForAnother(inv, transSig));
 
   if (!inv.letterheadDataUrl) waveFooter(doc); // scanned letterhead brings its own footer
   return doc;
@@ -302,8 +316,9 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
 export function buildLetter(inv: InvoiceDoc): jsPDF {
   const doc = newDoc();
   const W = pageWidth(doc);
-  const H = doc.internal.pageSize.getHeight();
-  const contentW = W - M * 2;
+  const L = lhL(inv);
+  const R = lhR(inv);
+  const contentW = W - L - R;
   const s = summary(inv);
   const route = `${s.origin} to ${s.dest}`;
   const period = `${long(s.ps)} - ${long(s.pe)}`;
@@ -313,21 +328,32 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
 
   const para = (text: string, opts: { bold?: boolean; gap?: number; align?: 'left' | 'justify' } = {}) => {
     doc.setFont('helvetica', opts.bold ? 'bold' : 'normal').setFontSize(12).setTextColor(17);
-    const lines = doc.splitTextToSize(text, contentW) as string[];
-    // page-break guard — stays clear of the scanned letterhead's footer band.
-    if (y + lines.length * 15 > contentBottom(doc, inv)) {
-      doc.addPage();
-      y = letterheadScan(doc, inv) ?? M;
+    const allLines = doc.splitTextToSize(text, contentW) as string[];
+    let offset = 0;
+    while (offset < allLines.length) {
+      const available = contentBottom(doc, inv) - y;
+      const fit = Math.max(1, Math.floor(available / 15));
+      const chunk = allLines.slice(offset, offset + fit);
+      offset += chunk.length;
+      if (y + chunk.length * 15 > contentBottom(doc, inv) || (offset < allLines.length && chunk.length < fit)) {
+        doc.addPage();
+        y = letterheadScan(doc, inv) ?? M;
+      }
+      doc.text(chunk, L, y, { align: opts.align ?? 'left', maxWidth: contentW });
+      y += chunk.length * 15;
+      if (offset < allLines.length) {
+        doc.addPage();
+        y = letterheadScan(doc, inv) ?? M;
+      }
     }
-    doc.text(lines, M, y, { align: opts.align ?? 'left', maxWidth: contentW });
-    y += lines.length * 15 + (opts.gap ?? 8);
+    y += (opts.gap ?? 8);
   };
 
   doc.setFont('helvetica', 'normal').setFontSize(12);
-  doc.text(long(inv.created_at), M, y);
+  doc.text(long(inv.created_at), L, y);
   y += 20;
   for (const lineTxt of RECIPIENT) {
-    doc.text(lineTxt, M, y);
+    doc.text(lineTxt, L, y);
     y += 14;
   }
   y += 10;
@@ -352,12 +378,12 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   ];
   doc.setFontSize(12);
   for (const [k, v] of kv) {
-    if (y + 16 > H - M) {
+    if (y + 16 > contentBottom(doc, inv)) {
       doc.addPage();
-      y = M;
+      y = letterheadScan(doc, inv) ?? M;
     }
-    doc.setFont('helvetica', 'bold').text(k, M, y);
-    doc.setFont('helvetica', 'normal').text(v, M + 150, y);
+    doc.setFont('helvetica', 'bold').text(k, L, y);
+    doc.setFont('helvetica', 'normal').text(v, L + 150, y);
     y += 16;
   }
   y += 8;
@@ -370,11 +396,11 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   // Transporter signature on letter if signed — image sits ON the signature line.
   const transSig = inv.signatures?.find((s) => s.slot === 'transporter');
   if (transSig?.sigDataUrl) {
-    try { doc.addImage(transSig.sigDataUrl, 'PNG', M + 20, y - 34, 94, 32); } catch { /* skip */ }
+    try { doc.addImage(transSig.sigDataUrl, 'PNG', L + 20, y - 34, 94, 32); } catch { /* skip */ }
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
-    doc.text(short(transSig.signed_at), M + 190, y - 4, { align: 'right' });
+    doc.text(short(transSig.signed_at), L + 190, y - 4, { align: 'right' });
   }
-  signatureBlock(doc, inv, M, y, signedForAnother(inv, transSig));
+  signatureBlock(doc, inv, L, y, signedForAnother(inv, transSig));
 
   if (!inv.letterheadDataUrl) waveFooter(doc); // scanned letterhead brings its own footer
   return doc;
