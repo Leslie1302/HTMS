@@ -8,7 +8,7 @@
  * See shared/__tests__/invoice-stage.test.ts for the full transition matrix.
  */
 import type { Config } from '@netlify/functions';
-import { audit, guard, json, parseBody } from './_lib';
+import { audit, guard, json, parseBody, serviceDb } from './_lib';
 import { notifyStageChange, notifyDisapproval } from './_fcm';
 import { CHECKLIST_ITEMS, stageTransitionSchema } from '../../shared/validation';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
@@ -39,10 +39,11 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
     return json(200, { invoice, trail: trail ?? [] });
   }
 
-  // ── Advance stage ──
+    // ── Advance stage ──
   if (req.method === 'POST') {
     const body = await parseBody(req, stageTransitionSchema);
     const { invoiceId, stage: targetStage } = body;
+    const svc = serviceDb();
 
     // ── Checklist review verdict (staff only) ──
     if (body.review) {
@@ -51,7 +52,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
         body.review === 'approved'
           ? { review_status: 'approved', review_note: null }
           : { review_status: 'disapproved', review_note: body.note!.trim() };
-      const { error: revErr } = await ctx.db.from('invoices').update(patch).eq('id', invoiceId);
+      const { error: revErr } = await svc.from('invoices').update(patch).eq('id', invoiceId);
       if (revErr) return json(400, { error: revErr.message });
       await audit(ctx.userId, `review_${body.review}`, 'invoice', invoiceId, null, patch);
       if (body.review === 'disapproved') {
@@ -155,7 +156,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
     if (targetStage === 'paid') patch.status = 'locked';
     const before = { stage: currentStage };
     const after = patch;
-    const { error: updateErr } = await ctx.db
+    const { error: updateErr } = await svc
       .from('invoices')
       .update(patch)
       .eq('id', invoiceId);
