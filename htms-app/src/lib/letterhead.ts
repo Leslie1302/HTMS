@@ -9,10 +9,12 @@
  */
 export async function pdfFirstPageToDataUrl(pdfBytes: ArrayBuffer): Promise<string> {
   const pdfjsLib = await import('pdfjs-dist');
-  // Point the worker at the CDN — the user needs internet to upload to
-  // Supabase anyway, so this is acceptable.
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+  // Serve the worker from our own bundle. The CDN variant failed with
+  // "Setting up fake worker failed" — a cross-origin module script the browser
+  // refuses to import — and would also drift from the installed version.
+  // Vite's `?url` gives a same-origin, version-matched URL.
+  const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
   const page = await pdf.getPage(1);
