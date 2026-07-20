@@ -142,8 +142,20 @@ const LH_INSET = { top: 110, bottom: 90 };
  * CURRENT page and return the y where content may start. Returns null when the
  * transporter has no letterhead on file (caller falls back to `letterhead()`).
  */
+/**
+ * Pages already painted, per document. The scan is OPAQUE, so painting it twice
+ * on a page erases everything drawn in between — which is exactly what happened
+ * when the autoTable page hook repainted page 1 over the header and the table.
+ */
+const lhPainted = new WeakMap<jsPDF, Set<number>>();
+
 function letterheadScan(doc: jsPDF, inv: InvoiceDoc): number | null {
   if (!inv.letterheadDataUrl) return null;
+  const top = inv.letterheadInsets?.top ?? LH_INSET.top;
+  const page = doc.getCurrentPageInfo().pageNumber;
+  let seen = lhPainted.get(doc);
+  if (!seen) { seen = new Set(); lhPainted.set(doc, seen); }
+  if (seen.has(page)) return top; // already painted this page — never paint over content
   const W = pageWidth(doc);
   const H = doc.internal.pageSize.getHeight();
   try {
@@ -151,7 +163,8 @@ function letterheadScan(doc: jsPDF, inv: InvoiceDoc): number | null {
   } catch {
     return null; // unreadable image — fall back to the generated letterhead
   }
-  return (inv.letterheadInsets?.top ?? LH_INSET.top);
+  seen.add(page);
+  return top;
 }
 
 /** Bottom limit for content: above the scanned letterhead's footer band, else the normal margin. */
@@ -272,7 +285,8 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
     startY: y,
     // Keep rows inside the scanned letterhead's printable area on every page.
     margin: { left: L, right: R, top: inv.letterheadDataUrl ? (inv.letterheadInsets?.top ?? LH_INSET.top) : M, bottom: inv.letterheadDataUrl ? (inv.letterheadInsets?.bottom ?? LH_INSET.bottom) : M },
-    didDrawPage: () => { letterheadScan(doc, inv); },
+    // Paint the background BEFORE each page's rows (and never twice — see letterheadScan).
+    willDrawPage: () => { letterheadScan(doc, inv); },
     head: [['Date', 'Waybill(s)', 'Vehicle Reg.', 'From', 'To', 'Amount (GHS)']],
     body: (inv.invoice_lines ?? []).map((l) => {
       const w = l.waybills ?? {};
@@ -304,7 +318,7 @@ export function buildInvoice(inv: InvoiceDoc): jsPDF {
   if (transSig?.sigDataUrl) {
     try { doc.addImage(transSig.sigDataUrl, 'PNG', L + 20, lineY - 36, 94, 34); } catch { /* skip unreadable */ }
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
-    doc.text(short(transSig.signed_at), L + 190, lineY - 4, { align: 'right' });
+    doc.text(`Signed: ${short(transSig.signed_at)}`, L + 190, lineY - 4, { align: 'right' });
   }
   signatureBlock(doc, inv, L, lineY, signedForAnother(inv, transSig));
 
@@ -398,7 +412,7 @@ export function buildLetter(inv: InvoiceDoc): jsPDF {
   if (transSig?.sigDataUrl) {
     try { doc.addImage(transSig.sigDataUrl, 'PNG', L + 20, y - 34, 94, 32); } catch { /* skip */ }
     doc.setFontSize(9).setTextColor(90).setFont('helvetica', 'normal');
-    doc.text(short(transSig.signed_at), L + 190, y - 4, { align: 'right' });
+    doc.text(`Signed: ${short(transSig.signed_at)}`, L + 190, y - 4, { align: 'right' });
   }
   signatureBlock(doc, inv, L, y, signedForAnother(inv, transSig));
 
