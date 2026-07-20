@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
 import { appendScansToPdf, type ScanInput } from '../lib/mergeScans';
+import { extractScopedScans } from '../../shared/scans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, type SignSlot } from '../../shared/signing';
+import MfaStepUpModal from '../components/MfaStepUpModal';
 
 const SCAN_LABELS: Record<string, string> = {
   acknowledgement: 'Acknowledgement form',
@@ -16,31 +18,40 @@ const SCAN_LABELS: Record<string, string> = {
 };
 
 /** Signature rows + signer names + signature images (as data URLs) for PDF rendering. */
-async function fetchSignatures(invoiceId: string): Promise<{ slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[]> {
+async function fetchSignatures(invoiceId: string): Promise<{ sigs: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[]; imageErrors: number }> {
   const { data: sigRows } = await supabase.from('invoice_signatures').select('slot, signed_at, user_id').eq('invoice_id', invoiceId);
-  const sigData: { slot: string; signed_at: string; name: string; sigDataUrl?: string | null }[] = [];
-  if (!sigRows || sigRows.length === 0) return sigData;
+  if (!sigRows || sigRows.length === 0) return { sigs: [], imageErrors: 0 };
   const userIds = [...new Set(sigRows.map((s: { user_id: string }) => s.user_id))];
   const { data: users } = await supabase.from('app_users').select('id, full_name, signature_path').in('id', userIds);
   const userMap = new Map((users ?? []).map((u: { id: string; full_name: string | null; signature_path: string | null }) => [u.id, u]));
-  for (const s of sigRows) {
+
+  let imageErrors = 0;
+  const sigs = await Promise.all(sigRows.map(async (s: { slot: string; signed_at: string; user_id: string }) => {
     const u = userMap.get(s.user_id);
     let sigDataUrl: string | null = null;
     if (u?.signature_path) {
-      const { data: signedUrl } = await supabase.storage.from('documents').createSignedUrl(u.signature_path, 3600);
-      if (signedUrl?.signedUrl) {
-        const resp = await fetch(signedUrl.signedUrl);
-        const blob = await resp.blob();
-        sigDataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
+      try {
+        const { data: signedUrl } = await supabase.storage.from('documents').createSignedUrl(u.signature_path, 3600);
+        if (signedUrl?.signedUrl) {
+          const resp = await fetch(signedUrl.signedUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          sigDataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error('FileReader failed'));
+            reader.readAsDataURL(blob);
+          });
+        }
+      } catch (e) {
+        console.warn(`Failed to load signature image for slot "${s.slot}":`, e);
+        imageErrors++;
       }
     }
-    sigData.push({ slot: s.slot, signed_at: s.signed_at, name: u?.full_name ?? '', sigDataUrl });
-  }
-  return sigData;
+    return { slot: s.slot, signed_at: s.signed_at, name: u?.full_name ?? '', sigDataUrl };
+  }));
+
+  return { sigs, imageErrors };
 }
 
 /** Fetch a private-bucket image as a data URL (for embedding in PDFs). */
@@ -122,6 +133,21 @@ export default function Invoices() {
   const [contractOk, setContractOk] = useState(false);
   const [signatures, setSignatures] = useState<{ slot: string; signed_at: string; user_id: string; full_name: string | null }[]>([]);
   const [sigBusy, setSigBusy] = useState(false);
+
+  // ── MFA step-up modal ──
+  const [mfaModalOpen, setMfaModalOpen] = useState(false);
+  const [mfaModalBusy, setMfaModalBusy] = useState(false);
+  const [mfaModalError, setMfaModalError] = useState<string | null>(null);
+  const mfaResolveRef = useRef<((code: string | null) => void) | null>(null);
+
+  /** Shows the MFA modal and resolves with the entered code (or null on cancel). */
+  function requestMfaCode(): Promise<string | null> {
+    return new Promise((resolve) => {
+      mfaResolveRef.current = resolve;
+      setMfaModalError(null);
+      setMfaModalOpen(true);
+    });
+  }
 
   function load() {
     api
@@ -365,11 +391,14 @@ export default function Invoices() {
         }
         const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
         if (chErr) throw new Error(chErr.message);
-        const code = window.prompt('Enter your 6-digit MFA code:');
+        const code = await requestMfaCode();
         if (!code) { setSigBusy(false); return; }
+        setMfaModalBusy(true);
         const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge.id, code });
+        setMfaModalBusy(false);
         if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
       }
+      setMfaModalOpen(false);
       await api.signInvoice(invoiceId);
       setMsg('Signature applied successfully.');
       load();
@@ -377,6 +406,7 @@ export default function Invoices() {
     } catch (e) {
       setErr((e as Error).message);
     } finally {
+      setMfaModalOpen(false);
       setSigBusy(false);
     }
   }
@@ -386,26 +416,29 @@ export default function Invoices() {
     setBusy(true);
     setErr(null);
     try {
+      // 1. Fetch invoice + waybill + scan data via nested join (same proven
+      //    path as loadDetail — scans are scoped to THIS request's waybills).
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated,letterhead_path,letterhead_insets), invoice_lines(*, waybills(waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id,storage_path,mime_type,scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated,letterhead_path,letterhead_insets), invoice_lines(computed_cost, category, distance_km, rate_snapshot, waybills(id, waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id, storage_path, mime_type, scan_type)))',
         )
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
 
-      const sigData = await fetchSignatures(id);
+      const { sigs: sigData, imageErrors: sigImageErrors } = await fetchSignatures(id);
       await attachLetterhead(inv as InvoiceDoc);
 
       const docInv = inv as InvoiceDoc;
       (docInv as InvoiceDoc & { signatures?: typeof sigData }).signatures = sigData;
 
-      // 1. Letter + Invoice (with signatures)
+      if (sigImageErrors > 0) setErr(`${sigImageErrors} signature image(s) could not be loaded — they will appear blank in the document.`);
+
+      // 2. Build Letter + Invoice PDFs (with signatures embedded).
       const letterBytes = buildLetter(docInv).output('arraybuffer') as ArrayBuffer;
       const invoiceBytes = buildInvoice(docInv).output('arraybuffer') as ArrayBuffer;
 
-      // Merge letter + invoice
       const { PDFDocument } = await import('pdf-lib');
       const merged = await PDFDocument.create();
       const letterDoc = await PDFDocument.load(letterBytes);
@@ -415,21 +448,13 @@ export default function Invoices() {
       const invoicePages = await merged.copyPages(invoiceDoc, invoiceDoc.getPageIndices());
       invoicePages.forEach((p) => merged.addPage(p));
 
-      // 2. Append scans in order: acknowledgement → waybill → release_letter
-      const scanOrder = ['acknowledgement', 'waybill', 'release_letter'];
+      // 2. Extract scans from the nested join — already scoped to this
+      //    invoice's waybills by the Supabase relationship chain.
+      const scopedScans = extractScopedScans((inv as any).invoice_lines ?? []);
+
       const allScans: ScanInput[] = [];
-      const lines = (inv as any).invoice_lines ?? [];
-      const scans = lines.flatMap((l: any) => l.waybills?.scans ?? []);
-      // Sort scans by type order, then by created_at
-      const sortedScans = [...scans].sort((a: any, b: any) => {
-        const ai = scanOrder.indexOf(a.scan_type);
-        const bi = scanOrder.indexOf(b.scan_type);
-        const aIdx = ai === -1 ? scanOrder.length : ai;
-        const bIdx = bi === -1 ? scanOrder.length : bi;
-        return aIdx - bIdx;
-      });
       let skipped = 0;
-      for (const s of sortedScans) {
+      for (const s of scopedScans) {
         const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
         if (blob) {
           allScans.push({
@@ -472,10 +497,10 @@ export default function Invoices() {
         .eq('id', id)
         .single();
       if (error || !inv) throw new Error(error?.message ?? 'Invoice not found');
-      (inv as InvoiceDoc).signatures = await fetchSignatures(id);
+      const [sigResult, logo] = await Promise.all([fetchSignatures(id), loadLogo()]);
+      (inv as InvoiceDoc).signatures = sigResult.sigs;
       await attachLetterhead(inv as InvoiceDoc);
-
-      const logo = await loadLogo();
+      if (sigResult.imageErrors > 0) setErr(`${sigResult.imageErrors} signature image(s) could not be loaded — they will appear blank in the document.`);
 
       // Memo & signatory: no appended scans — build and save directly.
       if (type === 'memo') {
@@ -1024,6 +1049,14 @@ export default function Invoices() {
           </tbody>
         </table>
       </div>
+      {/* MFA step-up modal */}
+      <MfaStepUpModal
+        open={mfaModalOpen}
+        busy={mfaModalBusy}
+        error={mfaModalError}
+        onVerify={(code) => { mfaResolveRef.current?.(code); mfaResolveRef.current = null; }}
+        onCancel={() => { mfaResolveRef.current?.(null); mfaResolveRef.current = null; setMfaModalOpen(false); }}
+      />
     </div>
   );
 }
