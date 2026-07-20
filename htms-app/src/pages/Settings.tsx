@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import MfaStepUpModal from '../components/MfaStepUpModal';
-import { pdfFirstPageToDataUrl } from '../lib/letterhead';
+import { pdfFirstPageToPngBlob } from '../lib/letterhead';
 
 export default function Settings() {
   const { session, profile } = useAuth();
@@ -91,9 +91,7 @@ export default function Settings() {
       if (file.type === 'application/pdf') {
         setMsg('Converting PDF…');
         const bytes = await file.arrayBuffer();
-        const pngDataUrl = await pdfFirstPageToDataUrl(bytes);
-        const resp = await fetch(pngDataUrl);
-        uploadBlob = await resp.blob();
+        uploadBlob = await pdfFirstPageToPngBlob(bytes);
       } else {
         uploadBlob = file;
       }
