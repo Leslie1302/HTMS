@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
@@ -6,6 +6,7 @@ import { ALL_STAGES, STAGE_LABELS, type PriStage } from '../../shared/lifecycle'
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { Link } from 'react-router-dom';
 import MfaStepUpModal from '../components/MfaStepUpModal';
+import { useMfaStepUp } from '../hooks/useMfaStepUp';
 
 const ghs = (n: number) =>
   '₵' + Number(n || 0).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -42,18 +43,7 @@ export default function InvoiceStatus() {
   const [hasMfa, setHasMfa] = useState(false);
 
   // ── MFA step-up modal ──
-  const [mfaModalOpen, setMfaModalOpen] = useState(false);
-  const [mfaModalBusy, setMfaModalBusy] = useState(false);
-  const [mfaModalError, setMfaModalError] = useState<string | null>(null);
-  const mfaResolveRef = useRef<((code: string | null) => void) | null>(null);
-
-  function requestMfaCode(): Promise<string | null> {
-    return new Promise((resolve) => {
-      mfaResolveRef.current = resolve;
-      setMfaModalError(null);
-      setMfaModalOpen(true);
-    });
-  }
+  const { mfaModalOpen, mfaModalBusy, setMfaModalBusy, mfaModalError, requestMfaCode, onVerify: mfaOnVerify, onCancel: mfaOnCancel, closeModal } = useMfaStepUp();
 
   const SCAN_LABELS: Record<string, string> = {
     acknowledgement: 'Acknowledgement form',
@@ -178,7 +168,7 @@ export default function InvoiceStatus() {
       setMfaModalBusy(false);
       if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
     }
-    setMfaModalOpen(false);
+    closeModal();
     await api.signInvoice(id);
     setSignedByMe(true);
     return true;
@@ -195,7 +185,7 @@ export default function InvoiceStatus() {
       setErr((e as Error).message);
     } finally {
       setBusy(false);
-      setMfaModalOpen(false);
+      closeModal();
     }
   }
 
@@ -220,7 +210,7 @@ export default function InvoiceStatus() {
       setErr((e as Error).message);
     } finally {
       setBusy(false);
-      setMfaModalOpen(false);
+      closeModal();
     }
   }
 
@@ -350,7 +340,7 @@ export default function InvoiceStatus() {
                 </p>
               </div>
             )}
-            {/* Backfill: submitted before e-signatures existed — sign without re-submitting. */}
+            {/* Backfill: submitted before electronic attestations existed — sign without re-submitting. */}
             {selected.stage !== 'generated' && !signedByMe && mfaReadyForSign && (
               <button
                 onClick={signOnly}
@@ -363,7 +353,7 @@ export default function InvoiceStatus() {
             )}
             {selected.stage !== 'generated' && !signedByMe && !mfaReadyForSign && (
               <p className="mt-3 text-xs text-outline">
-                This invoice was submitted without an e-signature.{' '}
+                This invoice was submitted without an electronic attestation.{' '}
                 <Link to="/settings" className="underline">Upload your signature and set up MFA</Link> to add it.
               </p>
             )}
@@ -471,8 +461,8 @@ export default function InvoiceStatus() {
         open={mfaModalOpen}
         busy={mfaModalBusy}
         error={mfaModalError}
-        onVerify={(code) => { mfaResolveRef.current?.(code); mfaResolveRef.current = null; }}
-        onCancel={() => { mfaResolveRef.current?.(null); mfaResolveRef.current = null; setMfaModalOpen(false); }}
+        onVerify={mfaOnVerify}
+        onCancel={mfaOnCancel}
       />
     </div>
   );

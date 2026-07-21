@@ -42,17 +42,18 @@ export default guard({ roles: ['admin', 'officer'], rateLimit: DOC_LIMIT }, asyn
     .upload(path, new Blob([html], { type: 'text/html' }), { upsert: true, contentType: 'text/html' });
   if (upErr) return json(400, { error: `Storage: ${upErr.message}` });
 
-  await ctx.db.from('documents').insert({
+  const { error: docErr } = await ctx.db.from('documents').insert({
     invoice_id: invoice.id,
     type: body.type,
     storage_path: path,
     reference_no: body.referenceNo ?? null,
     generated_by: ctx.userId,
   });
+  if (docErr) return json(400, { error: `Document record: ${docErr.message}` });
 
   // Short-lived signed URL (10 minutes).
   const { data: signed } = await ctx.db.storage.from('documents').createSignedUrl(path, 600);
-  await audit(ctx.userId, 'generate', 'document', invoice.id, null, { type: body.type, path });
+  await audit(ctx.userId, 'generate', 'document', invoice.id, null, { type: body.type, path }).catch(() => {});
 
   return json(201, { path, url: signed?.signedUrl ?? null, html });
 });

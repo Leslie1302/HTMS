@@ -684,3 +684,13 @@ export function downloadInvoicePdf(inv: InvoiceDoc) {
 export function downloadLetterPdf(inv: InvoiceDoc) {
   buildLetter(inv).save(`Payment_Request_${ref(inv)}.pdf`);
 }
+
+/**
+ * Build the invoice PDF and return its SHA-256 hex digest.
+ * Used at signing time to bind the signature to the exact document.
+ */
+export async function hashInvoicePdf(inv: InvoiceDoc): Promise<string> {
+  const bytes = buildInvoice(inv).output('arraybuffer');
+  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}

@@ -29,7 +29,7 @@ export default guard({ roles: ['admin'] }, async (req, ctx) => {
     const tempPassword = crypto.randomUUID().replace(/-/g, '').slice(0, 12) + 'Aa1!';
     const { error } = await svc.auth.admin.updateUserById(id, { password: tempPassword });
     if (error) return json(400, { error: error.message });
-    await audit(ctx.userId, 'user.password_reset', 'app_users', id, null, null);
+    await audit(ctx.userId, 'user.password_reset', 'app_users', id, null, null).catch(() => {});
     return json(200, { tempPassword });
   }
 

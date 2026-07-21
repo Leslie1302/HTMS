@@ -1,4 +1,4 @@
-# Prompt for Big Pickle — E-Signatures, Review Roles, Director View
+# Prompt for Big Pickle — Electronic Attestations, Review Roles, Director View
 
 Copy everything below the line into the agent.
 
@@ -11,7 +11,7 @@ scans via `src/lib/mergeScans.ts` (pdf-lib). Latest migration is `0016`. Do NOT 
 new dependencies. Do NOT touch `shared/calc.ts` or rate logic. Smallest working diff;
 mark deliberate ceilings with `// ponytail:` comments.
 
-Feature set: MFA-protected e-signatures applied to the generated documents, two new
+Feature set: MFA-authenticated electronic attestations applied to the generated documents, two new
 review roles (Deputy Director, Director), and a simplified reviewer reading view.
 
 ## 1. Migrations

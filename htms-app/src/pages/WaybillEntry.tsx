@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
+import { mustUpdate } from '../lib/db';
 import { SCAN_ALLOWED_MIME, SCAN_MAX_BYTES } from '../../shared/validation';
 
 interface Origin { id: number; name: string }
@@ -123,16 +124,15 @@ export default function WaybillEntry() {
         const path = `${wb.transporter_id}/${wb.id}/${key}-${Date.now()}-${file.name}`;
         const { error: upErr } = await supabase.storage.from('scans').upload(path, file, { contentType: file.type });
         if (upErr) throw new Error(`${key} upload: ${upErr.message}`);
-        const { error: insErr } = await supabase.from('scans').insert({
+        // A failed row means the file sits in Storage but is invisible to the
+        // checklist/preview/PDF merge — fail loudly, never silently.
+        await mustUpdate(supabase.from('scans').insert({
           waybill_id: wb.id,
           storage_path: path,
           mime_type: file.type,
           byte_size: file.size,
           scan_type: key,
-        });
-        // A failed row means the file sits in Storage but is invisible to the
-        // checklist/preview/PDF merge — fail loudly, never silently.
-        if (insErr) throw new Error(`${key} record: ${insErr.message}`);
+        }).select('id').single());
       }
 
       setMsg('Waybill saved.');

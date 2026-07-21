@@ -54,7 +54,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
           : { review_status: 'disapproved', review_note: body.note!.trim() };
       const { error: revErr } = await svc.from('invoices').update(patch).eq('id', invoiceId);
       if (revErr) return json(400, { error: revErr.message });
-      await audit(ctx.userId, `review_${body.review}`, 'invoice', invoiceId, null, patch);
+      await audit(ctx.userId, `review_${body.review}`, 'invoice', invoiceId, null, patch).catch(() => {});
       if (body.review === 'disapproved') {
         await notifyDisapproval(invoiceId, body.note!.trim()).catch(() => {});
       }
@@ -162,7 +162,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
       .eq('id', invoiceId);
     if (updateErr) return json(400, { error: updateErr.message });
 
-    await audit(ctx.userId, targetStage, 'invoice', invoiceId, before, after);
+    await audit(ctx.userId, targetStage, 'invoice', invoiceId, before, after).catch(() => {});
     await notifyStageChange(invoiceId, targetStage as PriStage).catch(() => {});
     return json(200, { invoiceId, stage: targetStage, previous: currentStage });
   }

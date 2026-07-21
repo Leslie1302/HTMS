@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { audit, guard, json, parseBody, serviceDb } from './_lib';
 import { roleToSlot, canSignSlot, isSlotSigned, type SignSlot } from '../../shared/signing';
 
-const schema = z.object({ invoice_id: z.string().uuid() });
+const schema = z.object({ invoice_id: z.string().uuid(), doc_hash: z.string().optional() });
 
 /** Decode the JWT payload (no verification — the token was already verified by guard). */
 function decodeJwtPayload(token: string): Record<string, unknown> {
@@ -102,10 +102,14 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
     invoice_id: body.invoice_id,
     slot,
     user_id: ctx.userId,
+    doc_hash: body.doc_hash ?? null,
+    signed_ip: (req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? req.headers.get('x-nf-client-connection-ip') ?? null) as string | null,
+    user_agent: req.headers.get('user-agent') ?? null,
+    aal: aal ?? null,
   });
   if (insErr) return json(400, { error: insErr.message });
 
-  await audit(ctx.userId, 'invoice.signed', 'invoice', body.invoice_id, null, { slot });
+  await audit(ctx.userId, 'invoice.signed', 'invoice', body.invoice_id, null, { slot }).catch(() => {});
 
   return json(200, { ok: true, slot, signed_at: new Date().toISOString() });
 });

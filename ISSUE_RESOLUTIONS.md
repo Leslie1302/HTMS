@@ -36,13 +36,13 @@ Signature images were drawn at the left margin, on top of the "Prepared by:" lab
 
 Three pieces. (a) Creating Deputy Director/Director users failed with `new row violates check constraint "app_users_check"`: migration 0001 defined the role check inline (auto-named `app_users_check`), 0018's replacement dropped the wrong name (`app_users_role_check`, silently no-op'd by `if exists`) and added a second, correct constraint — leaving both active. `0019_drop_stale_role_check.sql` removes the stale one. (b) User names are now editable inline in the Users table (input field, saved with role/phone) — needed because SQL-created accounts had no name, and the name feeds the PDF signature blocks. (c) Admin password reset: a PATCH on the existing `admin-users` function generates a fresh one-time temp password via the service role, writes a `user.password_reset` audit entry, and the UI (key button per row) shows it once in the credentials banner. Note: reset does not clear MFA factors.
 
-## 9. E-signature Rendering Logic in pdf.ts
+## 9. Electronic Attestation Rendering Logic in pdf.ts
 
 `InvoiceDoc` gained a `signatures` array rendered by all four builders: transporter slot on the letter/invoice, all three staff slots on the signatory sheet, Director on the memo (whose signatory name now defaults to the approving Director). Added a `signedForAnother()` check — when the signer's account name differs from the transporter's registered manager, the printed name renders as `For: <manager name>`. Also removed the generated monogram badge from the letter/invoice letterhead (all companies' documents were sharing an invented visual identity) — plain letterhead now: company name left, contacts right.
 
-## 10. Enable Transporter E-signatures from InvoiceStatus
+## 10. Enable Transporter Electronic Attestations from InvoiceStatus
 
-Two changes. Server: the transporter slot in `invoice-sign.ts` no longer requires the Generated stage — past Generated it acts as a **backfill** for invoices submitted before e-signatures existed (own-invoice, slot-empty, signature-on-file, and MFA/AAL2 checks still apply; the checklist/review gate applies only pre-submission). Client: the status page shows **Add my signature** on any submitted invoice missing the transporter signature (same MFA code flow, no re-submission, stage untouched); the MFA step-up was deduplicated into `stepUpAndSign()` shared with Sign & Submit, which now also skips re-signing an already-signed slot.
+Two changes. Server: the transporter slot in `invoice-sign.ts` no longer requires the Generated stage — past Generated it acts as a **backfill** for invoices submitted before electronic attestations existed (own-invoice, slot-empty, signature-on-file, and MFA/AAL2 checks still apply; the checklist/review gate applies only pre-submission). Client: the status page shows **Add my signature** on any submitted invoice missing the transporter attestation (same MFA code flow, no re-submission, stage untouched); the MFA step-up was deduplicated into `stepUpAndSign()` shared with Sign & Submit, which now also skips re-signing an already-signed slot.
 
 ## 11. Refine MFA + Signature Workflow on Settings
 

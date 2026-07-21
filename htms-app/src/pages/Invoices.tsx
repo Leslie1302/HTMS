@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
+import { mustUpdate } from '../lib/db';
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
 import { appendScansToPdf, type ScanInput } from '../lib/mergeScans';
@@ -9,6 +10,7 @@ import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, type SignSlot } from '../../shared/signing';
 import MfaStepUpModal from '../components/MfaStepUpModal';
+import { useMfaStepUp } from '../hooks/useMfaStepUp';
 
 const SCAN_LABELS: Record<string, string> = {
   acknowledgement: 'Acknowledgement form',
@@ -52,6 +54,36 @@ async function fetchSignatures(invoiceId: string): Promise<{ sigs: { slot: strin
   }));
 
   return { sigs, imageErrors };
+}
+
+/** Archive a generated PDF: upload to `archive` bucket + insert `document_archives` row. */
+async function archiveDoc(
+  invoiceId: string,
+  transporterId: string,
+  docType: 'invoice' | 'letter' | 'memo' | 'signatory',
+  pdfBytes: Uint8Array,
+  label?: string,
+) {
+  try {
+    const path = `${transporterId}/${invoiceId}/${docType}-${Date.now()}.pdf`;
+    // Copy to a fresh ArrayBuffer so BlobPart accepts it (jsPDF output may carry
+    // a SharedArrayBuffer-typed buffer which BlobPart rejects in strict TS).
+    const buf = (pdfBytes.buffer as ArrayBuffer).slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
+    const bytes = new Uint8Array(buf);
+    const { error: upErr } = await supabase.storage
+      .from('archive')
+      .upload(path, new Blob([bytes], { type: 'application/pdf' }), { contentType: 'application/pdf' });
+    if (upErr) { console.warn('Archive upload failed:', upErr.message); return; }
+    const { error: insErr } = await supabase.from('document_archives').insert({
+      invoice_id: invoiceId,
+      doc_type: docType,
+      storage_path: path,
+      label: label ?? null,
+    });
+    if (insErr) console.warn('Archive insert failed:', insErr.message);
+  } catch (e) {
+    console.warn('Archive failed:', e);
+  }
 }
 
 /** Fetch a private-bucket image as a data URL (for embedding in PDFs). */
@@ -133,21 +165,10 @@ export default function Invoices() {
   const [contractOk, setContractOk] = useState(false);
   const [signatures, setSignatures] = useState<{ slot: string; signed_at: string; user_id: string; full_name: string | null }[]>([]);
   const [sigBusy, setSigBusy] = useState(false);
+  const [archivedDocs, setArchivedDocs] = useState<{ id: string; doc_type: string; label: string | null; archived_at: string; archived_by_name: string | null; url: string | null }[]>([]);
 
   // ── MFA step-up modal ──
-  const [mfaModalOpen, setMfaModalOpen] = useState(false);
-  const [mfaModalBusy, setMfaModalBusy] = useState(false);
-  const [mfaModalError, setMfaModalError] = useState<string | null>(null);
-  const mfaResolveRef = useRef<((code: string | null) => void) | null>(null);
-
-  /** Shows the MFA modal and resolves with the entered code (or null on cancel). */
-  function requestMfaCode(): Promise<string | null> {
-    return new Promise((resolve) => {
-      mfaResolveRef.current = resolve;
-      setMfaModalError(null);
-      setMfaModalOpen(true);
-    });
-  }
+  const { mfaModalOpen, mfaModalBusy, setMfaModalBusy, mfaModalError, requestMfaCode, onVerify: mfaOnVerify, onCancel: mfaOnCancel, closeModal } = useMfaStepUp();
 
   function load() {
     api
@@ -262,6 +283,32 @@ export default function Invoices() {
       } else {
         setSignatures([]);
       }
+
+      // Archived documents
+      const { data: archRows } = await supabase
+        .from('document_archives')
+        .select('id, doc_type, storage_path, label, archived_at, archived_by')
+        .eq('invoice_id', id)
+        .order('archived_at', { ascending: false });
+      if (archRows && archRows.length > 0) {
+        const archUserIds = [...new Set(archRows.map((r: { archived_by: string }) => r.archived_by))];
+        const { data: archUsers } = await supabase.from('app_users').select('id, full_name').in('id', archUserIds);
+        const archNameMap = new Map((archUsers ?? []).map((u: { id: string; full_name: string | null }) => [u.id, u.full_name]));
+        const { data: archSigned } = await supabase.storage
+          .from('archive')
+          .createSignedUrls(archRows.map((r: { storage_path: string }) => r.storage_path), 3600);
+        // ponytail: signed URL index matches row index from stable query order
+        setArchivedDocs(archRows.map((r: { id: string; doc_type: string; label: string | null; archived_at: string; archived_by: string; storage_path: string }, i: number) => ({
+          id: r.id,
+          doc_type: r.doc_type,
+          label: r.label,
+          archived_at: r.archived_at,
+          archived_by_name: archNameMap.get(r.archived_by) ?? null,
+          url: archSigned?.[i]?.signedUrl ?? null,
+        })));
+      } else {
+        setArchivedDocs([]);
+      }
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -305,17 +352,23 @@ export default function Invoices() {
     } else if (!window.confirm('Clear this flag? Only do this once a compliant copy is in hand.')) {
       return;
     }
-    const { error } = await supabase.from('scans').update({ flagged_reason: reason }).eq('id', scanId);
-    if (error) setErr(error.message);
-    else if (selectedId) loadDetail(selectedId);
+    try {
+      await mustUpdate(supabase.from('scans').update({ flagged_reason: reason }).eq('id', scanId).select('id').single());
+      if (selectedId) loadDetail(selectedId);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
   }
 
   async function updateChecklist(key: string, value: boolean) {
     if (!selectedId) return;
     const next = { ...checklist, [key]: value };
     setChecklist(next);
-    const { error } = await supabase.from('invoices').update({ checklist: next }).eq('id', selectedId);
-    if (error) setErr(error.message);
+    try {
+      await mustUpdate(supabase.from('invoices').update({ checklist: next }).eq('id', selectedId).select('id').single());
+    } catch (e) {
+      setErr((e as Error).message);
+    }
   }
 
   async function advanceStage(invoiceId: string, targetStage: string) {
@@ -398,7 +451,7 @@ export default function Invoices() {
         setMfaModalBusy(false);
         if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
       }
-      setMfaModalOpen(false);
+      closeModal();
       await api.signInvoice(invoiceId);
       setMsg('Signature applied successfully.');
       load();
@@ -406,7 +459,7 @@ export default function Invoices() {
     } catch (e) {
       setErr((e as Error).message);
     } finally {
-      setMfaModalOpen(false);
+      closeModal();
       setSigBusy(false);
     }
   }
@@ -478,6 +531,8 @@ export default function Invoices() {
       const blob = new Blob([ab], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
+      // Archive the merged payment-request documentation
+      archiveDoc(id, (inv as InvoiceDoc & { transporter_id: string }).transporter_id, 'invoice', new Uint8Array(ab), 'Payment request documentation');
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -515,22 +570,30 @@ export default function Invoices() {
         if (letterDate == null) return;
         localStorage.setItem('htms.memo.fromTitle', fromTitle);
         localStorage.setItem('htms.memo.signatoryName', signatoryName);
-        buildMemo(d, { fromTitle, signatoryName, letterDate }, logo).save(`Memo_${invoiceRef(d)}.pdf`);
+        const pdf = buildMemo(d, { fromTitle, signatoryName, letterDate }, logo);
+        archiveDoc(id, inv.transporter_id, 'memo', new Uint8Array(pdf.output('arraybuffer')), `Memo — ${signatoryName}`);
+        pdf.save(`Memo_${invoiceRef(d)}.pdf`);
         return;
       }
       if (type === 'signatory') {
-        buildSignatory(inv as InvoiceDoc, logo).save(`Signatory_${invoiceRef(inv as InvoiceDoc)}.pdf`);
+        const pdf = buildSignatory(inv as InvoiceDoc, logo);
+        archiveDoc(id, inv.transporter_id, 'signatory', new Uint8Array(pdf.output('arraybuffer')));
+        pdf.save(`Signatory_${invoiceRef(inv as InvoiceDoc)}.pdf`);
         return;
       }
       // Letter is a standalone one-pager — no appended scans.
       if (type === 'letter') {
-        buildLetter(inv as InvoiceDoc).save(`Payment_Request_${invoiceRef(inv as InvoiceDoc)}.pdf`);
+        const pdf = buildLetter(inv as InvoiceDoc);
+        archiveDoc(id, inv.transporter_id, 'letter', new Uint8Array(pdf.output('arraybuffer')));
+        pdf.save(`Payment_Request_${invoiceRef(inv as InvoiceDoc)}.pdf`);
         return;
       }
 
       // Invoice is standalone too — the merged package (invoice + scans) is the
       // reviewers' "Payment request documentation" button only.
-      buildInvoice(inv as InvoiceDoc).save(`Invoice_${invoiceRef(inv as InvoiceDoc)}.pdf`);
+      const pdf = buildInvoice(inv as InvoiceDoc);
+      archiveDoc(id, inv.transporter_id, 'invoice', new Uint8Array(pdf.output('arraybuffer')));
+      pdf.save(`Invoice_${invoiceRef(inv as InvoiceDoc)}.pdf`);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -770,6 +833,38 @@ export default function Invoices() {
                     </button>
                   );
                 })()}
+              </div>
+            </div>
+          )}
+
+          {/* Archived documents */}
+          {archivedDocs.length > 0 && (
+            <div className="mt-4 p-4 bg-surface rounded-lg border border-outline-variant">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-sm text-on-surface-variant">folder</span>
+                <span className="text-xs font-bold tracking-wide text-on-surface-variant uppercase">Archived documents</span>
+                <span className="text-xs text-outline">({archivedDocs.length})</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {archivedDocs.map((d) => (
+                  <span key={d.id} className="flex items-center rounded-lg border border-outline-variant text-xs">
+                    {d.url ? (
+                      <a href={d.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 hover:bg-surface-container-low rounded-l-lg">
+                        <span className="material-symbols-outlined text-sm">description</span>
+                        {d.label ?? d.doc_type}
+                      </a>
+                    ) : (
+                      <span className="flex items-center gap-1 px-3 py-1.5">
+                        <span className="material-symbols-outlined text-sm">description</span>
+                        {d.label ?? d.doc_type}
+                      </span>
+                    )}
+                    <span className="px-2 py-1.5 border-l border-outline-variant/50 text-outline whitespace-nowrap">
+                      {new Date(d.archived_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {d.archived_by_name && <span className="ml-1">· {d.archived_by_name}</span>}
+                    </span>
+                  </span>
+                ))}
               </div>
             </div>
           )}
@@ -1054,8 +1149,8 @@ export default function Invoices() {
         open={mfaModalOpen}
         busy={mfaModalBusy}
         error={mfaModalError}
-        onVerify={(code) => { mfaResolveRef.current?.(code); mfaResolveRef.current = null; }}
-        onCancel={() => { mfaResolveRef.current?.(null); mfaResolveRef.current = null; setMfaModalOpen(false); }}
+        onVerify={mfaOnVerify}
+        onCancel={mfaOnCancel}
       />
     </div>
   );

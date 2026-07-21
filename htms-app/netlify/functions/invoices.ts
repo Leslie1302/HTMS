@@ -139,8 +139,9 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
     if (lineErr) return json(400, { error: lineErr.message });
 
     // Mark waybills invoiced.
-    await wdb.from('waybills').update({ status: 'invoiced' }).in('id', body.waybillIds);
-    await audit(ctx.userId, 'create', 'invoice', invoice.id, null, { total, lines: lines.length });
+    const { error: wbUpdateErr } = await wdb.from('waybills').update({ status: 'invoiced' }).in('id', body.waybillIds);
+    if (wbUpdateErr) return json(400, { error: `Failed to mark waybills as invoiced: ${wbUpdateErr.message}` });
+    await audit(ctx.userId, 'create', 'invoice', invoice.id, null, { total, lines: lines.length }).catch(() => {});
     return json(201, { invoice, lineCount: lines.length });
   }
 
@@ -161,7 +162,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
     }
     const { data, error } = await ctx.db.from('invoices').update(patch).eq('id', id).select().single();
     if (error) return json(400, { error: error.message });
-    await audit(ctx.userId, action!, 'invoice', id, null, data);
+    await audit(ctx.userId, action!, 'invoice', id, null, data).catch(() => {});
     return json(200, { invoice: data });
   }
 

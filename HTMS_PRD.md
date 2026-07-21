@@ -293,6 +293,21 @@ The escalation factor depends on the current diesel price. To keep it accurate w
 
 **Caveat to confirm:** scraping a third-party site is brittle (markup changes break it) and should respect GOIL's terms of service. If GOIL (or the NPA) publishes prices via a stable page/API or a downloadable list, that is preferable to HTML scraping. The Admin manual-override path exists precisely so billing never blocks on the scraper.
 
+### 6.7 Electronic attestation (MFA-authenticated)
+
+Each generated payment request document can carry an **electronic attestation** — an MFA-authenticated confirmation that a specific user reviewed and approved the document. This is **not** a cryptographic digital signature; it is an audit-trail attestation bound to the signer's identity, MFA session, IP address, and user agent at the time of signing.
+
+**How it works:**
+
+- **One-time setup:** each user uploads a signature image (PNG/JPEG) and enrolls a TOTP authenticator factor (Supabase built-in).
+- **Signing action:** when a user clicks "Sign," the system verifies their JWT carries `aal === 'aal2'` (MFA-authenticated session), then writes an `invoice_signatures` row recording the slot, user, timestamp, IP, user agent, and AAL level.
+- **Slots:** four attestation slots per invoice — `transporter` (own invoice only), `prepared` (officer/admin), `checked` (Deputy Director), `approved` (Director). Ordering: `prepared` → `checked` → `approved`; `transporter` is independent.
+- **Document rendering:** when a PDF is generated, attestation images and signer names are drawn into the appropriate signature blocks on the letter, invoice, signatory sheet, and memo.
+- **Tamper evidence:** the `invoice_signatures` table has `REVOKE INSERT, UPDATE, DELETE` for authenticated users and an append-only trigger — rows can only be written by the service-role function and never modified or deleted.
+- **Evidence fields (migration 0025):** `doc_hash` (SHA-256 of the rendered PDF, infrastructure ready), `signed_ip`, `user_agent`, `aal` are captured at signing time for audit purposes.
+
+`// ponytail: this is an attestation, not a legal digital signature — no PKI, no certificate chain, no third-party timestamp authority.`
+
 ---
 
 ## 7. Non-Functional Requirements
@@ -331,6 +346,8 @@ invoice_lines     (id, invoice_id, waybill_id, distance_km, category,
                    rate_snapshot jsonb, computed_cost)   -- immutable snapshot
 documents         (id, invoice_id, type[invoice|letter], storage_path,
                    reference_no, generated_by, generated_at)
+invoice_signatures  (invoice_id, slot[transporter|prepared|checked|approved],
+                    user_id, signed_at, doc_hash, signed_ip, user_agent, aal)
 audit_log         (id, actor_id, action, entity, entity_id, before jsonb,
                    after jsonb, created_at)
 ```
@@ -386,6 +403,7 @@ The **calculation-engine regression suite is non-negotiable**: it asserts the th
 | **M0 — Foundations** | Repo, `.env.example`, Supabase project, schema + RLS, CI pipeline skeleton, auth. |
 | **M1 — Core data** | Transporters, districts, distance matrix (+30 km rule), rate versions + FIDIC engine, GOIL fuel scraper with sanity guards (Admin UI). |
 | **M2 — Waybills + calc engine** | Native entry form, scan upload, server-side cost calculator, regression test suite passing against legacy figures. |
+| **M2.5 — Electronic attestation** | MFA-authenticated attestation with four signing slots, tamper-evident audit trail, signature image rendering in PDFs. |
 | **M3 — Invoices + documents** | Invoice assembly, approve/lock workflow, branded Ministry PDF letter + invoice generation with scans appended. |
 | **M4 — Dashboard** | Filterable, cached dashboard matching the screenshot. |
 | **M5 — Hardening + launch** | Rate-limit tuning, Sentry, audit-log review UI, pen-test of RLS, production deploy. |

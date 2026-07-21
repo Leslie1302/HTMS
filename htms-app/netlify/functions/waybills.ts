@@ -123,7 +123,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
       if (destErr) return json(400, { error: `Destinations: ${destErr.message}` });
     }
 
-    await audit(ctx.userId, 'create', 'waybill', data.id, null, data);
+    await audit(ctx.userId, 'create', 'waybill', data.id, null, data).catch(() => {});
     return json(201, { waybill: data });
   }
 

@@ -151,6 +151,7 @@ export async function parseBody<T>(req: Request, schema: ZodSchema<T>): Promise<
 }
 
 /** Append an audit-log entry via the service role (append-only). */
+// ponytail: fire-and-forget — audit failures must not block the primary operation
 export async function audit(
   actorId: string,
   action: string,

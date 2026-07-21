@@ -40,7 +40,7 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
     .eq('id', body.scanId);
   if (error) return json(400, { error: error.message });
 
-  await audit(ctx.userId, 'scan_resubmitted', 'scan', body.scanId, null, { path: body.storagePath });
+  await audit(ctx.userId, 'scan_resubmitted', 'scan', body.scanId, null, { path: body.storagePath }).catch(() => {});
   return json(200, { ok: true });
 });
 

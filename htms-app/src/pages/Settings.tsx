@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthProvider';
 import MfaStepUpModal from '../components/MfaStepUpModal';
 import { pdfFirstPageToPngBlob } from '../lib/letterhead';
+import { mustUpdate } from '../lib/db';
+import { useMfaStepUp } from '../hooks/useMfaStepUp';
 
 export default function Settings() {
   const { session, profile } = useAuth();
@@ -28,18 +30,7 @@ export default function Settings() {
   const [mfaBusy, setMfaBusy] = useState(false);
 
   // ── MFA step-up modal (for unenroll) ──
-  const [mfaModalOpen, setMfaModalOpen] = useState(false);
-  const [mfaModalBusy, setMfaModalBusy] = useState(false);
-  const [mfaModalError, setMfaModalError] = useState<string | null>(null);
-  const mfaResolveRef = useRef<((code: string | null) => void) | null>(null);
-
-  function requestMfaCode(): Promise<string | null> {
-    return new Promise((resolve) => {
-      mfaResolveRef.current = resolve;
-      setMfaModalError(null);
-      setMfaModalOpen(true);
-    });
-  }
+  const { mfaModalOpen, mfaModalBusy, setMfaModalBusy, mfaModalError, requestMfaCode, onVerify: mfaOnVerify, onCancel: mfaOnCancel, closeModal } = useMfaStepUp();
 
   // Load signature — keyed on the session user id so an MFA step-up (which
   // refreshes the session and remounts the page) reliably reloads it.
@@ -115,8 +106,7 @@ export default function Settings() {
     if (!transporterId) return;
     setBusy(true); setErr(null); setMsg(null);
     try {
-      const { error } = await supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom, left: lhLeft, right: lhRight } }).eq('id', transporterId);
-      if (error) throw new Error(error.message);
+      await mustUpdate(supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom, left: lhLeft, right: lhRight } }).eq('id', transporterId).select('id').single());
       setMsg('Printable area saved.');
     } catch (e) {
       setErr((e as Error).message);
@@ -265,7 +255,7 @@ export default function Settings() {
         setMfaModalBusy(false);
         if (vErr) throw new Error(`MFA verification failed: ${vErr.message}`);
       }
-      setMfaModalOpen(false);
+      closeModal();
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
       if (error) throw new Error(error.message);
       setMsg('Factor removed.');
@@ -273,7 +263,7 @@ export default function Settings() {
     } catch (e) {
       setErr((e as Error).message);
     } finally {
-      setMfaModalOpen(false);
+      closeModal();
       setMfaBusy(false);
     }
   }
@@ -567,8 +557,8 @@ export default function Settings() {
         open={mfaModalOpen}
         busy={mfaModalBusy}
         error={mfaModalError}
-        onVerify={(code) => { mfaResolveRef.current?.(code); mfaResolveRef.current = null; }}
-        onCancel={() => { mfaResolveRef.current?.(null); mfaResolveRef.current = null; setMfaModalOpen(false); }}
+        onVerify={mfaOnVerify}
+        onCancel={mfaOnCancel}
       />
     </div>
   );

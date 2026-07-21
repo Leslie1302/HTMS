@@ -128,7 +128,7 @@ export default guard({ roles: ['admin'] }, async (req, ctx) => {
     } catch (e) {
       return json(400, { error: (e as Error).message });
     }
-    await audit(ctx.userId, 'reset_pilot', 'system', 'all', null, null);
+    await audit(ctx.userId, 'reset_pilot', 'system', 'all', null, null).catch(() => {});
     return json(200, { ok: true });
   }
 
@@ -140,7 +140,7 @@ export default guard({ roles: ['admin'] }, async (req, ctx) => {
     // Surface the real reason (e.g. a foreign-key block) instead of a false success.
     return json(400, { error: (e as Error).message });
   }
-  await audit(ctx.userId, body.action, body.action === 'delete_invoice' ? 'invoice' : 'transporter', body.id, null, null);
+  await audit(ctx.userId, body.action, body.action === 'delete_invoice' ? 'invoice' : 'transporter', body.id, null, null).catch(() => {});
   return json(200, { ok: true });
 });
 
