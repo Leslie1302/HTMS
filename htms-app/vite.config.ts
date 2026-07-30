@@ -36,6 +36,9 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['shared/**/*.test.ts', 'src/**/*.test.ts'],
+    // RLS tests are opt-in: they need a disposable Supabase project
+    // (SUPABASE_TEST_* env vars) and skip themselves when it is absent.
+    include: ['shared/**/*.test.ts', 'src/**/*.test.ts', 'supabase/tests/**/*.test.ts'],
+    testTimeout: 30_000,
   },
 });

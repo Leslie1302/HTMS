@@ -27,7 +27,11 @@
         "npm:jspdf-autotable@^3.8.4",
         "npm:jspdf@^2.5.2",
         "npm:pdf-lib@^1.17.1",
+<<<<<<< Updated upstream
         "npm:pdfjs-dist@^4.0.379",
+=======
+        "npm:pdfjs-dist@^4.10.38",
+>>>>>>> Stashed changes
         "npm:postcss@^8.4.45",
         "npm:react-dom@^18.3.1",
         "npm:react-router-dom@^6.26.2",

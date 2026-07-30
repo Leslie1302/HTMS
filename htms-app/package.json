@@ -11,6 +11,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.functions.json",
     "test": "vitest run",
+    "check:migrations": "node scripts/check-migrations.mjs",
     "test:watch": "vitest",
     "seed:gen": "tsx supabase/seed/generate_seed.ts",
     "audit": "npm audit --omit=dev --audit-level=high"
@@ -21,7 +22,7 @@
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^4.0.379",
+    "pdfjs-dist": "^4.10.38",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",

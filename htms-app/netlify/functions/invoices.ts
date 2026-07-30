@@ -17,9 +17,24 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
   }
   // ── List (RLS-scoped) ──
   if (req.method === 'GET') {
-    const { data, error } = await ctx.db
-      .from('invoices')
-      .select('*, transporters(display_name), invoice_lines(*)')
+    // Reviewer visibility gate: Director sees only invoices the Deputy Director
+    // has countersigned (`checked` slot); Deputy Director sees only invoices an
+    // officer/admin has signed (`prepared` slot). Admin/officer/transporter
+    // unchanged. ponytail: gate lives in the API layer, not RLS — admin keeps
+    // full visibility via Studio for ad-hoc audit.
+    const requiredSlot: 'checked' | 'prepared' | null =
+      ctx.role === 'director' ? 'checked'
+        : ctx.role === 'deputy_director' ? 'prepared'
+          : null;
+
+    const selectCols = requiredSlot
+      ? '*, transporters(display_name), invoice_lines(*), invoice_signatures!inner(slot)'
+      : '*, transporters(display_name), invoice_lines(*)';
+
+    let query = ctx.db.from('invoices').select(selectCols);
+    if (requiredSlot) query = query.eq('invoice_signatures.slot', requiredSlot);
+
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(200);
     if (error) return json(400, { error: error.message });

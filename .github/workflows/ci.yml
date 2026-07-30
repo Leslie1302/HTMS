@@ -28,6 +28,8 @@ jobs:
         run: |
           npm audit --omit=dev --json > audit.json || true
           node -e "const a=require('./audit.json');const v=a.vulnerabilities||{};const ACCEPT=new Set(['dompurify','jspdf','jspdf-autotable']);const bad=Object.keys(v).filter(k=>['high','critical'].includes(v[k].severity)&&!ACCEPT.has(k));if(bad.length){console.error('Blocking high/critical advisories:',bad.join(', '));process.exit(1);}console.log('Audit OK — only the accepted dompurify/jsPDF chain is present (not exploitable in our usage).');"
+      - name: Migration naming
+        run: npm run check:migrations
       - name: Lint
         run: npm run lint
       - name: Type-check
@@ -51,3 +53,13 @@ jobs:
           "
       - name: Build (minified, no source maps)
         run: npm run build
+
+      # RLS access-matrix tests against a DISPOSABLE Supabase project. Skips
+      # itself when the secrets are absent (forks, PRs from outside), so it can
+      # never block on missing credentials — but it runs on every push to main.
+      - name: RLS policy tests
+        env:
+          SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ secrets.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_TEST_SERVICE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_KEY }}
+        run: npx vitest run supabase/tests/rls.test.ts

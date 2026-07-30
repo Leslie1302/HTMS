@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { mustWrite } from '../lib/db';
 import { useAuth } from '../auth/AuthProvider';
 import MfaStepUpModal from '../components/MfaStepUpModal';
 import { pdfFirstPageToPngBlob } from '../lib/letterhead';
@@ -90,8 +91,10 @@ export default function Settings() {
       const path = `letterheads/${transporterId}.png`;
       const { error: upErr } = await supabase.storage.from('documents').upload(path, uploadBlob, { contentType: 'image/png', upsert: true });
       if (upErr) throw new Error(upErr.message);
-      const { data: saved, error: dbErr } = await supabase.from('transporters').update({ letterhead_path: path }).eq('id', transporterId).select('letterhead_path').single();
-      if (dbErr || !saved) throw new Error(dbErr?.message ?? 'Letterhead stored but could not be saved to your company profile.');
+      await mustWrite(
+        supabase.from('transporters').update({ letterhead_path: path }).eq('id', transporterId).select('letterhead_path').single(),
+        'your letterhead',
+      );
       await loadLetterhead(transporterId);
       setMsg('Letterhead uploaded. Drag the green lines below to mark the printable area, then click Save.');
     } catch (e) {
@@ -106,7 +109,14 @@ export default function Settings() {
     if (!transporterId) return;
     setBusy(true); setErr(null); setMsg(null);
     try {
+<<<<<<< Updated upstream
       await mustUpdate(supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom, left: lhLeft, right: lhRight } }).eq('id', transporterId).select('id').single());
+=======
+      await mustWrite(
+        supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom, left: lhLeft, right: lhRight } }).eq('id', transporterId).select('letterhead_insets').single(),
+        'the printable area',
+      );
+>>>>>>> Stashed changes
       setMsg('Printable area saved.');
     } catch (e) {
       setErr((e as Error).message);
@@ -174,9 +184,10 @@ export default function Settings() {
       const path = `signatures/${uid}.${ext}`;
       const { error: upErr } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type || 'image/png', upsert: true });
       if (upErr) throw new Error(upErr.message);
-      // .select().single() forces an error if RLS silently matched zero rows.
-      const { data: saved, error: dbErr } = await supabase.from('app_users').update({ signature_path: path }).eq('id', uid).select('signature_path').single();
-      if (dbErr || !saved) throw new Error(dbErr?.message ?? 'Your signature file was stored but could not be saved to your profile. Contact an admin.');
+      await mustWrite(
+        supabase.from('app_users').update({ signature_path: path }).eq('id', uid).select('signature_path').single(),
+        'your signature',
+      );
       setSigPath(path);
       const { data: signed } = await supabase.storage.from('documents').createSignedUrl(path, 3600);
       if (signed?.signedUrl) setSigUrl(signed.signedUrl);
@@ -462,6 +473,65 @@ export default function Settings() {
           )}
         </div>
       )}
+
+      {/* Password card */}
+      <div className="bg-white rounded-xl border border-outline-variant p-5 mb-5">
+        <h2 className="text-lg font-semibold text-on-surface mb-1 flex items-center gap-2">
+          <span className="material-symbols-outlined text-[#0d631b]">lock</span>
+          Change Password
+        </h2>
+        <p className="text-sm text-on-surface-variant mb-4">
+          Update your password. You stay signed in on all devices.
+        </p>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          const fd = new FormData(e.currentTarget);
+          const pw = fd.get('newPw') as string;
+          const cf = fd.get('confirmPw') as string;
+          if (pw !== cf) { setErr('Passwords do not match.'); return; }
+          if (pw.length < 6) { setErr('Password must be at least 6 characters.'); return; }
+          setBusy(true); setErr(null); setMsg(null);
+
+          // MFA step-up if needed (AAL2 required to change password when MFA is enrolled)
+          if (mfaFactors.length > 0) {
+            const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            if (aal?.currentLevel !== 'aal2') {
+              const totp = mfaFactors[0];
+              const { data: challenge, error: chErr } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+              if (chErr) { setBusy(false); return setErr(chErr.message); }
+              setBusy(false);
+              const code = await requestMfaCode();
+              if (!code) return;
+              setBusy(true);
+              const { error: vErr } = await supabase.auth.mfa.verify({ factorId: totp.id, challengeId: challenge!.id, code });
+              if (vErr) { setBusy(false); return setErr(vErr.message); }
+            }
+          }
+
+          const { error } = await supabase.auth.updateUser({ password: pw });
+          setBusy(false);
+          if (error) return setErr(error.message);
+          setMsg('Password changed successfully.');
+          (e.target as HTMLFormElement).reset();
+        }}>
+          <div className="flex gap-3 items-end">
+            <label className="text-sm text-on-surface-variant flex-1">
+              New password
+              <input name="newPw" type="password" required minLength={6}
+                className="block w-full border border-outline-variant rounded-lg px-3 py-2 mt-1 text-sm outline-none focus:border-[#0d631b]" />
+            </label>
+            <label className="text-sm text-on-surface-variant flex-1">
+              Confirm
+              <input name="confirmPw" type="password" required
+                className="block w-full border border-outline-variant rounded-lg px-3 py-2 mt-1 text-sm outline-none focus:border-[#0d631b]" />
+            </label>
+            <button disabled={busy}
+              className="bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+              {busy ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* MFA card */}
       <div className="bg-white rounded-xl border border-outline-variant p-5">

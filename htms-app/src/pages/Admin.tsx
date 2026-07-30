@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { mustWrite } from '../lib/db';
 import { api } from '../lib/api';
 import { useAuth } from '../auth/AuthProvider';
 import { mustUpdate } from '../lib/db';
@@ -222,11 +223,20 @@ function Transporters() {
     };
 
     try {
+<<<<<<< Updated upstream
       if (editingId) {
         await mustUpdate(supabase.from('transporters').update(payload).eq('id', editingId).select('id').single());
       } else {
         await mustUpdate(supabase.from('transporters').insert(payload).select('id').single());
       }
+=======
+      await mustWrite(
+        editingId
+          ? supabase.from('transporters').update(payload).eq('id', editingId).select('id').single()
+          : supabase.from('transporters').insert(payload).select('id').single(),
+        `transporter "${payload.display_name}"`,
+      );
+>>>>>>> Stashed changes
     } catch (e) { return setErr((e as Error).message); }
     setMsg(editingId ? `Updated "${payload.display_name}"` : `Added "${payload.display_name}"`);
     cancelEdit(); load();
@@ -234,11 +244,20 @@ function Transporters() {
 
   async function toggleActive(t: TransporterRow) {
     try {
+<<<<<<< Updated upstream
       await mustUpdate(supabase.from('transporters').update({ active: !t.active }).eq('id', t.id).select('id').single());
       load();
     } catch (e) {
       setErr((e as Error).message);
     }
+=======
+      await mustWrite(
+        supabase.from('transporters').update({ active: !t.active }).eq('id', t.id).select('id').single(),
+        `transporter "${t.display_name}"`,
+      );
+      load();
+    } catch (e) { setErr((e as Error).message); }
+>>>>>>> Stashed changes
   }
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -310,7 +329,14 @@ function Transporters() {
         });
       }
       if (!payload.length) throw new Error('No data rows with a name were found.');
+<<<<<<< Updated upstream
       await mustUpdate(supabase.from('transporters').upsert(payload, { onConflict: 'display_name' }).select('display_name').single());
+=======
+      await mustWrite(
+        supabase.from('transporters').upsert(payload, { onConflict: 'display_name' }).select('id'),
+        'the imported transporters',
+      );
+>>>>>>> Stashed changes
       setMsg(`Imported ${payload.length} transporter(s): ${added} added, ${updated} updated${skipped ? `, ${skipped} skipped (no name)` : ''}.`);
       load();
     } catch (e) {
@@ -512,6 +538,7 @@ function UserManagement() {
     setErr(null); setMsg(null);
     if (u.role === 'transporter' && !u.transporter_id) return setErr('A transporter user must be assigned a company.');
     setSavingId(u.id);
+<<<<<<< Updated upstream
     try {
       await mustUpdate(supabase.from('app_users').update({
         role: u.role,
@@ -520,6 +547,14 @@ function UserManagement() {
         full_name: u.full_name?.trim() || null,
       }).eq('id', u.id).select('id').single());
     } catch (e) { setSavingId(null); return setErr((e as Error).message); }
+=======
+    const { error } = await supabase.from('app_users').update({
+      role: u.role,
+      transporter_id: u.role === 'transporter' ? u.transporter_id : null,
+      phone: u.phone?.trim() || null,
+      full_name: u.full_name?.trim() || null,
+    }).eq('id', u.id).select('id').single().then((r) => ({ error: r.error ?? (r.data ? null : { message: 'User could not be saved — blocked by a security policy or no longer exists.' }) }));
+>>>>>>> Stashed changes
     setSavingId(null);
     setMsg('User updated'); load();
   }
@@ -955,11 +990,20 @@ function Fuel() {
   async function add(e: React.FormEvent) {
     e.preventDefault();
     try {
+<<<<<<< Updated upstream
       await mustUpdate(supabase.from('weekly_fuel').upsert({ week_start: week, price_per_litre: Number(price), status: 'manual' }, { onConflict: 'week_start' }).select('week_start').single());
       setMsg(`Set ${week} = ₵${price}`); setPrice(''); load();
     } catch (e) {
       setErr((e as Error).message);
     }
+=======
+      await mustWrite(
+        supabase.from('weekly_fuel').upsert({ week_start: week, price_per_litre: Number(price), status: 'manual' }, { onConflict: 'week_start' }).select('week_start').single(),
+        `the fuel price for ${week}`,
+      );
+      setMsg(`Set ${week} = ₵${price}`); setPrice(''); load();
+    } catch (e) { setErr((e as Error).message); }
+>>>>>>> Stashed changes
   }
 
   return (
@@ -1024,11 +1068,25 @@ function Rates() {
     if (!versionId) return;
     for (const [item_key, base_rate] of Object.entries(rates)) {
       try {
+<<<<<<< Updated upstream
         await mustUpdate(supabase.from('rates').update({ base_rate }).eq('rate_version_id', versionId).eq('item_key', item_key).select('item_key').single());
       } catch (e) { return setErr((e as Error).message); }
     }
     try {
       await mustUpdate(supabase.from('fidic_params').update(fidic).eq('rate_version_id', versionId).select('rate_version_id').single());
+=======
+        await mustWrite(
+          supabase.from('rates').update({ base_rate }).eq('rate_version_id', versionId).eq('item_key', item_key).select('item_key').single(),
+          `the rate for "${item_key}"`,
+        );
+      } catch (e) { return setErr((e as Error).message); }
+    }
+    try {
+      await mustWrite(
+        supabase.from('fidic_params').update(fidic).eq('rate_version_id', versionId).select('rate_version_id').single(),
+        'the FIDIC parameters',
+      );
+>>>>>>> Stashed changes
     } catch (e) { return setErr((e as Error).message); }
     setMsg('Saved. New invoices will use these values.');
   }

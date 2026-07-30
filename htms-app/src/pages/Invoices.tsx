@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
+<<<<<<< Updated upstream
 import { mustUpdate } from '../lib/db';
+=======
+import { mustWrite } from '../lib/db';
+>>>>>>> Stashed changes
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
 import { appendScansToPdf, type ScanInput } from '../lib/mergeScans';
-import { extractScopedScans } from '../../shared/scans';
+import { extractScopedScans, type ScanLine } from '../../shared/scans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, type SignSlot } from '../../shared/signing';
@@ -353,20 +357,39 @@ export default function Invoices() {
       return;
     }
     try {
+<<<<<<< Updated upstream
       await mustUpdate(supabase.from('scans').update({ flagged_reason: reason }).eq('id', scanId).select('id').single());
       if (selectedId) loadDetail(selectedId);
     } catch (e) {
       setErr((e as Error).message);
     }
+=======
+      await mustWrite(
+        supabase.from('scans').update({ flagged_reason: reason }).eq('id', scanId).select('id').single(),
+        'the scan flag',
+      );
+      if (selectedId) loadDetail(selectedId);
+    } catch (e) { setErr((e as Error).message); }
+>>>>>>> Stashed changes
   }
 
   async function updateChecklist(key: string, value: boolean) {
     if (!selectedId) return;
     const next = { ...checklist, [key]: value };
+    const prev = checklist;
     setChecklist(next);
     try {
+<<<<<<< Updated upstream
       await mustUpdate(supabase.from('invoices').update({ checklist: next }).eq('id', selectedId).select('id').single());
     } catch (e) {
+=======
+      await mustWrite(
+        supabase.from('invoices').update({ checklist: next }).eq('id', selectedId).select('id').single(),
+        'the checklist',
+      );
+    } catch (e) {
+      setChecklist(prev); // roll the tick back — it was never saved
+>>>>>>> Stashed changes
       setErr((e as Error).message);
     }
   }
@@ -469,12 +492,11 @@ export default function Invoices() {
     setBusy(true);
     setErr(null);
     try {
-      // 1. Fetch invoice + waybill + scan data via nested join (same proven
-      //    path as loadDetail — scans are scoped to THIS request's waybills).
+      // 1. Fetch invoice + invoice_lines + waybills (needed for buildLetter/buildInvoice).
       const { data: inv, error } = await supabase
         .from('invoices')
         .select(
-          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated,letterhead_path,letterhead_insets), invoice_lines(computed_cost, category, distance_km, rate_snapshot, waybills(id, waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name), scans(id, storage_path, mime_type, scan_type)))',
+          '*, transporters(display_name,address,email,phone,gps_address,manager_name,contract_path,contract_validated,letterhead_path,letterhead_insets), invoice_lines(computed_cost, category, distance_km, rate_snapshot, waybills(id, waybill_no,vehicle_no,waybill_date,num_trips,truck_size,num_poles,districts(name),origins(name)))',
         )
         .eq('id', id)
         .single();
@@ -501,9 +523,13 @@ export default function Invoices() {
       const invoicePages = await merged.copyPages(invoiceDoc, invoiceDoc.getPageIndices());
       invoicePages.forEach((p) => merged.addPage(p));
 
-      // 2. Extract scans from the nested join — already scoped to this
-      //    invoice's waybills by the Supabase relationship chain.
-      const scopedScans = extractScopedScans((inv as any).invoice_lines ?? []);
+      // 3. Fetch scans via an explicit invoice_lines query scoped to THIS invoice
+      //    — avoids any ambiguity in nested join resolution.
+      const { data: scanLines } = await supabase
+        .from('invoice_lines')
+        .select('waybills!inner(id, scans(id, storage_path, mime_type, scan_type))')
+        .eq('invoice_id', id);
+      const scopedScans = extractScopedScans((scanLines ?? []) as unknown as ScanLine[]);
 
       const allScans: ScanInput[] = [];
       let skipped = 0;
@@ -696,21 +722,21 @@ export default function Invoices() {
                   <button onClick={() => makeDoc(selected.id, 'letter')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
                     <span className="material-symbols-outlined text-sm">mail</span> Letter
                   </button>
-                  {!isTransporter && (
-                    <button onClick={() => makeDoc(selected.id, 'memo')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
-                      <span className="material-symbols-outlined text-sm">assignment</span> Memo
-                    </button>
-                  )}
-                  {!isTransporter && (
-                    <button onClick={() => makeDoc(selected.id, 'signatory')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
-                      <span className="material-symbols-outlined text-sm">draw</span> Signatory
-                    </button>
-                  )}
                 </>
               ) : (
                 <button onClick={() => buildReviewerDoc(selected.id)} className="flex items-center gap-1 bg-[#2e7d32] hover:opacity-90 text-white rounded-lg px-4 py-1.5 text-xs font-medium" disabled={busy}>
                   <span className="material-symbols-outlined text-sm">description</span> Payment request documentation
                 </button>
+              )}
+              {!isTransporter && (
+                <>
+                  <button onClick={() => makeDoc(selected.id, 'memo')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                    <span className="material-symbols-outlined text-sm">assignment</span> Memo
+                  </button>
+                  <button onClick={() => makeDoc(selected.id, 'signatory')} className="flex items-center gap-1 border border-outline-variant rounded-lg px-3 py-1.5 text-xs hover:bg-surface-container-low" disabled={busy}>
+                    <span className="material-symbols-outlined text-sm">draw</span> Signatory
+                  </button>
+                </>
               )}
               {profile?.role === 'admin' && selected.status === 'draft' && (
                 <button onClick={() => act(selected.id, 'approve')} className="flex items-center gap-1 border border-[#0d631b] text-[#0d631b] rounded-lg px-3 py-1.5 text-xs hover:bg-[#e8f5e9]" disabled={busy}>
@@ -1076,6 +1102,15 @@ export default function Invoices() {
         />
       </div>
 
+      {/* Reviewer queue caption: makes the visibility gate visible to the user */}
+      {isReviewer && (
+        <div className="mb-3 text-xs text-on-surface-variant bg-surface-container-low rounded-lg px-3 py-2 border border-outline-variant">
+          {profile?.role === 'director'
+            ? 'Showing payment requests countersigned by the Deputy Director — awaiting your approval.'
+            : 'Showing payment requests signed by the schedule officer — awaiting your countersignature.'}
+        </div>
+      )}
+
       {/* Invoice list table */}
       <div className="bg-white rounded-lg border border-outline-variant overflow-auto">
         <table className="w-full text-sm">
@@ -1137,7 +1172,9 @@ export default function Invoices() {
             {invoices.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-outline-variant">
-                  No invoices yet. Assemble one from waybills.
+                  {isReviewer
+                    ? 'No payment requests await your review.'
+                    : 'No invoices yet. Assemble one from waybills.'}
                 </td>
               </tr>
             )}
