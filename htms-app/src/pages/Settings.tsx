@@ -4,7 +4,6 @@ import { mustWrite } from '../lib/db';
 import { useAuth } from '../auth/AuthProvider';
 import MfaStepUpModal from '../components/MfaStepUpModal';
 import { pdfFirstPageToPngBlob } from '../lib/letterhead';
-import { mustUpdate } from '../lib/db';
 import { useMfaStepUp } from '../hooks/useMfaStepUp';
 
 export default function Settings() {
@@ -109,14 +108,10 @@ export default function Settings() {
     if (!transporterId) return;
     setBusy(true); setErr(null); setMsg(null);
     try {
-<<<<<<< Updated upstream
-      await mustUpdate(supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom, left: lhLeft, right: lhRight } }).eq('id', transporterId).select('id').single());
-=======
       await mustWrite(
         supabase.from('transporters').update({ letterhead_insets: { top: lhTop, bottom: lhBottom, left: lhLeft, right: lhRight } }).eq('id', transporterId).select('letterhead_insets').single(),
         'the printable area',
       );
->>>>>>> Stashed changes
       setMsg('Printable area saved.');
     } catch (e) {
       setErr((e as Error).message);

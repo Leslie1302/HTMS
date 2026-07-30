@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
-<<<<<<< Updated upstream
-import { mustUpdate } from '../lib/db';
-=======
 import { mustWrite } from '../lib/db';
->>>>>>> Stashed changes
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
 import { appendScansToPdf, type ScanInput } from '../lib/mergeScans';
@@ -357,20 +353,12 @@ export default function Invoices() {
       return;
     }
     try {
-<<<<<<< Updated upstream
-      await mustUpdate(supabase.from('scans').update({ flagged_reason: reason }).eq('id', scanId).select('id').single());
-      if (selectedId) loadDetail(selectedId);
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-=======
       await mustWrite(
         supabase.from('scans').update({ flagged_reason: reason }).eq('id', scanId).select('id').single(),
         'the scan flag',
       );
       if (selectedId) loadDetail(selectedId);
     } catch (e) { setErr((e as Error).message); }
->>>>>>> Stashed changes
   }
 
   async function updateChecklist(key: string, value: boolean) {
@@ -379,17 +367,12 @@ export default function Invoices() {
     const prev = checklist;
     setChecklist(next);
     try {
-<<<<<<< Updated upstream
-      await mustUpdate(supabase.from('invoices').update({ checklist: next }).eq('id', selectedId).select('id').single());
-    } catch (e) {
-=======
       await mustWrite(
         supabase.from('invoices').update({ checklist: next }).eq('id', selectedId).select('id').single(),
         'the checklist',
       );
     } catch (e) {
-      setChecklist(prev); // roll the tick back — it was never saved
->>>>>>> Stashed changes
+      setChecklist(prev);
       setErr((e as Error).message);
     }
   }

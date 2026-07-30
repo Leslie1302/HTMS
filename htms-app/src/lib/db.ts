@@ -1,38 +1,4 @@
 /**
-<<<<<<< Updated upstream
- * Thin wrappers that make writes prove they happened.
- *
- * Every client-side mutation on a table with RLS must go through these helpers
- * so a zero-row UPDATE or a blocked Storage download throws instead of
- * returning `{ error: null }` and letting the UI render a false success.
- *
- * Usage:
- *   const row = await mustUpdate(
- *     supabase.from('transporters').update({ foo: 1 }).eq('id', id).select('foo').single()
- *   );
- *
- *   const blob = await mustDownload('documents', 'signatures/uid.png');
- */
-import { supabase } from './supabase';
-
-type PgResult<T> = { data: T | null; error: { code?: string; message: string } | null };
-
-/**
- * Await a Supabase query that already has `.select(...).single()` appended.
- * Throws a readable error when `data` is null or the error is a policy denial
- * (Postgres 42501).
- */
-export async function mustUpdate<T>(query: PromiseLike<PgResult<T>>): Promise<T> {
-  const { data, error } = await query;
-  if (error) {
-    if (error.code === '42501') {
-      throw new Error(`Policy denied — you do not have permission for this action: ${error.message}`);
-    }
-    throw new Error(error.message);
-  }
-  if (data === null) {
-    throw new Error('Update matched zero rows — the row may not exist or an RLS policy blocked access.');
-=======
  * Guards against RLS silent failure.
  *
  * Postgres does not treat "your policy matched zero rows" as an error: an UPDATE
@@ -44,8 +10,32 @@ export async function mustUpdate<T>(query: PromiseLike<PgResult<T>>): Promise<T>
  */
 import { supabase } from './supabase';
 
-/** Shape returned by a supabase-js query with `.select()` appended. */
+type PgResult<T> = { data: T | null; error: { code?: string; message: string } | null };
 type Result<T> = { data: T | null; error: { message: string; code?: string } | null };
+
+/** Await query with `.select(...).single()`, throw on policy denial or zero rows. */
+export async function mustUpdate<T>(query: PromiseLike<PgResult<T>>): Promise<T> {
+  const { data, error } = await query;
+  if (error) {
+    if (error.code === '42501')
+      throw new Error(`Policy denied — you do not have permission for this action: ${error.message}`);
+    throw new Error(error.message);
+  }
+  if (data === null)
+    throw new Error('Update matched zero rows — the row may not exist or an RLS policy blocked access.');
+  return data;
+}
+
+/** Await query with `.select(...)` (array result), never returns null. */
+export async function mustSelect<T>(query: PromiseLike<PgResult<T[]>>): Promise<T[]> {
+  const { data, error } = await query;
+  if (error) {
+    if (error.code === '42501')
+      throw new Error(`Policy denied — you do not have permission to read this data: ${error.message}`);
+    throw new Error(error.message);
+  }
+  return data ?? [];
+}
 
 /**
  * Await a mutation that has `.select(...)` appended and assert it changed something.
@@ -56,52 +46,18 @@ type Result<T> = { data: T | null; error: { message: string; code?: string } | n
 export async function mustWrite<T>(q: PromiseLike<Result<T>>, what: string): Promise<T> {
   const { data, error } = await q;
   if (error) {
-    // 42501 = insufficient_privilege; supabase-js also surfaces policy denials here.
-    if (error.code === '42501') {
+    if (error.code === '42501')
       throw new Error(`You do not have permission to change ${what}.`);
-    }
     throw new Error(error.message);
   }
-  // Zero rows: the write was silently filtered out by a row-level policy.
-  if (data == null || (Array.isArray(data) && data.length === 0)) {
+  if (data == null || (Array.isArray(data) && data.length === 0))
     throw new Error(
       `${what} could not be saved — the change was blocked by a security policy or the record no longer exists. Contact an administrator.`,
     );
->>>>>>> Stashed changes
-  }
   return data;
 }
 
-/**
-<<<<<<< Updated upstream
- * Await a Supabase query that already has `.select(...)` (without `.single()`)
- * and assert that at least one row was returned.
- */
-export async function mustSelect<T>(query: PromiseLike<PgResult<T[]>>): Promise<T[]> {
-  const { data, error } = await query;
-  if (error) {
-    if (error.code === '42501') {
-      throw new Error(`Policy denied — you do not have permission to read this data: ${error.message}`);
-    }
-    throw new Error(error.message);
-  }
-  return data ?? [];
-}
-
-/**
- * Download a file from Supabase Storage, throwing when the blob is missing.
- */
-export async function mustDownload(bucket: string, path: string): Promise<Blob> {
-  const { data, error } = await supabase.storage.from(bucket).download(path);
-  if (error) {
-    throw new Error(`Storage download failed (${bucket}/${path}): ${error.message}`);
-  }
-  if (!data) {
-    throw new Error(`Storage returned no data for ${bucket}/${path} — the file may be missing or a policy blocked access.`);
-=======
- * Download a file that a document depends on, failing loudly when it is missing or
- * access is denied — never silently omitting it from a generated PDF.
- */
+/** Download a file, throwing loudly when missing or blocked by policy. */
 export async function mustDownload(bucket: string, path: string, what: string): Promise<Blob> {
   const { data, error } = await supabase.storage.from(bucket).download(path);
   if (error) throw new Error(`${what} could not be loaded: ${error.message}`);
@@ -111,15 +67,13 @@ export async function mustDownload(bucket: string, path: string, what: string): 
 
 /**
  * Best-effort variant for files that are genuinely optional: returns null instead of
- * throwing, but the CALLER must surface the omission to the user (e.g. the reviewer
- * document's "N scans could not be included" banner). Never swallow this silently.
+ * throwing — the caller must surface the omission (e.g. "N scans could not be included").
  */
 export async function tryDownload(bucket: string, path: string): Promise<Blob | null> {
   const { data, error } = await supabase.storage.from(bucket).download(path);
   if (error || !data) {
     console.warn(`[htms] download failed: ${bucket}/${path}`, error?.message ?? 'no data');
     return null;
->>>>>>> Stashed changes
   }
   return data;
 }
