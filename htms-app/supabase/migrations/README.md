@@ -1,10 +1,13 @@
-<<<<<<< Updated upstream
 # Supabase Migrations
 
-## Naming convention
+Applied in filename sort order against the Supabase project (SQL editor or CLI).
+The rules below were each learned from a production bug.
 
-Each file is prefixed with a monotonically increasing 4-digit number (`0001`–`9999`).
-The prefix determines the **logical** order — Supabase applies them in filename sort order.
+## Naming
+
+- `NNNN_short_description.sql`, zero-padded, **prefix unique across the folder**.
+  `scripts/check-migrations.mjs` enforces this in CI.
+- Never edit a migration that has been applied anywhere. Write a new one.
 
 | Prefix | Description |
 |--------|-------------|
@@ -16,7 +19,7 @@ The prefix determines the **logical** order — Supabase applies them in filenam
 | 0006 | Transporter contacts |
 | 0007 | PR/I lifecycle (11 stages) |
 | 0008 | Transporter contracts + device tokens |
-| 0009a | Scan quality flags |
+| 0009 | Scan quality flags |
 | 0009b | Transporter checklist update policy |
 | 0010 | Checklist review status |
 | 0011 | Scan uploaded_by default |
@@ -38,38 +41,10 @@ The prefix determines the **logical** order — Supabase applies them in filenam
 
 ## Duplicate prefix convention
 
-When two migrations share a logical position (e.g. both 0009), suffix with `a`/`b`:
-- `0009a_scan_flags.sql`
-- `0009b_transporter_checklist.sql`
-
-This keeps the sort order correct while distinguishing the files.
-
-## Policy edit convention
-
-**Always** `DROP POLICY IF EXISTS` with the **exact current name** before creating
-the new version. The 0018→0019 constraint bug came from dropping a name that never
-existed. Note the exact name in the migration comment.
-
-## Deployment
-
-- `deploy_all_pending.sql` — combined runner for migrations 0009–0023 (with idempotent guards)
-- `setup_all.sql` — fresh-install script (0001–0009 + seed data)
-- Migration 0024 is **not** included in either runner — apply manually
-=======
-# Migrations — conventions
-
-Applied in filename order against the Supabase project (SQL editor or CLI). These
-rules exist because every one of them was learned from a production bug.
-
-## Naming
-
-- `NNNN_short_description.sql`, zero-padded, **prefix unique across the folder**.
-  `scripts/check-migrations.mjs` enforces this in CI.
-- `0009` and `0009b` are a historical exception: two migrations were authored with
-  the same number. `0009_scan_flags.sql` was applied first, then
-  `0009b_transporter_checklist.sql`. Do not renumber them — they are already applied
-  in production.
-- Never edit a migration that has been applied anywhere. Write a new one.
+`0009` and `0009b` are a historical exception: two migrations were authored with the
+same number. `0009_scan_flags.sql` applied first, then `0009b_transporter_checklist.sql`.
+Do not renumber them — they are already applied in production. Suffix `a`/`b` if it
+ever recurs.
 
 ## Editing policies — the rule that has bitten us most
 
@@ -115,4 +90,9 @@ Compare the **full object path**, not a `split_part` fragment:
 `name = 'signatures/' || auth.uid()::text || '.png'`. 0018 compared
 `split_part(name, '/', 2)` (`"<uid>.png"`) against `auth.uid()::text` (`"<uid>"`),
 which never matches — silently blocking every non-admin upload (fixed in 0021/0024).
->>>>>>> Stashed changes
+
+## Deployment scripts
+
+- `deploy_all_pending.sql` — combined runner for the mid-series migrations (idempotent guards).
+- `setup_all.sql` — fresh-install script (early migrations + seed data).
+- Later migrations may need manual application — check the file header.

@@ -59,24 +59,46 @@ MONTHS = {m: i + 1 for i, m in enumerate(
      "august", "september", "october", "november", "december"])}
 
 
+# WordPress REST API for the fuel-price post. The HTML page is fronted by an
+# anti-bot splash ("One moment, please...") that GitHub's datacenter IPs cannot
+# clear (it needs JS), but the wp-json API returns the same post as JSON and is
+# NOT behind the splash. Slug is stable; the price post always lives here.
+GOIL_API = os.environ.get(
+    "GOIL_FUEL_API",
+    "https://goil.com.gh/wp-json/wp/v2/posts?slug=new-fuel-prices&_fields=content,modified",
+)
+
+
 def fetch_text() -> str:
-    # GOIL fronts the page with an anti-bot splash ("One moment, please...")
-    # that sets a cookie and self-reloads. A Session keeps the cookie; retrying
-    # after the splash's own 5s delay returns the real page.
-    # ponytail: cookie+retry beats a headless browser; upgrade to Playwright only if the splash starts requiring JS.
     s = requests.Session()
     s.headers.update(HEADERS)
+
+    # Primary: the WordPress REST API (clean JSON, no splash).
+    try:
+        r = s.get(GOIL_API, headers={"Accept": "application/json"}, timeout=25)
+        r.raise_for_status()
+        posts = r.json()
+        if posts:
+            html = posts[0].get("content", {}).get("rendered", "")
+            text = re.sub(r"<[^>]+>", " ", html)
+            if "diesel" in text.lower():
+                return text
+        print("DEBUG: API returned no usable fuel post, falling back to HTML.", file=sys.stderr)
+    except Exception as e:  # API blocked/changed → fall back to the HTML page
+        print(f"DEBUG: API fetch failed ({e}); falling back to HTML.", file=sys.stderr)
+
+    # Fallback: the HTML page, retrying past the splash's own 5s self-reload.
+    # ponytail: HTML is the fallback only; the API is the reliable path.
     text = ""
     for attempt in range(4):
         if attempt:
             time.sleep(6)
         r = s.get(GOIL_URL, timeout=25)
         r.raise_for_status()
-        # crude tag strip so the regexes see clean text
         text = re.sub(r"<[^>]+>", " ", r.text)
         if "diesel" in text.lower():
             return text
-        print(f"DEBUG: attempt {attempt + 1} got splash/interstitial, retrying…", file=sys.stderr)
+        print(f"DEBUG: HTML attempt {attempt + 1} got splash/interstitial, retrying…", file=sys.stderr)
     return text  # let main()'s debug path report what we last saw
 
 
