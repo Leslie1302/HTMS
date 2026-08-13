@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { mustWrite } from '../lib/db';
@@ -1144,6 +1145,16 @@ export default function Invoices() {
                   </span>
                 </td>
                 <td className="px-3 py-3 flex gap-1 whitespace-nowrap">
+                  {!isTransporter && (
+                    <Link
+                      to={`/receipts/${inv.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[11px] text-on-surface-variant underline"
+                      title="Upload / view scans of the received, minuted payment-request documents"
+                    >
+                      Proof of receipt
+                    </Link>
+                  )}
                   {profile?.role === 'admin' && inv.status === 'draft' && (
                     <button onClick={(e) => { e.stopPropagation(); act(inv.id, 'approve'); }} className="text-[11px] text-[#0d631b] underline" disabled={busy}>
                       Approve totals

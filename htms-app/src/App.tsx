@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import WaybillEntry from './pages/WaybillEntry';
 import Invoices from './pages/Invoices';
 import InvoiceStatus from './pages/InvoiceStatus';
+import Receipts from './pages/Receipts';
 import Admin from './pages/Admin';
 import Calculator from './pages/Calculator';
 import Settings from './pages/Settings';
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="/calculator" element={<Calculator />} />
           <Route path="/invoices" element={<Invoices />} />
           <Route path="/invoice-status" element={<InvoiceStatus />} />
+          <Route path="/receipts/:invoiceId" element={<Receipts />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" />} />

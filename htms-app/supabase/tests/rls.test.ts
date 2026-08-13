@@ -94,12 +94,22 @@ describe.skipIf(!configured)('RLS access matrix', () => {
       waybill_id: ids.waybill, storage_path: ids.scanPath, mime_type: 'image/png',
       byte_size: 3, uploaded_by: actors.officer.id, scan_type: 'waybill',
     });
+
+    // A receipt proof row + its file (0027), seeded for the same invoice.
+    ids.receiptPath = `${ids.invoice}/HM-${Date.now()}.png`;
+    await svc.storage.from('receipts').upload(ids.receiptPath, new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }), { contentType: 'image/png' });
+    await svc.from('receipt_proofs').insert({
+      invoice_id: ids.invoice, recipient: 'HM', storage_path: ids.receiptPath,
+      mime_type: 'image/png', byte_size: 3, uploaded_by: actors.officer.id,
+    });
   }, 60_000);
 
   afterAll(async () => {
     if (!configured) return;
     await svc.storage.from('scans').remove([ids.scanPath]).catch(() => {});
+    await svc.storage.from('receipts').remove([ids.receiptPath]).catch(() => {});
     await svc.from('scans').delete().eq('waybill_id', ids.waybill);
+    await svc.from('receipt_proofs').delete().eq('invoice_id', ids.invoice);
     await svc.from('invoice_signatures').delete().eq('invoice_id', ids.invoice);
     await svc.from('invoices').delete().eq('id', ids.invoice);
     await svc.from('waybills').delete().eq('id', ids.waybill);
@@ -239,6 +249,86 @@ describe.skipIf(!configured)('RLS access matrix', () => {
       const { error } = await actors.transB.client.storage.from('documents')
         .upload(`signatures/${actors.transA.id}.png`, png(), { contentType: 'image/png', upsert: true });
       expect(error).not.toBeNull();
+    });
+  });
+
+  // ── Receipt proofs (0027): staff read; admin/officer write; transporters denied ──
+  describe('receipt proofs', () => {
+    const png = () => new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' });
+
+    it('is readable by every staff role', async () => {
+      for (const key of ['admin', 'officer', 'dd', 'dir'] as const) {
+        const { data } = await actors[key].client.from('receipt_proofs').select('id').eq('invoice_id', ids.invoice);
+        expect(data, key).toHaveLength(1);
+      }
+    });
+
+    it('a transporter cannot read receipt proofs', async () => {
+      const { data } = await actors.transA.client.from('receipt_proofs').select('id').eq('invoice_id', ids.invoice);
+      expect(data ?? []).toHaveLength(0);
+    });
+
+    it('staff can download receipt files but a transporter cannot', async () => {
+      const theirs = await actors.transA.client.storage.from('receipts').download(ids.receiptPath);
+      expect(theirs.data).toBeNull();
+
+      const mine = await actors.dd.client.storage.from('receipts').download(ids.receiptPath);
+      expect(mine.error).toBeNull();
+      expect(mine.data).not.toBeNull();
+    });
+
+    it('only admin/officer can upload files to the receipts bucket', async () => {
+      const path = `${ids.invoice}/HM-upload-${Date.now()}.png`;
+      const ok = await actors.officer.client.storage.from('receipts').upload(path, png(), { contentType: 'image/png' });
+      expect(ok.error).toBeNull();
+      await svc.storage.from('receipts').remove([path]);
+
+      const denied = await actors.transA.client.storage.from('receipts')
+        .upload(`${ids.invoice}/HM-transporter.png`, png(), { contentType: 'image/png' });
+      expect(denied.error).not.toBeNull();
+
+      const deniedReviewer = await actors.dd.client.storage.from('receipts')
+        .upload(`${ids.invoice}/HM-dd.png`, png(), { contentType: 'image/png' });
+      expect(deniedReviewer.error).not.toBeNull();
+    });
+
+    it('only admin/officer can insert receipt_proofs rows', async () => {
+      const path = `${ids.invoice}/CD-insert-${Date.now()}.png`;
+      await svc.storage.from('receipts').upload(path, png(), { contentType: 'image/png' });
+
+      const officerInsert = await actors.officer.client.from('receipt_proofs')
+        .insert({ invoice_id: ids.invoice, recipient: 'CD', storage_path: path, mime_type: 'image/png', byte_size: 3 })
+        .select('id');
+      expect(officerInsert.data).toHaveLength(1);
+
+      const ddInsert = await actors.dd.client.from('receipt_proofs')
+        .insert({ invoice_id: ids.invoice, recipient: 'CD', storage_path: path, mime_type: 'image/png', byte_size: 3 })
+        .select('id');
+      expect(ddInsert.error ?? (ddInsert.data ?? []).length === 0).toBeTruthy();
+
+      const transInsert = await actors.transA.client.from('receipt_proofs')
+        .insert({ invoice_id: ids.invoice, recipient: 'CD', storage_path: path, mime_type: 'image/png', byte_size: 3 })
+        .select('id');
+      expect(transInsert.error ?? (transInsert.data ?? []).length === 0).toBeTruthy();
+
+      await svc.from('receipt_proofs').delete().eq('storage_path', path);
+      await svc.storage.from('receipts').remove([path]);
+    });
+
+    it('only admin/officer can delete receipt proofs', async () => {
+      const path = `${ids.invoice}/HM-delete-${Date.now()}.png`;
+      await svc.storage.from('receipts').upload(path, png(), { contentType: 'image/png' });
+      const { data: row } = await svc.from('receipt_proofs')
+        .insert({ invoice_id: ids.invoice, recipient: 'HM', storage_path: path, mime_type: 'image/png', byte_size: 3 })
+        .select('id').single();
+
+      const ddDel = await actors.dd.client.from('receipt_proofs').delete().eq('id', row!.id).select('id');
+      expect(ddDel.data ?? []).toHaveLength(0);
+
+      const offDel = await actors.officer.client.from('receipt_proofs').delete().eq('id', row!.id).select('id');
+      expect(offDel.data).toHaveLength(1);
+
+      await svc.storage.from('receipts').remove([path]);
     });
   });
 });

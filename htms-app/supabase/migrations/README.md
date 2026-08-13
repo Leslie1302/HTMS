@@ -38,6 +38,7 @@ The rules below were each learned from a production bug.
 | 0024 | Simplify signature storage with LIKE |
 | 0025 | Signature evidence (IP, user-agent, AAL, doc_hash) |
 | 0026 | Document archival (archive bucket + document_archives) |
+| 0027 | Receipt proofs (receipts bucket + receipt_proofs) |
 
 ## Duplicate prefix convention
 
