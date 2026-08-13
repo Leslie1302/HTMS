@@ -5,6 +5,21 @@
 -- Staff may view; only admin/officer may upload or remove.
 -- ============================================================================
 
+-- 0. Helper functions used by the policies below. They are normally created by
+--    migration 0001 (auth_role) and 0018 (is_staff_role); re-creating them is
+--    harmless and makes this file runnable on a database where they never
+--    existed. If your database lacks the `user_role` type or `app_users` table,
+--    you are running this in the WRONG project (not the one the app uses).
+create or replace function auth_role() returns user_role
+  language sql stable security definer set search_path = public as $$
+  select role from app_users where id = auth.uid();
+$$;
+
+create or replace function is_staff_role(r user_role) returns boolean
+  language sql immutable as $$
+  select r in ('admin','officer','deputy_director','director');
+$$;
+
 -- 1. Storage bucket ──────────────────────────────────────────────────────────
 insert into storage.buckets (id, name, public)
 values ('receipts', 'receipts', false)
