@@ -36,4 +36,16 @@ Build memo + signatory-page PDF generation. **Full spec: `BIG_PICKLE_PROMPT_MEMO
 - User's node_modules is macOS-built; Linux sandboxes must test in a separate copy (`npm install`, then `npx tsc --noEmit -p tsconfig.json` AND `-p tsconfig.functions.json`, `npx vitest run`).
 - tsconfig `include` is only `src` + `shared` — client code must not import from `netlify/functions`.
 - `window.prompt/confirm` used for reasons/dialogs by design (pilot-scale).
-- Backlog (deliberately skipped): notifications on flag/disapproval, dashboard pagination, per-stage comments, config table for checklist items, editing distance matrix from UI.
+- Backlog (deliberately skipped): dashboard pagination, per-stage comments, config table for checklist items, editing distance matrix from UI.
+
+## 27 Aug 2026 — Invoice comments + email notifications (shipped, tsc/eslint clean, 44 vitest pass)
+
+Deputy Director asked to comment on invoices for immediate rectification, with email prompts. Built:
+
+- **Migration 0028** `invoice_comments` (audience `text[]` of `staff`/`transporter`/`dd`, author name/role snapshots, `resolved_at` flag). RLS = SELECT only (author + audience groups; transporter scoped to own invoice). NO insert/update policies — all writes via the function.
+- `shared/comments.ts` — audience groups, per-role option lists (DD: staff/transporter/staff+transporter; Director: dd/dd+staff/staff+transporter; officers: staff/dd+staff; transporter: staff+transporter), validation helpers. Zod schemas in `shared/validation.ts`.
+- `netlify/functions/invoice-comment.ts` — POST (validates audience vs role, service-role insert, audit, emails) + PATCH (resolve/reopen: author or staff). Reads go direct from the client (RLS).
+- `netlify/functions/_email.ts` — Resend via plain fetch (no new dep), mirrors `_fcm.ts`: no-op when `RESEND_API_KEY` unset. Recipients resolved per audience group; emails come from `auth.admin.listUsers` (paginated, ponytail ceiling noted).
+- `src/components/InvoiceComments.tsx` — thread + form (audience dropdown filtered by role), used in `Invoices.tsx` (all staff) and `InvoiceStatus.tsx` (transporter sees transporter-audience comments).
+- Env: `RESEND_API_KEY`, `RESEND_FROM`, `APP_URL` added to `.env.example`. **NOT yet deployed:** run 0028 on Supabase, set Resend env vars in Netlify, redeploy.
+- Skipped: FCM push for comments (email only, per request), comment editing/deletion, @mentions, digests. RLS matrix tests added to `supabase/tests/rls.test.ts` (5 cases; need disposable-project env to run).

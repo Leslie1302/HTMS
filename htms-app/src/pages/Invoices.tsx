@@ -11,6 +11,7 @@ import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { roleToSlot, canSignSlot, isSlotSigned, isReviewerRole, type SignSlot } from '../../shared/signing';
 import MfaStepUpModal from '../components/MfaStepUpModal';
+import InvoiceComments from '../components/InvoiceComments';
 import { useMfaStepUp } from '../hooks/useMfaStepUp';
 
 const SCAN_LABELS: Record<string, string> = {
@@ -148,7 +149,7 @@ interface InvoiceRow {
 }
 
 export default function Invoices() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -1073,6 +1074,11 @@ export default function Invoices() {
           </div>
           )}
         </div>
+      )}
+
+      {/* Directed comments (DD/Director flag items for rectification; staff reply) */}
+      {selected && profile && session && (
+        <InvoiceComments invoiceId={selected.id} role={profile.role} userId={session.user.id} />
       )}
 
       {/* Search */}

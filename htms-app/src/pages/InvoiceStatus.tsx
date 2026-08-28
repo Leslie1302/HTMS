@@ -6,6 +6,7 @@ import { ALL_STAGES, STAGE_LABELS, type PriStage } from '../../shared/lifecycle'
 import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { Link } from 'react-router-dom';
 import MfaStepUpModal from '../components/MfaStepUpModal';
+import InvoiceComments from '../components/InvoiceComments';
 import { useMfaStepUp } from '../hooks/useMfaStepUp';
 
 const ghs = (n: number) =>
@@ -32,7 +33,7 @@ interface TrailEntry {
 }
 
 export default function InvoiceStatus() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [invoices, setInvoices] = useState<InvoiceStatus[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [trail, setTrail] = useState<TrailEntry[]>([]);
@@ -311,6 +312,11 @@ export default function InvoiceStatus() {
                 submit — the Power Directorate will review the new document.
               </p>
             </div>
+          )}
+
+          {/* Comments directed at the transporter (rectification requests) */}
+          {profile && session && (
+            <InvoiceComments invoiceId={selected.id} role={profile.role} userId={session.user.id} />
           )}
 
           {/* Current status banner */}

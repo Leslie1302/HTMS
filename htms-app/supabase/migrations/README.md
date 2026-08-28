@@ -39,6 +39,7 @@ The rules below were each learned from a production bug.
 | 0025 | Signature evidence (IP, user-agent, AAL, doc_hash) |
 | 0026 | Document archival (archive bucket + document_archives) |
 | 0027 | Receipt proofs (receipts bucket + receipt_proofs) |
+| 0028 | Invoice comments (audience-directed rectification notes) |
 
 ## Duplicate prefix convention
 

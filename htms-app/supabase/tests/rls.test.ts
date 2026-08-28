@@ -331,4 +331,62 @@ describe.skipIf(!configured)('RLS access matrix', () => {
       await svc.storage.from('receipts').remove([path]);
     });
   });
+
+  // ── Invoice comments (0028): read scoped to audience + author; writes ─────
+  // only via the service-role function, so direct inserts must fail for ALL roles.
+  describe('invoice comments', () => {
+    const ACTOR_ROLE: Record<string, Role> = {
+      admin: 'admin', officer: 'officer', dd: 'deputy_director', dir: 'director', transA: 'transporter', transB: 'transporter',
+    };
+    const seed = async (audience: string[], authorKey = 'dd') => {
+      const { data } = await svc.from('invoice_comments').insert({
+        invoice_id: ids.invoice, author_id: actors[authorKey].id, author_name: 'Test', author_role: ACTOR_ROLE[authorKey],
+        audience, body: `aud=${audience.join('+')}`,
+      }).select('id').single();
+      return data!.id as string;
+    };
+    const reads = (key: keyof typeof actors, id: string) =>
+      actors[key].client.from('invoice_comments').select('id').eq('id', id).then((r) => (r.data ?? []).length);
+
+    it("a 'staff' comment is visible to officers, not to dd or transporters", async () => {
+      const id = await seed(['staff']);
+      expect(await reads('officer', id)).toBe(1);
+      expect(await reads('dd', id)).toBe(0);
+      expect(await reads('dir', id)).toBe(0);
+      expect(await reads('transA', id)).toBe(0);
+    });
+
+    it('the author always reads their own comment', async () => {
+      const id = await seed(['staff']); // authored by dd
+      const { data } = await actors.dd.client.from('invoice_comments').select('id').eq('id', id);
+      expect(data).toHaveLength(1);
+    });
+
+    it("a 'dd' comment is visible to dd + director, not to staff or transporters", async () => {
+      const id = await seed(['dd']);
+      expect(await reads('dd', id)).toBe(1);
+      expect(await reads('dir', id)).toBe(1);
+      expect(await reads('officer', id)).toBe(0);
+      expect(await reads('admin', id)).toBe(0);
+      expect(await reads('transA', id)).toBe(0);
+    });
+
+    it("a 'staff+transporter' comment reaches the owning transporter only", async () => {
+      const id = await seed(['staff', 'transporter']);
+      expect(await reads('transA', id)).toBe(1);
+      expect(await reads('transB', id)).toBe(0);
+      expect(await reads('officer', id)).toBe(1);
+      expect(await reads('dd', id)).toBe(0);
+    });
+
+    it('no role can insert directly (writes go through the function)', async () => {
+      for (const key of ['admin', 'officer', 'dd', 'dir', 'transA'] as const) {
+        const r = await actors[key].client.from('invoice_comments').insert({
+          invoice_id: ids.invoice, author_id: actors[key].id, author_name: 'X', author_role: ACTOR_ROLE[key],
+          audience: ['staff'], body: 'direct insert',
+        }).select('id');
+        expect(r.error ?? (r.data ?? []).length === 0, key).toBeTruthy();
+      }
+    });
+  });
 });

@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { CATEGORIES } from './rates';
+import { AUDIENCE_GROUPS, isValidAudience } from './comments';
 
 export const uuid = z.string().uuid();
 
@@ -94,3 +95,20 @@ export const stageTransitionSchema = z
   })
   .refine((b) => (b.stage ? !b.review : !!b.review), { message: 'Provide either stage or review, not both' })
   .refine((b) => b.review !== 'disapproved' || !!b.note?.trim(), { message: 'Disapproval requires a note' });
+
+export const commentCreateSchema = z.object({
+  invoiceId: uuid,
+  audience: z
+    .array(z.enum(AUDIENCE_GROUPS))
+    .min(1)
+    .max(2)
+    .refine(isValidAudience, { message: 'Invalid audience combination' }),
+  body: z.string().trim().min(1).max(2000),
+});
+export type CommentCreate = z.infer<typeof commentCreateSchema>;
+
+export const commentResolveSchema = z.object({
+  commentId: uuid,
+  resolved: z.boolean(),
+});
+export type CommentResolve = z.infer<typeof commentResolveSchema>;
