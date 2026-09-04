@@ -20,12 +20,12 @@ describe('audienceAllowedForRole', () => {
   it('matches the per-role option lists exactly', () => {
     const cases: [UserRole, string[], boolean][] = [
       ['deputy_director', ['staff'], true],
-      ['deputy_director', ['transporter'], true],
-      ['deputy_director', ['staff', 'transporter'], true],
+      ['deputy_director', ['transporter'], false],
+      ['deputy_director', ['staff', 'transporter'], false],
       ['deputy_director', ['dd'], false],
       ['director', ['dd'], true],
       ['director', ['dd', 'staff'], true],
-      ['director', ['staff', 'transporter'], true],
+      ['director', ['staff', 'transporter'], false],
       ['director', ['transporter'], false],
       ['officer', ['staff'], true],
       ['officer', ['dd', 'staff'], true],
@@ -49,7 +49,7 @@ describe('audienceAllowedForRole', () => {
 
 describe('audienceLabel', () => {
   it('labels known combos and falls back for unknown ones', () => {
-    expect(audienceLabel(['staff', 'transporter'])).toBe('Staff & Transporter');
+    expect(audienceLabel(['staff', 'transporter'])).toBe('HTMS Staff');
     expect(audienceLabel(['dd'])).toBe('Deputy Director');
     expect(audienceLabel(['dd', 'transporter'])).toBe('dd + transporter');
   });

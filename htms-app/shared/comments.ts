@@ -29,13 +29,10 @@ export const AUDIENCE_OPTIONS: Record<UserRole, AudienceOption[]> = {
   ],
   deputy_director: [
     { groups: ['staff'], label: 'Staff' },
-    { groups: ['transporter'], label: 'Transporter' },
-    { groups: ['staff', 'transporter'], label: 'Staff & Transporter' },
   ],
   director: [
     { groups: ['dd'], label: 'Deputy Director' },
     { groups: ['dd', 'staff'], label: 'DD & Staff' },
-    { groups: ['staff', 'transporter'], label: 'Staff & Transporter' },
   ],
   transporter: [{ groups: ['staff', 'transporter'], label: 'HTMS Staff' }],
 };
