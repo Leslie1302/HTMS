@@ -35,14 +35,41 @@ describe('extractScopedScans', () => {
     expect(extractScopedScans(lines)).toEqual([]);
   });
 
-  it('flattens scans across multiple invoice lines', () => {
+  it('keeps scans grouped per waybill in canonical order', () => {
     const lines: ScanLine[] = [
-      { waybills: { scans: [{ id: '1', storage_path: 'a', mime_type: 'image/png', scan_type: 'waybill' }] } },
-      { waybills: { scans: [{ id: '2', storage_path: 'b', mime_type: 'image/png', scan_type: 'acknowledgement' }] } },
+      { waybills: { scans: [
+        { id: '1', storage_path: 'a', mime_type: 'image/png', scan_type: 'waybill' },
+        { id: '2', storage_path: 'b', mime_type: 'image/png', scan_type: 'acknowledgement' },
+        { id: '3', storage_path: 'c', mime_type: 'application/pdf', scan_type: 'release_letter' },
+      ] } },
+      { waybills: { scans: [
+        { id: '4', storage_path: 'd', mime_type: 'image/png', scan_type: 'release_letter' },
+        { id: '5', storage_path: 'e', mime_type: 'image/png', scan_type: 'waybill' },
+        { id: '6', storage_path: 'f', mime_type: 'image/png', scan_type: 'acknowledgement' },
+      ] } },
     ];
     const result = extractScopedScans(lines);
-    expect(result).toHaveLength(2);
-    expect(result[0].scan_type).toBe('acknowledgement');
-    expect(result[1].scan_type).toBe('waybill');
+    expect(result.map((s) => s.scan_type)).toEqual([
+      'acknowledgement', 'waybill', 'release_letter',
+      'acknowledgement', 'waybill', 'release_letter',
+    ]);
+  });
+
+  it("keeps each waybill's scans together instead of grouping by type", () => {
+    const lines: ScanLine[] = [
+      { waybills: { scans: [
+        { id: '1', storage_path: 'a', mime_type: 'image/png', scan_type: 'waybill' },
+        { id: '2', storage_path: 'b', mime_type: 'image/png', scan_type: 'acknowledgement' },
+        { id: '3', storage_path: 'c', mime_type: 'image/png', scan_type: 'release_letter' },
+      ] } },
+      { waybills: { scans: [
+        { id: '4', storage_path: 'd', mime_type: 'image/png', scan_type: 'acknowledgement' },
+        { id: '5', storage_path: 'e', mime_type: 'image/png', scan_type: 'waybill' },
+        { id: '6', storage_path: 'f', mime_type: 'image/png', scan_type: 'release_letter' },
+      ] } },
+    ];
+    const result = extractScopedScans(lines);
+    // ids stay grouped per waybill: 1,2,3 then 4,5,6 (not sorted by type globally)
+    expect(result.map((s) => s.id)).toEqual(['2', '1', '3', '4', '5', '6']);
   });
 });

@@ -14,11 +14,21 @@ export interface ScanLine {
 
 /**
  * Extract scans from nested-join invoice_lines (Supabase postgREST shape),
- * filter to known scan types, and sort by canonical order.
+ * filter to known scan types, and order them grouped per waybill.
+ *
+ * Each invoice line maps to one waybill, so the scans of each line are kept
+ * together and sorted by canonical order (acknowledgement → waybill →
+ * release_letter). This yields an interleaved package per waybill rather than
+ * grouping all acknowledgements together, then all waybills, then all release
+ * letters.
  */
 export function extractScopedScans(invoiceLines: ScanLine[]): RawScan[] {
-  return (invoiceLines ?? [])
-    .flatMap((l) => l.waybills?.scans ?? [])
-    .filter((s) => SCAN_ORDER.includes(s.scan_type))
-    .sort((a, b) => SCAN_ORDER.indexOf(a.scan_type) - SCAN_ORDER.indexOf(b.scan_type));
+  const result: RawScan[] = [];
+  for (const line of invoiceLines ?? []) {
+    const scans = (line.waybills?.scans ?? [])
+      .filter((s) => SCAN_ORDER.includes(s.scan_type))
+      .sort((a, b) => SCAN_ORDER.indexOf(a.scan_type) - SCAN_ORDER.indexOf(b.scan_type));
+    result.push(...scans);
+  }
+  return result;
 }
