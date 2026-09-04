@@ -670,9 +670,9 @@ export function buildSignatory(inv: InvoiceDoc, logo?: string | null): jsPDF {
     if (sig?.sigDataUrl) {
       // Centre the signature image over the blank line, bottom edge resting on it.
       const lineX = M + doc.getTextWidth(`${role} `);
-      try { doc.addImage(sig.sigDataUrl, 'PNG', lineX + 30, sy - 38, 100, 36); } catch { /* skip */ }
+      try { doc.addImage(sig.sigDataUrl, 'PNG', lineX + 30, sy - 58, 150, 54); } catch { /* skip */ }
     }
-    sy += 70;
+    sy += 90;
   }
 
   return doc;
