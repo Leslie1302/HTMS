@@ -42,7 +42,16 @@ async function imageToPng(bytes: ArrayBuffer, mime: string): Promise<Uint8Array>
  */
 export async function appendScansToPdf(baseBytes: ArrayBuffer, scans: ScanInput[]): Promise<Uint8Array> {
   const out = await PDFDocument.load(baseBytes);
+  await copyScansIntoDoc(out, scans);
+  return out.save();
+}
 
+/**
+ * Append scan pages into an already-loaded PDFDocument, in array order.
+ * Shared by appendScansToPdf and callers that need to inject scans into an
+ * existing document (e.g. putting the proof-of-receipt first).
+ */
+export async function copyScansIntoDoc(out: PDFDocument, scans: ScanInput[]): Promise<void> {
   for (const scan of scans) {
     try {
       if (scan.mime === 'application/pdf') {
@@ -69,7 +78,6 @@ export async function appendScansToPdf(baseBytes: ArrayBuffer, scans: ScanInput[
       console.warn('Skipping unreadable scan:', scan.label, e);
     }
   }
-  return out.save();
 }
 
 /** Trigger a browser download of raw PDF bytes. */

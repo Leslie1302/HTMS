@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { mustWrite } from '../lib/db';
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
-import { appendScansToPdf, type ScanInput } from '../lib/mergeScans';
+import { appendScansToPdf, copyScansIntoDoc, type ScanInput } from '../lib/mergeScans';
 import { extractScopedScans, type ScanLine } from '../../shared/scans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
@@ -501,6 +501,29 @@ export default function Invoices() {
 
       const { PDFDocument } = await import('pdf-lib');
       const merged = await PDFDocument.create();
+
+      // 2a. Proof of receipt comes FIRST in the merged package. Fetch the
+      //     receipt proofs recorded for this invoice (if any) and inject them
+      //     as the opening pages, before the letter, so a freshly uploaded
+      //     proof appears as page 1 of the payment request documentation.
+      const { data: receiptRows } = await supabase
+        .from('receipt_proofs')
+        .select('storage_path, mime_type')
+        .eq('invoice_id', id)
+        .order('uploaded_at', { ascending: false });
+      const receiptScans: ScanInput[] = [];
+      for (const r of receiptRows ?? []) {
+        const { data: rblob } = await supabase.storage.from('receipts').download(r.storage_path);
+        if (rblob) {
+          receiptScans.push({
+            bytes: await rblob.arrayBuffer(),
+            mime: r.mime_type || rblob.type,
+            label: 'Proof of receipt',
+          });
+        }
+      }
+      await copyScansIntoDoc(merged, receiptScans);
+
       const letterDoc = await PDFDocument.load(letterBytes);
       const invoiceDoc = await PDFDocument.load(invoiceBytes);
       const letterPages = await merged.copyPages(letterDoc, letterDoc.getPageIndices());
