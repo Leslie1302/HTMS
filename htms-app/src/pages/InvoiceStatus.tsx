@@ -7,6 +7,7 @@ import { CHECKLIST_ITEMS } from '../../shared/validation';
 import { Link } from 'react-router-dom';
 import MfaStepUpModal from '../components/MfaStepUpModal';
 import InvoiceComments from '../components/InvoiceComments';
+import InvoiceEditor from '../components/InvoiceEditor';
 import { useMfaStepUp } from '../hooks/useMfaStepUp';
 
 const ghs = (n: number) =>
@@ -219,6 +220,18 @@ export default function InvoiceStatus() {
   const currentStageIdx = selected ? ALL_STAGES.indexOf(selected.stage as PriStage) : -1;
   const checklistItems = selected?.checklist ?? {};
 
+  // Reflect a saved edit: update the total in the list and refresh the detail.
+  const handleEdited = useCallback(
+    (newTotal: number) => {
+      setErr(null);
+      if (selectedId) {
+        setInvoices((prev) => prev.map((i) => (i.id === selectedId ? { ...i, total_cost: newTotal } : i)));
+        loadDetail(selectedId);
+      }
+    },
+    [selectedId, loadDetail],
+  );
+
   return (
     <div className="max-w-md mx-auto">
       {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg flex items-center gap-2">{err}</div>}
@@ -365,7 +378,17 @@ export default function InvoiceStatus() {
             )}
           </div>
 
-          {/* Summary card */}
+          {/* Edit a raised invoice while it's still generated (before signing). */}
+            {selected.stage === 'generated' && !signedByMe && profile?.transporter_id && (
+              <InvoiceEditor
+                invoiceId={selected.id}
+                transporterId={profile.transporter_id}
+                onSaved={handleEdited}
+                onError={setErr}
+              />
+            )}
+
+            {/* Summary card */}
           <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4 mb-4">
             <div className="flex justify-between items-start mb-4">
               <div>

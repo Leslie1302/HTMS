@@ -56,6 +56,57 @@ export const invoiceCreateSchema = z.object({
 });
 export type InvoiceCreate = z.infer<typeof invoiceCreateSchema>;
 
+// Allowed scan upload types/size (defence against malicious uploads).
+export const SCAN_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+export const SCAN_ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'] as const;
+
+// Transporter editing a raised (generated-stage) invoice. The server recomputes
+// every edited line's cost and the invoice total; the client never sends amounts.
+export const SCAN_TYPES = ['acknowledgement', 'waybill', 'release_letter'] as const;
+export type ScanType = (typeof SCAN_TYPES)[number];
+export const scanTypeSchema = z.enum(SCAN_TYPES);
+
+export const scanAddSchema = z.object({
+  scanType: scanTypeSchema,
+  storagePath: z.string().min(1).max(500),
+  mimeType: z.enum(SCAN_ALLOWED_MIME),
+  byteSize: z.number().int().positive().max(SCAN_MAX_BYTES),
+});
+export type ScanAdd = z.infer<typeof scanAddSchema>;
+
+export const invoiceEditLineSchema = z
+  .object({
+    waybillId: uuid,
+    waybillNo: z.string().trim().min(1).max(64).optional(),
+    vehicleNo: z.string().trim().max(32).nullable().optional(),
+    category: z.enum(CATEGORIES).optional(),
+    originId: z.number().int().min(1).max(6).optional(),
+    districtId: z.number().int().positive().optional(),
+    destinationDistrictIds: z.array(z.number().int().positive()).max(30).optional(),
+    numPoles: z.number().int().min(0).max(100000).optional(),
+    numStayBlocks: z.number().int().min(0).max(100000).optional(),
+    numConcretePoles: z.number().int().min(0).max(100000).optional(),
+    truckSize: z.union([z.literal(20), z.literal(40)]).nullable().optional(),
+    numTrips: z.number().int().min(1).max(1000).optional(),
+    waybillDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    addScans: z.array(scanAddSchema).max(30).default([]),
+    removeScanIds: z.array(uuid).max(30).default([]),
+  })
+  .refine((v) => Object.keys(v).some((k) => k !== 'waybillId' && v[k as keyof typeof v] !== undefined), {
+    message: 'At least one field to change is required per waybill',
+  })
+  .refine((v) => v.destinationDistrictIds && v.destinationDistrictIds.length ? !!v.districtId : true, {
+    message: 'A primary districtId is required when setting destination districts',
+    path: ['districtId'],
+  });
+export type InvoiceEditLine = z.infer<typeof invoiceEditLineSchema>;
+
+export const invoiceEditSchema = z.object({
+  invoiceId: uuid,
+  lines: z.array(invoiceEditLineSchema).min(1).max(500),
+});
+export type InvoiceEdit = z.infer<typeof invoiceEditSchema>;
+
 export const generateDocSchema = z.object({
   invoiceId: uuid,
   type: z.enum(['invoice', 'letter']),
@@ -65,9 +116,6 @@ export const generateDocSchema = z.object({
 });
 export type GenerateDoc = z.infer<typeof generateDocSchema>;
 
-// Allowed scan upload types/size (defence against malicious uploads).
-export const SCAN_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
-export const SCAN_ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'] as const;
 export const scanMetaSchema = z.object({
   waybillId: uuid,
   mimeType: z.enum(SCAN_ALLOWED_MIME),

@@ -40,6 +40,10 @@ export const api = {
   createWaybill: (w: unknown) => call('/api/waybills', { method: 'POST', body: JSON.stringify(w) }),
   listInvoices: () => call<{ invoices: any[] }>('/api/invoices'),
   createInvoice: (i: unknown) => call('/api/invoices', { method: 'POST', body: JSON.stringify(i) }),
+  editInvoice: (e: unknown) => call<{ ok: boolean; total_cost: number }>('/api/invoice-edit', {
+    method: 'POST',
+    body: JSON.stringify(e),
+  }),
   approveInvoice: (id: string, action: 'approve' | 'lock' | 'void') =>
     call(`/api/invoices?id=${id}&action=${action}`, { method: 'PATCH' }),
   generateDoc: (d: unknown) => call<{ url: string; html: string }>('/api/generate-document', {
