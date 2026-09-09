@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Secrets / environment
+.env
+*.env
+!.env.example
+
+# Generated / personal output
+generated_letters/
+outreach_log.csv
+outreach_queue.csv
+*.pdf
+!*/README*.pdf
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Claude
+.claude/

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { mustWrite } from '../lib/db';
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
-import { appendScansToPdf, copyScansIntoDoc, type ScanInput } from '../lib/mergeScans';
+import { copyScansIntoDoc, type ScanInput } from '../lib/mergeScans';
 import { extractScopedScans, type ScanLine } from '../../shared/scans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
@@ -167,6 +167,7 @@ export default function Invoices() {
   const [contractOk, setContractOk] = useState(false);
   const [signatures, setSignatures] = useState<{ slot: string; signed_at: string; user_id: string; full_name: string | null }[]>([]);
   const [sigBusy, setSigBusy] = useState(false);
+  const [docProgress, setDocProgress] = useState<string | null>(null);
   const [archivedDocs, setArchivedDocs] = useState<{ id: string; doc_type: string; label: string | null; archived_at: string; archived_by_name: string | null; url: string | null }[]>([]);
 
   // ── MFA step-up modal ──
@@ -477,6 +478,7 @@ export default function Invoices() {
     setBusy(true);
     setErr(null);
     try {
+      setDocProgress('Loading invoice…');
       // 1. Fetch invoice + invoice_lines + waybills (needed for buildLetter/buildInvoice).
       const { data: inv, error } = await supabase
         .from('invoices')
@@ -495,34 +497,60 @@ export default function Invoices() {
 
       if (sigImageErrors > 0) setErr(`${sigImageErrors} signature image(s) could not be loaded — they will appear blank in the document.`);
 
-      // 2. Build Letter + Invoice PDFs (with signatures embedded).
-      const letterBytes = buildLetter(docInv).output('arraybuffer') as ArrayBuffer;
-      const invoiceBytes = buildInvoice(docInv).output('arraybuffer') as ArrayBuffer;
+      // 2. Fetch the metadata for the supporting scans (scoped to THIS invoice)
+      //    and the receipt proofs — used by the parallel downloads below.
+      const { data: scanLines } = await supabase
+        .from('invoice_lines')
+        .select('waybills!inner(id, scans(id, storage_path, mime_type, scan_type))')
+        .eq('invoice_id', id);
+      const scopedScans = extractScopedScans((scanLines ?? []) as unknown as ScanLine[]);
 
-      const { PDFDocument } = await import('pdf-lib');
-      const merged = await PDFDocument.create();
-
-      // 2a. Proof of receipt comes FIRST in the merged package. Fetch the
-      //     receipt proofs recorded for this invoice (if any) and inject them
-      //     as the opening pages, before the letter, so a freshly uploaded
-      //     proof appears as page 1 of the payment request documentation.
       const { data: receiptRows } = await supabase
         .from('receipt_proofs')
         .select('storage_path, mime_type')
         .eq('invoice_id', id)
         .order('uploaded_at', { ascending: false });
-      const receiptScans: ScanInput[] = [];
-      for (const r of receiptRows ?? []) {
-        const { data: rblob } = await supabase.storage.from('receipts').download(r.storage_path);
-        if (rblob) {
-          receiptScans.push({
-            bytes: await rblob.arrayBuffer(),
-            mime: r.mime_type || rblob.type,
-            label: 'Proof of receipt',
-          });
-        }
-      }
-      await copyScansIntoDoc(merged, receiptScans);
+
+      // 3. Download EVERYTHING concurrently — letters build alongside the
+      //    receipt + scan blobs (the old code fetched them one-by-one).
+      setDocProgress(`Downloading ${scopedScans.length} supporting document${scopedScans.length === 1 ? '' : 's'}…`);
+      const [letterBytes, invoiceBytes, receiptScans, scanInputs] = await Promise.all([
+        Promise.resolve(buildLetter(docInv).output('arraybuffer') as ArrayBuffer),
+        Promise.resolve(buildInvoice(docInv).output('arraybuffer') as ArrayBuffer),
+        Promise.all(
+          (receiptRows ?? []).map(async (r): Promise<ScanInput | null> => {
+            const { data: rblob } = await supabase.storage.from('receipts').download(r.storage_path);
+            return rblob
+              ? { bytes: await rblob.arrayBuffer(), mime: r.mime_type || rblob.type, label: 'Proof of receipt' }
+              : null;
+          }),
+        ),
+        Promise.all(
+          scopedScans.map(async (s): Promise<ScanInput | null> => {
+            const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
+            return blob
+              ? {
+                  bytes: await blob.arrayBuffer(),
+                  mime: s.mime_type || blob.type,
+                  label: SCAN_LABELS[s.scan_type] ?? 'Supporting scan',
+                }
+              : null;
+          }),
+        ),
+      ]);
+
+      const skipped = scanInputs.filter((s) => s === null).length;
+      if (skipped > 0) setErr(`${skipped} scan(s) could not be included in the document — check storage access.`);
+
+      // 4. Merge in ONE pass — scans are appended straight into the merged doc,
+      //    avoiding an extra save+reload round-trip.
+      setDocProgress('Compiling PDF…');
+      const { PDFDocument } = await import('pdf-lib');
+      const merged = await PDFDocument.create();
+
+      // 4a. Proof of receipt comes FIRST in the merged package — a freshly
+      //     uploaded proof appears as page 1 of the payment request documentation.
+      await copyScansIntoDoc(merged, receiptScans.filter((r): r is ScanInput => !!r));
 
       const letterDoc = await PDFDocument.load(letterBytes);
       const invoiceDoc = await PDFDocument.load(invoiceBytes);
@@ -531,37 +559,11 @@ export default function Invoices() {
       const invoicePages = await merged.copyPages(invoiceDoc, invoiceDoc.getPageIndices());
       invoicePages.forEach((p) => merged.addPage(p));
 
-      // 3. Fetch scans via an explicit invoice_lines query scoped to THIS invoice
-      //    — avoids any ambiguity in nested join resolution.
-      const { data: scanLines } = await supabase
-        .from('invoice_lines')
-        .select('waybills!inner(id, scans(id, storage_path, mime_type, scan_type))')
-        .eq('invoice_id', id);
-      const scopedScans = extractScopedScans((scanLines ?? []) as unknown as ScanLine[]);
-
-      const allScans: ScanInput[] = [];
-      let skipped = 0;
-      for (const s of scopedScans) {
-        const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
-        if (blob) {
-          allScans.push({
-            bytes: await blob.arrayBuffer(),
-            mime: s.mime_type || blob.type,
-            label: SCAN_LABELS[s.scan_type] ?? 'Supporting scan',
-          });
-        } else {
-          skipped++;
-        }
-      }
-      if (skipped > 0) setErr(`${skipped} scan(s) could not be included in the document — check storage access.`);
-
+      await copyScansIntoDoc(merged, scanInputs.filter((s): s is ScanInput => !!s));
       const mergedBytes = await merged.save();
-      const finalBytes = allScans.length > 0
-        ? await appendScansToPdf(mergedBytes.buffer.slice(mergedBytes.byteOffset, mergedBytes.byteOffset + mergedBytes.byteLength) as ArrayBuffer, allScans)
-        : mergedBytes;
 
       // Open in new tab
-      const ab = finalBytes.buffer.slice(finalBytes.byteOffset, finalBytes.byteOffset + finalBytes.byteLength) as ArrayBuffer;
+      const ab = mergedBytes.buffer.slice(mergedBytes.byteOffset, mergedBytes.byteOffset + mergedBytes.byteLength) as ArrayBuffer;
       const blob = new Blob([ab], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
@@ -571,6 +573,7 @@ export default function Invoices() {
       setErr((e as Error).message);
     } finally {
       setBusy(false);
+      setDocProgress(null);
     }
   }
 
@@ -645,6 +648,13 @@ export default function Invoices() {
     <div>
       {err && <div className="mb-4 text-sm text-error bg-error-container p-3 rounded-lg flex items-center gap-2">{err}</div>}
       {msg && <div className="mb-4 text-sm text-[#0d631b] bg-[#e8f5e9] p-3 rounded-lg flex items-center gap-2">{msg}</div>}
+      {docProgress && (
+        <div className="mb-4 text-sm text-[#0d631b] bg-[#e8f5e9] p-3 rounded-lg flex items-center gap-2">
+          <span className="material-symbols-outlined text-base">hourglass_bottom</span>
+          <span className="flex-1">{docProgress}</span>
+          <span className="w-4 h-4 border-2 border-[#0d631b]/30 border-t-[#0d631b] rounded-full animate-spin" />
+        </div>
+      )}
 
       {isTransporter ? (
         <div className="mb-5 flex gap-2 items-center bg-white rounded-lg border border-outline-variant p-3">
