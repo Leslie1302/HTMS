@@ -238,6 +238,14 @@ export default guard({ roles: ['admin', 'officer', 'transporter'] }, async (req,
     patch.review_status = 'pending';
     patch.review_note = null;
   }
+  // A totals approval (Deputy Director) must not survive a figure change —
+  // otherwise the audit trail shows an approval against a total that no
+  // longer exists. Step it back to draft so it must be re-approved.
+  if (contentChanged && invoice.status === 'approved') {
+    patch.status = 'draft';
+    patch.approved_by = null;
+    patch.approved_at = null;
+  }
   const { error: pErr } = await db.from('invoices').update(patch).eq('id', body.invoiceId);
   if (pErr) return json(400, { error: `Failed to update invoice total: ${pErr.message}` });
 

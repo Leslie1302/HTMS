@@ -771,7 +771,7 @@ export default function Invoices() {
                   </button>
                 </>
               )}
-              {profile?.role === 'admin' && selected.status === 'draft' && (
+              {profile?.role === 'deputy_director' && selected.status === 'draft' && (
                 <button onClick={() => act(selected.id, 'approve')} className="flex items-center gap-1 border border-[#0d631b] text-[#0d631b] rounded-lg px-3 py-1.5 text-xs hover:bg-[#e8f5e9]" disabled={busy}>
                   <span className="material-symbols-outlined text-sm">check</span> Approve totals
                 </button>
@@ -1209,7 +1209,7 @@ export default function Invoices() {
                       Proof of receipt
                     </Link>
                   )}
-                  {profile?.role === 'admin' && inv.status === 'draft' && (
+                  {profile?.role === 'deputy_director' && inv.status === 'draft' && (
                     <button onClick={(e) => { e.stopPropagation(); act(inv.id, 'approve'); }} className="text-[11px] text-[#0d631b] underline" disabled={busy}>
                       Approve totals
                     </button>

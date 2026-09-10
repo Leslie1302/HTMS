@@ -160,14 +160,22 @@ export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_direct
     return json(201, { invoice, lineCount: lines.length });
   }
 
-  // ── Approve / lock (admin only) via PATCH ?id=&action= ──
+  // ── Approve totals (Deputy Director) / lock & void (admin only) via PATCH ?id=&action= ──
   if (req.method === 'PATCH') {
-    if (ctx.role !== 'admin') return json(403, { error: 'Only admin can approve/lock invoices' });
     const url = new URL(req.url);
     const id = url.searchParams.get('id');
     const action = url.searchParams.get('action');
     if (!id || !['approve', 'lock', 'void'].includes(action ?? '')) {
       return json(400, { error: 'id and action (approve|lock|void) required' });
+    }
+    // The Deputy Director owns the definitive amount (before the Director's
+    // attestation); admin keeps the destructive lock/void powers.
+    if (action === 'approve') {
+      if (ctx.role !== 'deputy_director') {
+        return json(403, { error: 'Only the Deputy Director can approve totals' });
+      }
+    } else if (ctx.role !== 'admin') {
+      return json(403, { error: 'Only admin can lock/void invoices' });
     }
     const status = action === 'approve' ? 'approved' : action === 'lock' ? 'locked' : 'void';
     const patch: Record<string, unknown> = { status };
