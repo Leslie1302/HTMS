@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { mustWrite } from '../lib/db';
 import { useAuth } from '../auth/AuthProvider';
 import { buildInvoice, buildLetter, buildMemo, buildSignatory, loadLogo, invoiceRef, type InvoiceDoc } from '../lib/pdf';
-import { copyScansIntoDoc, type ScanInput } from '../lib/mergeScans';
+import { copyScansIntoDoc, withTimeout, type ScanInput } from '../lib/mergeScans';
 import { extractScopedScans, type ScanLine } from '../../shared/scans';
 import { ALL_STAGES, STAGE_MAP, STAGE_LABELS, type PriStage } from '../../shared/lifecycle';
 import { CHECKLIST_ITEMS } from '../../shared/validation';
@@ -473,6 +473,17 @@ export default function Invoices() {
     }
   }
 
+  /** Download a storage blob with a hard timeout — a stuck download must never hang the merge. */
+  async function downloadBlob(bucket: 'scans' | 'receipts', path: string): Promise<Blob | null> {
+    try {
+      const res = await withTimeout(supabase.storage.from(bucket).download(path), 30_000);
+      return res.data;
+    } catch (e) {
+      console.warn(`Download failed (${bucket}/${path}):`, e);
+      return null;
+    }
+  }
+
   /** Build the reviewer's merged "Payment request documentation" PDF. */
   async function buildReviewerDoc(id: string) {
     setBusy(true);
@@ -514,12 +525,13 @@ export default function Invoices() {
       // 3. Download EVERYTHING concurrently — letters build alongside the
       //    receipt + scan blobs (the old code fetched them one-by-one).
       setDocProgress(`Downloading ${scopedScans.length} supporting document${scopedScans.length === 1 ? '' : 's'}…`);
+      const t0 = performance.now();
       const [letterBytes, invoiceBytes, receiptScans, scanInputs] = await Promise.all([
         Promise.resolve(buildLetter(docInv).output('arraybuffer') as ArrayBuffer),
         Promise.resolve(buildInvoice(docInv).output('arraybuffer') as ArrayBuffer),
         Promise.all(
           (receiptRows ?? []).map(async (r): Promise<ScanInput | null> => {
-            const { data: rblob } = await supabase.storage.from('receipts').download(r.storage_path);
+            const rblob = await downloadBlob('receipts', r.storage_path);
             return rblob
               ? { bytes: await rblob.arrayBuffer(), mime: r.mime_type || rblob.type, label: 'Proof of receipt' }
               : null;
@@ -527,7 +539,7 @@ export default function Invoices() {
         ),
         Promise.all(
           scopedScans.map(async (s): Promise<ScanInput | null> => {
-            const { data: blob } = await supabase.storage.from('scans').download(s.storage_path);
+            const blob = await downloadBlob('scans', s.storage_path);
             return blob
               ? {
                   bytes: await blob.arrayBuffer(),
@@ -538,6 +550,7 @@ export default function Invoices() {
           }),
         ),
       ]);
+      console.log(`[reviewer-doc] downloads: ${((performance.now() - t0) / 1000).toFixed(1)}s`);
 
       const skipped = scanInputs.filter((s) => s === null).length;
       if (skipped > 0) setErr(`${skipped} scan(s) could not be included in the document — check storage access.`);
@@ -560,7 +573,9 @@ export default function Invoices() {
       invoicePages.forEach((p) => merged.addPage(p));
 
       await copyScansIntoDoc(merged, scanInputs.filter((s): s is ScanInput => !!s));
+      const t1 = performance.now();
       const mergedBytes = await merged.save();
+      console.log(`[reviewer-doc] merged ${mergedBytes.byteLength.toLocaleString()} bytes, compile+save ${((performance.now() - t1) / 1000).toFixed(1)}s`);
 
       // Open in new tab
       const ab = mergedBytes.buffer.slice(mergedBytes.byteOffset, mergedBytes.byteOffset + mergedBytes.byteLength) as ArrayBuffer;
