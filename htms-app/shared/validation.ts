@@ -116,6 +116,15 @@ export const generateDocSchema = z.object({
 });
 export type GenerateDoc = z.infer<typeof generateDocSchema>;
 
+export const ARCHIVE_DOC_TYPES = ['invoice', 'letter', 'memo', 'signatory'] as const;
+export const archiveDocSchema = z.object({
+  invoiceId: uuid,
+  docType: z.enum(ARCHIVE_DOC_TYPES),
+  storagePath: z.string().trim().min(1).max(500),
+  label: z.string().trim().max(200).nullable().optional(),
+});
+export type ArchiveDoc = z.infer<typeof archiveDocSchema>;
+
 export const scanMetaSchema = z.object({
   waybillId: uuid,
   mimeType: z.enum(SCAN_ALLOWED_MIME),

@@ -67,4 +67,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ invoice_id: invoiceId, doc_hash: docHash }),
     }),
+  archiveDoc: (body: { invoiceId: string; docType: 'invoice' | 'letter' | 'memo' | 'signatory'; storagePath: string; label?: string | null }) =>
+    call<{ ok: true }>('/api/archive-doc', { method: 'POST', body: JSON.stringify(body) }),
 };

@@ -76,13 +76,13 @@ async function archiveDoc(
       .from('archive')
       .upload(path, new Blob([bytes], { type: 'application/pdf' }), { contentType: 'application/pdf' });
     if (upErr) { console.warn('Archive upload failed:', upErr.message); return; }
-    const { error: insErr } = await supabase.from('document_archives').insert({
-      invoice_id: invoiceId,
-      doc_type: docType,
-      storage_path: path,
-      label: label ?? null,
-    });
-    if (insErr) console.warn('Archive insert failed:', insErr.message);
+    // The metadata insert is RLS-blocked from the client (append-only table) —
+    // record it through the server function instead.
+    try {
+      await api.archiveDoc({ invoiceId, docType, storagePath: path, label });
+    } catch (e) {
+      console.warn('Archive insert failed:', (e as Error).message);
+    }
   } catch (e) {
     console.warn('Archive failed:', e);
   }
