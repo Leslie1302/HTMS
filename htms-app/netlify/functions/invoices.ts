@@ -11,8 +11,10 @@ import { loadCalcConfig } from './_calcConfig';
 import type { Category } from '../../shared/rates';
 
 export default guard({ roles: ['admin', 'officer', 'transporter', 'deputy_director', 'director'] }, async (req, ctx) => {
-  // Reviewers are read-only: list yes, assemble/approve no.
-  if (req.method !== 'GET' && (ctx.role === 'deputy_director' || ctx.role === 'director')) {
+  // Reviewers are read-only for writes EXCEPT the Deputy Director's totals
+  // approval (PATCH approve); the Director stays fully read-only here.
+  const isTotalsApprove = req.method === 'PATCH' && new URL(req.url).searchParams.get('action') === 'approve';
+  if (req.method !== 'GET' && !isTotalsApprove && (ctx.role === 'deputy_director' || ctx.role === 'director')) {
     return json(403, { error: 'Forbidden for your role' });
   }
   // ── List (RLS-scoped) ──
